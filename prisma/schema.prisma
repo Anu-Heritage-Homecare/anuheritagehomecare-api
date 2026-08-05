@@ -1,0 +1,39 @@
+// Prisma schema for the Anu Heritage Homecare API.
+// Docs: https://www.prisma.io/docs
+//
+// Persistence is an infrastructure concern. Prisma models below are database
+// rows only. They are mapped to and from rich domain entities inside each
+// bounded context's infrastructure layer, so the domain never depends on Prisma.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Sample bounded context: Clients (care recipients).
+model Client {
+  id        String       @id @default(uuid()) @db.Uuid
+  firstName String       @db.VarChar(100)
+  lastName  String       @db.VarChar(100)
+  email     String       @unique @db.VarChar(255)
+  phone     String       @db.VarChar(32)
+  status    ClientStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([status])
+  @@map("clients")
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+
+  @@map("client_status")
+}

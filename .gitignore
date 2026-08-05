@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Prisma
+prisma/*.db
+
+# Editor and OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Misc
+.cache/
+tmp/

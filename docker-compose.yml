@@ -1,0 +1,22 @@
+# docker-compose.yml: third party file name requires the hyphen to be recognized.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: anu_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: anu_app
+      POSTGRES_PASSWORD: change_me_locally
+      POSTGRES_DB: anuheritage
+    ports:
+      - '5432:5432'
+    volumes:
+      - anu_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U anu_app -d anuheritage']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  anu_pgdata:
