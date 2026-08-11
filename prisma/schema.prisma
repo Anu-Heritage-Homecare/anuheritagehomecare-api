@@ -37,3 +37,97 @@ enum ClientStatus {
 
   @@map("client_status")
 }
+
+// Bounded context: Identity (mobile users, authentication).
+//
+// A user is a caregiver or a family member. Family owners self register on the
+// mobile app; caregivers are onboarded later. Credentials, one time codes and
+// refresh tokens are always stored hashed, never in clear.
+model User {
+  id            String     @id @default(uuid()) @db.Uuid
+  userType      UserType
+  firstName     String     @db.VarChar(100)
+  lastName      String     @db.VarChar(100)
+  email         String     @unique @db.VarChar(255)
+  phone         String     @unique @db.VarChar(20)
+  addressLine1  String     @db.VarChar(200)
+  addressLine2  String?    @db.VarChar(200)
+  city          String     @db.VarChar(120)
+  state         String     @db.VarChar(120)
+  postalCode    String     @db.VarChar(20)
+  country       Country
+  passwordHash  String     @db.VarChar(255)
+  emailVerified Boolean    @default(false)
+  phoneVerified Boolean    @default(false)
+  isFamilyOwner Boolean    @default(false)
+  status        UserStatus @default(PENDING_VERIFICATION)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  verificationCodes VerificationCode[]
+  refreshTokens     RefreshToken[]
+
+  @@index([status])
+  @@map("users")
+}
+
+// One time passcode issued for email verification or password reset. The code
+// itself is stored only as a hash; expiry, single use and attempt caps are
+// enforced in the domain.
+model VerificationCode {
+  id         String              @id @default(uuid()) @db.Uuid
+  userId     String              @db.Uuid
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose    VerificationPurpose
+  codeHash   String              @db.VarChar(255)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int                 @default(0)
+  createdAt  DateTime            @default(now())
+
+  @@index([userId, purpose])
+  @@map("verification_codes")
+}
+
+// Persisted refresh token (stored hashed) enabling rotation and revocation.
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @db.VarChar(255)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+enum UserType {
+  CAREGIVER
+  FAMILY_MEMBER
+
+  @@map("user_type")
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+
+  @@map("user_status")
+}
+
+enum Country {
+  US
+  NG
+
+  @@map("country")
+}
+
+enum VerificationPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+
+  @@map("verification_purpose")
+}

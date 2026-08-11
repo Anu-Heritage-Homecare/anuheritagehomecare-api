@@ -10,6 +10,13 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
 - A working NestJS 11 + Domain Driven Design scaffold with one sample bounded
   context, `clients` (care recipients), implemented end to end across the domain,
   application, infrastructure and presentation layers.
+- A mobile `identity` bounded context, built end to end and unit tested: family
+  owner self signup (US or Nigeria phone), login for caregivers and family
+  members, email verification and forgot password by emailed OTP, and JWT access
+  plus rotating refresh tokens. Login is blocked until the email is verified and
+  returns the `EMAIL_NOT_VERIFIED` code so the app can route to the verify
+  screen. The Prisma models exist and the client is generated, but the migration
+  is not yet applied (no database provisioned at time of writing).
 - Shared kernel (base `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`,
   transport agnostic `DomainException`), Prisma service and module, global
   exception filters, `Clock` and `IdGenerator` ports.
@@ -153,5 +160,13 @@ persist it in the repo.
 
 - The `clients` context is a reference pattern; real bounded contexts (for
   example care workers, visits, scheduling) are not built yet.
+- The mobile `identity` context covers signup, login, email verification and
+  password reset. Still to do for identity: caregiver self signup, the admin
+  module and admin users, phone verification by SMS, and a full `Family`
+  aggregate (for now a family owner is a `FAMILY_MEMBER` flagged
+  `isFamilyOwner`).
 - Nothing is pushed. When asked to push, confirm the branch/remote first.
-- No real domain migrations beyond the sample `Client` model.
+- The `identity` migration (`User`, `VerificationCode`, `RefreshToken`) is
+  authored in `prisma/schema.prisma` but not applied. Run
+  `npm run prisma:migrate` once a database is provisioned. Beyond that there are
+  no real domain migrations past the sample `Client` model.

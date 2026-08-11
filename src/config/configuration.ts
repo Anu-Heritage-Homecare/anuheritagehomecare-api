@@ -17,7 +17,37 @@ export interface AppConfig {
   readonly logLevel: Env['LOG_LEVEL'];
 }
 
-export function buildConfig(env: Env): { app: AppConfig } {
+export interface AuthConfig {
+  readonly accessSecret: string;
+  readonly accessTtl: string;
+  readonly refreshSecret: string;
+  readonly refreshTtl: string;
+  readonly resetSecret: string;
+  readonly resetTtl: string;
+  readonly bcryptSaltRounds: number;
+}
+
+export interface OtpConfig {
+  readonly length: number;
+  readonly ttlMinutes: number;
+  readonly maxAttempts: number;
+}
+
+export interface MailConfig {
+  readonly host: string;
+  readonly port: number;
+  readonly secure: boolean;
+  readonly user: string;
+  readonly password: string;
+  readonly from: string;
+}
+
+export function buildConfig(env: Env): {
+  app: AppConfig;
+  auth: AuthConfig;
+  otp: OtpConfig;
+  mail: MailConfig;
+} {
   return {
     app: {
       nodeEnv: env.NODE_ENV,
@@ -32,6 +62,28 @@ export function buildConfig(env: Env): { app: AppConfig } {
         limit: env.THROTTLE_LIMIT,
       },
       logLevel: env.LOG_LEVEL,
+    },
+    auth: {
+      accessSecret: env.JWT_ACCESS_SECRET,
+      accessTtl: env.JWT_ACCESS_TTL,
+      refreshSecret: env.JWT_REFRESH_SECRET,
+      refreshTtl: env.JWT_REFRESH_TTL,
+      resetSecret: env.JWT_RESET_SECRET,
+      resetTtl: env.JWT_RESET_TTL,
+      bcryptSaltRounds: env.BCRYPT_SALT_ROUNDS,
+    },
+    otp: {
+      length: env.OTP_LENGTH,
+      ttlMinutes: env.OTP_TTL_MINUTES,
+      maxAttempts: env.OTP_MAX_ATTEMPTS,
+    },
+    mail: {
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_SECURE,
+      user: env.SMTP_USER,
+      password: env.SMTP_PASSWORD,
+      from: env.MAIL_FROM,
     },
   };
 }

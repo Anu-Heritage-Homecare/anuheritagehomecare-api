@@ -45,3 +45,35 @@ export class ConflictDomainException extends DomainException {
     super(message);
   }
 }
+
+export class UnauthorizedDomainException extends DomainException {
+  public readonly code = 'INVALID_CREDENTIALS';
+  public readonly kind: DomainExceptionKind = 'UNAUTHORIZED';
+
+  constructor(message = 'Invalid credentials') {
+    super(message);
+  }
+}
+
+export class ForbiddenDomainException extends DomainException {
+  public readonly code = 'FORBIDDEN';
+  public readonly kind: DomainExceptionKind = 'FORBIDDEN';
+
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+/**
+ * Raised when authentication succeeds but the account has not verified its
+ * email. Carries a distinct `code` so the mobile client can route the user to
+ * the email verification screen rather than treating it as a generic failure.
+ */
+export class EmailNotVerifiedException extends DomainException {
+  public readonly code = 'EMAIL_NOT_VERIFIED';
+  public readonly kind: DomainExceptionKind = 'FORBIDDEN';
+
+  constructor(message = 'Email address has not been verified') {
+    super(message);
+  }
+}

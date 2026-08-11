@@ -1,0 +1,151 @@
+import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { LoginUseCase } from '../application/use-cases/login.use-case';
+import { LogoutUseCase } from '../application/use-cases/logout.use-case';
+import { RefreshTokenUseCase } from '../application/use-cases/refresh-token.use-case';
+import { RegisterFamilyOwnerUseCase } from '../application/use-cases/register-family-owner.use-case';
+import { RequestPasswordResetUseCase } from '../application/use-cases/request-password-reset.use-case';
+import { ResendEmailVerificationUseCase } from '../application/use-cases/resend-email-verification.use-case';
+import { ResetPasswordUseCase } from '../application/use-cases/reset-password.use-case';
+import { VerifyEmailUseCase } from '../application/use-cases/verify-email.use-case';
+import { VerifyPasswordResetOtpUseCase } from '../application/use-cases/verify-password-reset-otp.use-case';
+import { AuthTokensResponseDto } from './dto/auth-tokens-response.dto';
+import { LoginRequestDto } from './dto/login-request.dto';
+import { LogoutRequestDto } from './dto/logout-request.dto';
+import { MessageResponseDto } from './dto/message-response.dto';
+import { RefreshTokenRequestDto } from './dto/refresh-token-request.dto';
+import { RegisterFamilyOwnerRequestDto } from './dto/register-family-owner-request.dto';
+import { RegistrationResponseDto } from './dto/registration-response.dto';
+import { RequestPasswordResetRequestDto } from './dto/request-password-reset-request.dto';
+import { ResendEmailVerificationRequestDto } from './dto/resend-email-verification-request.dto';
+import { ResetPasswordRequestDto } from './dto/reset-password-request.dto';
+import { ResetTokenResponseDto } from './dto/reset-token-response.dto';
+import { VerifyEmailRequestDto } from './dto/verify-email-request.dto';
+import { VerifyPasswordResetOtpRequestDto } from './dto/verify-password-reset-otp-request.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+
+// Tight per client limits on sensitive endpoints, layered on top of the global
+// throttler, to blunt credential stuffing and code guessing.
+const SENSITIVE_THROTTLE = { default: { limit: 5, ttl: 60_000 } };
+
+/**
+ * HTTP entry point for mobile authentication. Controllers stay thin: they
+ * translate HTTP into application commands and back into response DTOs. All
+ * business rules live in the use cases and the domain.
+ */
+@ApiTags('auth')
+@Controller({ path: 'auth', version: '1' })
+export class AuthController {
+  constructor(
+    private readonly registerFamilyOwner: RegisterFamilyOwnerUseCase,
+    private readonly login: LoginUseCase,
+    private readonly refreshToken: RefreshTokenUseCase,
+    private readonly logout: LogoutUseCase,
+    private readonly verifyEmail: VerifyEmailUseCase,
+    private readonly resendEmailVerification: ResendEmailVerificationUseCase,
+    private readonly requestPasswordReset: RequestPasswordResetUseCase,
+    private readonly verifyPasswordResetOtp: VerifyPasswordResetOtpUseCase,
+    private readonly resetPassword: ResetPasswordUseCase,
+  ) {}
+
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Register a family owner (mobile)' })
+  @ApiCreatedResponse({ type: RegistrationResponseDto })
+  async register(@Body() body: RegisterFamilyOwnerRequestDto): Promise<RegistrationResponseDto> {
+    const result = await this.registerFamilyOwner.execute(body);
+    return RegistrationResponseDto.fromResult(result);
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({ summary: 'Log in with email and password' })
+  @ApiOkResponse({ type: AuthTokensResponseDto })
+  async logIn(@Body() body: LoginRequestDto): Promise<AuthTokensResponseDto> {
+    const result = await this.login.execute(body);
+    return AuthTokensResponseDto.fromResult(result);
+  }
+
+  @Post('token/refresh')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({ summary: 'Exchange a refresh token for a new token pair' })
+  @ApiOkResponse({ type: AuthTokensResponseDto })
+  async refresh(@Body() body: RefreshTokenRequestDto): Promise<AuthTokensResponseDto> {
+    const result = await this.refreshToken.execute(body);
+    return AuthTokensResponseDto.fromResult(result);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a refresh token' })
+  @ApiOkResponse({ type: MessageResponseDto })
+  async logOut(@Body() body: LogoutRequestDto): Promise<MessageResponseDto> {
+    const result = await this.logout.execute(body);
+    return MessageResponseDto.fromResult(result);
+  }
+
+  @Post('email/verify')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({ summary: 'Verify an email address with the emailed code' })
+  @ApiOkResponse({ type: MessageResponseDto })
+  async verifyEmailAddress(@Body() body: VerifyEmailRequestDto): Promise<MessageResponseDto> {
+    const result = await this.verifyEmail.execute(body);
+    return MessageResponseDto.fromResult(result);
+  }
+
+  @Post('email/resend')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({ summary: 'Resend the email verification code' })
+  @ApiOkResponse({ type: MessageResponseDto })
+  async resendVerification(
+    @Body() body: ResendEmailVerificationRequestDto,
+  ): Promise<MessageResponseDto> {
+    const result = await this.resendEmailVerification.execute(body);
+    return MessageResponseDto.fromResult(result);
+  }
+
+  @Post('password/forgot')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({ summary: 'Request a password reset code' })
+  @ApiOkResponse({ type: MessageResponseDto })
+  async forgotPassword(@Body() body: RequestPasswordResetRequestDto): Promise<MessageResponseDto> {
+    const result = await this.requestPasswordReset.execute(body);
+    return MessageResponseDto.fromResult(result);
+  }
+
+  @Post('password/verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({ summary: 'Verify a password reset code and obtain a reset token' })
+  @ApiOkResponse({ type: ResetTokenResponseDto })
+  async verifyResetCode(
+    @Body() body: VerifyPasswordResetOtpRequestDto,
+  ): Promise<ResetTokenResponseDto> {
+    const result = await this.verifyPasswordResetOtp.execute(body);
+    return ResetTokenResponseDto.fromResult(result);
+  }
+
+  @Post('password/reset')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({ summary: 'Set a new password using a reset token' })
+  @ApiOkResponse({ type: MessageResponseDto })
+  async resetUserPassword(@Body() body: ResetPasswordRequestDto): Promise<MessageResponseDto> {
+    const result = await this.resetPassword.execute(body);
+    return MessageResponseDto.fromResult(result);
+  }
+}

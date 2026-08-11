@@ -7,6 +7,7 @@ import { AppConfig, buildConfig } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { ClientsModule } from './modules/clients/clients.module';
 import { HealthModule } from './modules/health/health.module';
+import { IdentityModule } from './modules/identity/identity.module';
 import { AllExceptionsFilter } from './shared/infrastructure/http/all-exceptions.filter';
 import { DomainExceptionFilter } from './shared/infrastructure/http/domain-exception.filter';
 import { PrismaModule } from './shared/infrastructure/prisma/prisma.module';
@@ -35,6 +36,12 @@ import { SharedModule } from './shared/shared.module';
                 'req.headers.cookie',
                 'req.body.password',
                 'req.body.token',
+                'req.body.newPassword',
+                'req.body.currentPassword',
+                'req.body.code',
+                'req.body.otp',
+                'req.body.refreshToken',
+                'req.body.resetToken',
               ],
               remove: true,
             },
@@ -63,6 +70,7 @@ import { SharedModule } from './shared/shared.module';
 
     HealthModule,
     ClientsModule,
+    IdentityModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
