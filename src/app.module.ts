@@ -9,6 +9,7 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { CarePlansModule } from './modules/care-plans/care-plans.module';
 import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
 import { ClientsModule } from './modules/clients/clients.module';
+import { KycModule } from './modules/kyc/kyc.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityModule } from './modules/identity/identity.module';
@@ -52,6 +53,9 @@ import { SharedModule } from './shared/shared.module';
                 'req.body.allergies',
                 'req.body.medications',
                 'req.body.fullAddress',
+                // KYC identity documents are sensitive personal data.
+                'req.body.ssnLast4',
+                'req.body.idNumber',
               ],
               remove: true,
             },
@@ -84,6 +88,7 @@ import { SharedModule } from './shared/shared.module';
     CareRecipientsModule,
     CarePlansModule,
     BookingsModule,
+    KycModule,
     PaymentsModule,
   ],
   providers: [

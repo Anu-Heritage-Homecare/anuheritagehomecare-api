@@ -62,6 +62,13 @@ export const envSchema = z.object({
   PAYSTACK_SECRET_KEY: z.string().default(''),
   PAYSTACK_WEBHOOK_SECRET: z.string().default(''),
   PAYMENT_CALLBACK_URL: z.string().default(''),
+
+  // KYC. US owners verify through Stripe (reusing STRIPE_SECRET_KEY above);
+  // Nigeria owners verify a NIN or passport through QoreID. Optional so the
+  // service boots without them; the adapters fail closed if used unconfigured.
+  QOREID_CLIENT_ID: z.string().default(''),
+  QOREID_SECRET: z.string().default(''),
+  QOREID_BASE_URL: z.string().default('https://api.qoreid.com'),
 });
 
 export type Env = z.infer<typeof envSchema>;

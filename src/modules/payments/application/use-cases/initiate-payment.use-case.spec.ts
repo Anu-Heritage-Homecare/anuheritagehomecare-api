@@ -1,10 +1,15 @@
 import { Currency } from '@shared/domain/currency.enum';
-import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
+import {
+  KycRequiredException,
+  NotFoundDomainException,
+  ValidationException,
+} from '@shared/domain/domain-exception';
 import { PayableType } from '../../domain/payable-type.enum';
 import { PaymentProvider } from '../../domain/payment-provider.enum';
 import { PaymentStatus } from '../../domain/payment-status.enum';
 import { PayableSummary } from '../ports/payable-service.port';
 import {
+  FakeKycStatusService,
   FakePayableService,
   FakePaymentGateway,
   InMemoryPaymentRepository,
@@ -32,6 +37,7 @@ describe('InitiatePaymentUseCase', () => {
       payments,
       payables,
       new FakePaymentGateway(),
+      new FakeKycStatusService(),
       fixedClock,
       sequentialIds('pay'),
     );
@@ -71,10 +77,25 @@ describe('InitiatePaymentUseCase', () => {
       payments,
       payables,
       new FakePaymentGateway(),
+      new FakeKycStatusService(),
       fixedClock,
       sequentialIds('pay'),
     );
 
     await expect(useCase.execute(command)).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('blocks payment until the owner has passed KYC', async () => {
+    const gated = new InitiatePaymentUseCase(
+      payments,
+      payables,
+      new FakePaymentGateway(),
+      new FakeKycStatusService(false),
+      fixedClock,
+      sequentialIds('pay'),
+    );
+
+    await expect(gated.execute(command)).rejects.toBeInstanceOf(KycRequiredException);
+    expect(payments.store.size).toBe(0);
   });
 });

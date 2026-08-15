@@ -55,6 +55,12 @@ export interface PaymentConfig {
   readonly callbackUrl: string;
 }
 
+export interface KycConfig {
+  readonly qoreIdClientId: string;
+  readonly qoreIdSecret: string;
+  readonly qoreIdBaseUrl: string;
+}
+
 export function buildConfig(env: Env): {
   app: AppConfig;
   auth: AuthConfig;
@@ -62,6 +68,7 @@ export function buildConfig(env: Env): {
   mail: MailConfig;
   booking: BookingConfig;
   payment: PaymentConfig;
+  kyc: KycConfig;
 } {
   return {
     app: {
@@ -110,6 +117,11 @@ export function buildConfig(env: Env): {
       paystackSecretKey: env.PAYSTACK_SECRET_KEY,
       paystackWebhookSecret: env.PAYSTACK_WEBHOOK_SECRET,
       callbackUrl: env.PAYMENT_CALLBACK_URL,
+    },
+    kyc: {
+      qoreIdClientId: env.QOREID_CLIENT_ID,
+      qoreIdSecret: env.QOREID_SECRET,
+      qoreIdBaseUrl: env.QOREID_BASE_URL,
     },
   };
 }

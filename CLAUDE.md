@@ -50,6 +50,15 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
   `fetch` and HMAC signature verification) but are NOT yet verified against live
   accounts: they need provider keys and a database. Keys are optional in config,
   and each adapter fails closed if used without its key.
+- A `kyc` context (family owner identity verification). US owners verify the last
+  four of their SSN through Stripe; Nigeria owners verify a NIN or international
+  passport through QoreID, chosen by the owner's country. Only a masked remnant
+  (last four) and the provider reference are stored, never the full number, and
+  the document fields are redacted from logs. A verified KYC is required before
+  `payments` will initiate a charge (returns the `KYC_REQUIRED` code otherwise).
+  The QoreID and Stripe Identity adapters are written but not yet verified against
+  live accounts; Stripe Identity is asynchronous, so completing a US verification
+  by webhook is a documented follow up.
 - Shared kernel (base `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`,
   `Money`, `Currency`,
   transport agnostic `DomainException`), Prisma service and module, global

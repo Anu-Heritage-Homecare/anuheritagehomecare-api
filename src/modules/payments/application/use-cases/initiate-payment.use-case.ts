@@ -1,8 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generator.port';
-import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
+import {
+  KycRequiredException,
+  NotFoundDomainException,
+  ValidationException,
+} from '@shared/domain/domain-exception';
 import { Money } from '@shared/domain/money.vo';
+import {
+  KYC_STATUS_SERVICE,
+  KycStatusService,
+} from '@modules/kyc/application/ports/kyc-status.port';
 import { Payment } from '../../domain/payment.entity';
 import { providerForCurrency } from '../../domain/payment-provider.enum';
 import { PAYMENT_REPOSITORY, PaymentRepository } from '../../domain/payment.repository';
@@ -24,11 +32,16 @@ export class InitiatePaymentUseCase {
     @Inject(PAYMENT_REPOSITORY) private readonly payments: PaymentRepository,
     @Inject(PAYABLE_SERVICE) private readonly payables: PayableService,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
+    @Inject(KYC_STATUS_SERVICE) private readonly kyc: KycStatusService,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
   ) {}
 
   async execute(command: InitiatePaymentCommand): Promise<PaymentInitiationResult> {
+    if (!(await this.kyc.isVerified(command.ownerId))) {
+      throw new KycRequiredException('Identity verification is required before payment');
+    }
+
     const payable = await this.payables.load(command.payableType, command.payableId);
     if (payable === null || payable.ownerId !== command.ownerId) {
       throw new NotFoundDomainException('Nothing to pay for was found');

@@ -7,6 +7,7 @@ import {
   PaymentVerification,
   WebhookPaymentEvent,
 } from '../application/ports/payment-gateway.port';
+import { KycStatusService } from '@modules/kyc/application/ports/kyc-status.port';
 import { PayableService, PayableSummary } from '../application/ports/payable-service.port';
 import { PayableType } from '../domain/payable-type.enum';
 import { Payment } from '../domain/payment.entity';
@@ -65,6 +66,15 @@ export class FakePaymentGateway implements PaymentGateway {
       throw new Error('Invalid signature');
     }
     return JSON.parse(rawBody) as WebhookPaymentEvent;
+  }
+}
+
+/** KYC status stub; verified by default. */
+export class FakeKycStatusService implements KycStatusService {
+  constructor(private readonly verified = true) {}
+
+  isVerified(): Promise<boolean> {
+    return Promise.resolve(this.verified);
   }
 }
 

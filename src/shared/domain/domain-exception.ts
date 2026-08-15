@@ -77,3 +77,17 @@ export class EmailNotVerifiedException extends DomainException {
     super(message);
   }
 }
+
+/**
+ * Raised when an action requires the owner to have passed identity verification
+ * (KYC) and they have not. Carries a distinct `code` so the mobile client can
+ * route the user to the KYC screen.
+ */
+export class KycRequiredException extends DomainException {
+  public readonly code = 'KYC_REQUIRED';
+  public readonly kind: DomainExceptionKind = 'FORBIDDEN';
+
+  constructor(message = 'Identity verification is required before this action') {
+    super(message);
+  }
+}

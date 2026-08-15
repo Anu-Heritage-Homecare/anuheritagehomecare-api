@@ -416,3 +416,47 @@ enum PayableType {
 
   @@map("payable_type")
 }
+
+// Bounded context: KYC (identity verification of the family owner).
+//
+// US owners verify the last four of their SSN through Stripe; Nigeria owners
+// verify a NIN or international passport through QoreID. Only a masked reference
+// (last four) and the provider's reference are stored, never the full number.
+model KycVerification {
+  id                String          @id @default(uuid()) @db.Uuid
+  ownerId           String          @unique @db.Uuid
+  country           Country
+  provider          KycProvider
+  documentType      KycDocumentType
+  maskedReference   String          @db.VarChar(20)
+  providerReference String?         @db.VarChar(200)
+  status            KycStatus       @default(PENDING)
+  verifiedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("kyc_verifications")
+}
+
+enum KycProvider {
+  STRIPE
+  QOREID
+
+  @@map("kyc_provider")
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  FAILED
+
+  @@map("kyc_status")
+}
+
+enum KycDocumentType {
+  SSN_LAST4
+  NIN
+  PASSPORT
+
+  @@map("kyc_document_type")
+}
