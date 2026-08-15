@@ -17,6 +17,19 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
   returns the `EMAIL_NOT_VERIFIED` code so the app can route to the verify
   screen. The Prisma models exist and the client is generated, but the migration
   is not yet applied (no database provisioned at time of writing).
+- A mobile `care-recipients` bounded context, built end to end and unit tested:
+  after signup a family owner onboards each loved one through a multi step wizard
+  (identity profile, care needs, health and medication information, care
+  schedule) that is finalised into an active record. It is a draft plus steps
+  API: creating the profile opens a `DRAFT`, each step is an idempotent `PUT`, and
+  `finalize` promotes it to `ACTIVE`. Onboarding progress is persisted as an
+  `onboardingStep` pointer surfaced to the client as `nextStep`, so a family that
+  leaves the app mid onboarding resumes exactly where they stopped (list or fetch
+  a draft and jump to `nextStep`). Every route is JWT protected and scoped to the
+  owner; the profile photo is stored as an opaque `photoKey` (upload endpoint
+  deferred); relationship, living situation and expected duration are free text;
+  health data is redacted from logs. The Prisma models are authored and the
+  client is generated, but the migration is not yet applied.
 - Shared kernel (base `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`,
   transport agnostic `DomainException`), Prisma service and module, global
   exception filters, `Clock` and `IdGenerator` ports.
@@ -165,8 +178,16 @@ persist it in the repo.
   module and admin users, phone verification by SMS, and a full `Family`
   aggregate (for now a family owner is a `FAMILY_MEMBER` flagged
   `isFamilyOwner`).
+- The `care-recipients` context covers the loved one onboarding wizard end to
+  end. Still to do: a real profile photo upload endpoint (storage was not
+  provisioned, so only an opaque `photoKey` is stored for now); restricting
+  creation to family owners specifically once caregiver accounts exist (today any
+  authenticated user can own a record, and access is owner scoped); and any
+  richer care plan modelling that scheduling will need later.
 - Nothing is pushed. When asked to push, confirm the branch/remote first.
-- The `identity` migration (`User`, `VerificationCode`, `RefreshToken`) is
-  authored in `prisma/schema.prisma` but not applied. Run
-  `npm run prisma:migrate` once a database is provisioned. Beyond that there are
-  no real domain migrations past the sample `Client` model.
+- The `identity` migration (`User`, `VerificationCode`, `RefreshToken`) and the
+  `care-recipients` migration (`CareRecipient` plus the `Gender`, `CareNeed`,
+  `CareFrequency`, `CareRecipientStatus` and `OnboardingStep` enums) are authored
+  in `prisma/schema.prisma` but not applied. Run `npm run prisma:migrate` once a
+  database is provisioned. Beyond that there are no real domain migrations past
+  the sample `Client` model.

@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, buildConfig } from './config/configuration';
 import { validateEnv } from './config/env.validation';
+import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityModule } from './modules/identity/identity.module';
@@ -42,6 +43,12 @@ import { SharedModule } from './shared/shared.module';
                 'req.body.otp',
                 'req.body.refreshToken',
                 'req.body.resetToken',
+                // Care recipient health and medication data is sensitive personal
+                // data and must never reach the logs.
+                'req.body.medicalConditions',
+                'req.body.allergies',
+                'req.body.medications',
+                'req.body.fullAddress',
               ],
               remove: true,
             },
@@ -71,6 +78,7 @@ import { SharedModule } from './shared/shared.module';
     HealthModule,
     ClientsModule,
     IdentityModule,
+    CareRecipientsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

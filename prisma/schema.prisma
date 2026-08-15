@@ -131,3 +131,104 @@ enum VerificationPurpose {
 
   @@map("verification_purpose")
 }
+
+// Bounded context: Care recipients (the "loved one" a family owner onboards).
+//
+// A family owner creates a digital identity for each member receiving care
+// through a multi step wizard. The record is created as a DRAFT holding the
+// identity profile, then progressively enriched with care needs, health and
+// medication information and a care schedule before being finalised (ACTIVE).
+//
+// `ownerId` references the identity User aggregate by id only. Aggregates in
+// different bounded contexts are linked by identifier without a database foreign
+// key, so each context owns its own consistency boundary. Health and medication
+// data is sensitive personal data and is never logged.
+model CareRecipient {
+  id      String              @id @default(uuid()) @db.Uuid
+  ownerId String              @db.Uuid
+  status  CareRecipientStatus @default(DRAFT)
+
+  // Resume pointer: the wizard step to send the owner back to if they leave and
+  // return mid onboarding.
+  onboardingStep OnboardingStep @default(CARE_NEEDS)
+
+  // Step 1: identity profile (always present from draft creation).
+  name            String   @db.VarChar(200)
+  gender          Gender
+  dateOfBirth     DateTime @db.Date
+  city            String   @db.VarChar(120)
+  state           String   @db.VarChar(120)
+  fullAddress     String   @db.VarChar(300)
+  relationship    String   @db.VarChar(120)
+  livingSituation String   @db.VarChar(120)
+  photoKey        String?  @db.VarChar(500)
+
+  // Step 2: care needs (empty until the step is completed).
+  careNeeds CareNeed[] @default([])
+
+  // Step 3: health and medication information (null until the step is completed).
+  medicalConditions  String[] @default([])
+  allergies          String[] @default([])
+  needsMedicationHelp Boolean?
+  medications        String[] @default([])
+
+  // Step 4: care schedule (null until the step is completed).
+  careFrequency     CareFrequency?
+  estimatedStartDate DateTime?     @db.Date
+  expectedDuration  String?        @db.VarChar(120)
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([ownerId])
+  @@index([ownerId, status])
+  @@map("care_recipients")
+}
+
+enum CareRecipientStatus {
+  DRAFT
+  ACTIVE
+
+  @@map("care_recipient_status")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+
+  @@map("gender")
+}
+
+enum CareNeed {
+  BATHING
+  DRESSING
+  GROOMING
+  TOILETING
+  MEAL_PREPARATION
+  HOUSEKEEPING
+  LAUNDRY
+  SHOPPING
+
+  @@map("care_need")
+}
+
+enum CareFrequency {
+  ONE_TIME_VISIT
+  DAILY
+  WEEKLY
+  LIVE_IN_CARE
+
+  @@map("care_frequency")
+}
+
+enum OnboardingStep {
+  PROFILE
+  CARE_NEEDS
+  HEALTH
+  SCHEDULE
+  REVIEW
+  COMPLETED
+
+  @@map("onboarding_step")
+}
