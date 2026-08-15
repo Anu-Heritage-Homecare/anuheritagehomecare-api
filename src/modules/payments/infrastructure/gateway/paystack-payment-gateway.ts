@@ -8,7 +8,11 @@ import {
   PaymentVerification,
   WebhookPaymentEvent,
 } from '../../application/ports/payment-gateway.port';
-import { ProviderGateway, ProviderInitializeParams } from './provider-gateway';
+import {
+  ProviderGateway,
+  ProviderInitializeParams,
+  ProviderInitializeSubscriptionParams,
+} from './provider-gateway';
 
 const PAYSTACK_API = 'https://api.paystack.co';
 
@@ -46,6 +50,32 @@ export class PaystackPaymentGateway implements ProviderGateway {
       email: params.ownerEmail,
       amount: params.amount.amountMinor,
       currency: params.amount.currency,
+      reference: params.reference,
+      metadata: params.metadata,
+    };
+    if (this.config.callbackUrl.length > 0) {
+      payload.callback_url = this.config.callbackUrl;
+    }
+
+    const response = await this.call<PaystackInitializeResponse>(
+      'POST',
+      '/transaction/initialize',
+      payload,
+    );
+    return {
+      providerReference: response.data.reference,
+      authorizationUrl: response.data.authorization_url,
+    };
+  }
+
+  async initializeSubscription(
+    params: ProviderInitializeSubscriptionParams,
+  ): Promise<PaymentInitialization> {
+    // Initializing a transaction with a plan makes Paystack create the
+    // subscription automatically once the first payment succeeds.
+    const payload: Record<string, unknown> = {
+      email: params.ownerEmail,
+      plan: params.planReference,
       reference: params.reference,
       metadata: params.metadata,
     };

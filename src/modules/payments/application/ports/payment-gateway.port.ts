@@ -12,6 +12,16 @@ export interface InitializePaymentParams {
   metadata: Record<string, string>;
 }
 
+export interface InitializeSubscriptionParams {
+  provider: PaymentProvider;
+  /** The recurring price (Stripe) or plan code (Paystack) at the provider. */
+  planReference: string;
+  amount: Money;
+  reference: string;
+  ownerEmail: string;
+  metadata: Record<string, string>;
+}
+
 export interface PaymentInitialization {
   /** The provider's own transaction or intent identifier. */
   providerReference: string;
@@ -39,6 +49,8 @@ export interface WebhookPaymentEvent {
  */
 export interface PaymentGateway {
   initialize(params: InitializePaymentParams): Promise<PaymentInitialization>;
+  /** Start a recurring subscription and collect its first payment. */
+  initializeSubscription(params: InitializeSubscriptionParams): Promise<PaymentInitialization>;
   verify(provider: PaymentProvider, providerReference: string): Promise<PaymentVerification>;
   /** Verify the webhook signature and parse it, or throw if the signature is invalid. */
   parseWebhook(provider: PaymentProvider, rawBody: string, signature: string): WebhookPaymentEvent;

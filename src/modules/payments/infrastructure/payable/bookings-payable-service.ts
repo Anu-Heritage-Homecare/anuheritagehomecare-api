@@ -7,6 +7,10 @@ import {
   SubscriptionRepository,
 } from '@modules/bookings/domain/subscription.repository';
 import { SubscriptionStatus } from '@modules/bookings/domain/subscription-status.enum';
+import {
+  CARE_PLAN_REPOSITORY,
+  CarePlanRepository,
+} from '@modules/care-plans/domain/care-plan.repository';
 import { PayableType } from '../../domain/payable-type.enum';
 import { PayableService, PayableSummary } from '../../application/ports/payable-service.port';
 
@@ -20,6 +24,7 @@ export class BookingsPayableService implements PayableService {
   constructor(
     @Inject(BOOKING_REPOSITORY) private readonly bookings: BookingRepository,
     @Inject(SUBSCRIPTION_REPOSITORY) private readonly subscriptions: SubscriptionRepository,
+    @Inject(CARE_PLAN_REPOSITORY) private readonly plans: CarePlanRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -34,6 +39,7 @@ export class BookingsPayableService implements PayableService {
         currency: booking.price.total.currency,
         amountMinor: booking.price.total.amountMinor,
         alreadyPaid: booking.status !== BookingStatus.PendingPayment,
+        recurring: null,
       };
     }
 
@@ -41,11 +47,17 @@ export class BookingsPayableService implements PayableService {
     if (subscription === null) {
       return null;
     }
+    const plan = await this.plans.findByType(subscription.planType);
+    const price = plan?.priceFor(subscription.monthlyPrice.currency) ?? null;
     return {
       ownerId: subscription.ownerId,
       currency: subscription.monthlyPrice.currency,
       amountMinor: subscription.monthlyPrice.amountMinor,
       alreadyPaid: subscription.status !== SubscriptionStatus.PendingPayment,
+      recurring: {
+        stripePriceId: price?.stripePriceId ?? null,
+        paystackPlanCode: price?.paystackPlanCode ?? null,
+      },
     };
   }
 

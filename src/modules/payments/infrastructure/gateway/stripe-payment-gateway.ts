@@ -8,7 +8,11 @@ import {
   PaymentVerification,
   WebhookPaymentEvent,
 } from '../../application/ports/payment-gateway.port';
-import { ProviderGateway, ProviderInitializeParams } from './provider-gateway';
+import {
+  ProviderGateway,
+  ProviderInitializeParams,
+  ProviderInitializeSubscriptionParams,
+} from './provider-gateway';
 
 const STRIPE_API = 'https://api.stripe.com/v1';
 
@@ -18,6 +22,15 @@ interface StripeIntent {
   status: string;
   amount: number;
   currency: string;
+}
+
+interface StripeCustomer {
+  id: string;
+}
+
+interface StripeSubscription {
+  id: string;
+  latest_invoice: { payment_intent: { client_secret: string } };
 }
 
 /**
@@ -56,6 +69,30 @@ export class StripePaymentGateway implements ProviderGateway {
     return { providerReference: intent.id, clientSecret: intent.client_secret };
   }
 
+  async initializeSubscription(
+    params: ProviderInitializeSubscriptionParams,
+  ): Promise<PaymentInitialization> {
+    const customerForm = new URLSearchParams();
+    customerForm.set('email', params.ownerEmail);
+    const customer = await this.call<StripeCustomer>('POST', '/customers', customerForm);
+
+    const body = new URLSearchParams();
+    body.set('customer', customer.id);
+    body.set('items[0][price]', params.planReference);
+    body.set('payment_behavior', 'default_incomplete');
+    body.set('expand[]', 'latest_invoice.payment_intent');
+    body.set('metadata[reference]', params.reference);
+    for (const [key, value] of Object.entries(params.metadata)) {
+      body.set(`metadata[${key}]`, value);
+    }
+
+    const subscription = await this.call<StripeSubscription>('POST', '/subscriptions', body);
+    return {
+      providerReference: subscription.id,
+      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+    };
+  }
+
   async verify(providerReference: string): Promise<PaymentVerification> {
     const intent = await this.call<StripeIntent>(
       'GET',
@@ -76,13 +113,17 @@ export class StripePaymentGateway implements ProviderGateway {
 
     const event = JSON.parse(rawBody) as {
       type: string;
-      data: { object: { id: string } };
+      data: { object: { id: string; subscription?: string } };
     };
-    const providerReference = event.data.object.id;
-    if (event.type === 'payment_intent.succeeded') {
+    // For one time charges the reference is the PaymentIntent id; for
+    // subscriptions the invoice carries the subscription id we stored.
+    const object = event.data.object;
+    const providerReference = object.subscription ?? object.id;
+
+    if (event.type === 'payment_intent.succeeded' || event.type === 'invoice.payment_succeeded') {
       return { providerReference, outcome: 'succeeded' };
     }
-    if (event.type === 'payment_intent.payment_failed') {
+    if (event.type === 'payment_intent.payment_failed' || event.type === 'invoice.payment_failed') {
       return { providerReference, outcome: 'failed' };
     }
     return { providerReference, outcome: 'pending' };

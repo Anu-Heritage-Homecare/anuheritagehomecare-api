@@ -2,6 +2,7 @@ import { Clock } from '@shared/application/ports/clock.port';
 import { IdGenerator } from '@shared/application/ports/id-generator.port';
 import {
   InitializePaymentParams,
+  InitializeSubscriptionParams,
   PaymentGateway,
   PaymentInitialization,
   PaymentVerification,
@@ -53,6 +54,13 @@ export class FakePaymentGateway implements PaymentGateway {
   initialize(params: InitializePaymentParams): Promise<PaymentInitialization> {
     return Promise.resolve({
       providerReference: `prov_${params.reference}`,
+      clientSecret: `cs_${params.reference}`,
+    });
+  }
+
+  initializeSubscription(params: InitializeSubscriptionParams): Promise<PaymentInitialization> {
+    return Promise.resolve({
+      providerReference: `sub_${params.reference}`,
       clientSecret: `cs_${params.reference}`,
     });
   }

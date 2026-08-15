@@ -30,6 +30,7 @@ export class CarePlanMapper {
           currency,
           Money.fromMinor(price.unitAmountMinor, currency),
           Money.fromMinor(price.serviceFeeMinor, currency),
+          { stripePriceId: price.stripePriceId, paystackPlanCode: price.paystackPlanCode },
         );
       }),
     });

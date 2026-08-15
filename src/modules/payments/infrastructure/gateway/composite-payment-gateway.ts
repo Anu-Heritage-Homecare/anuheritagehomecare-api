@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   InitializePaymentParams,
+  InitializeSubscriptionParams,
   PaymentGateway,
   PaymentInitialization,
   PaymentVerification,
@@ -29,6 +30,16 @@ export class CompositePaymentGateway implements PaymentGateway {
 
   initialize(params: InitializePaymentParams): Promise<PaymentInitialization> {
     return this.providers[params.provider].initialize({
+      amount: params.amount,
+      reference: params.reference,
+      ownerEmail: params.ownerEmail,
+      metadata: params.metadata,
+    });
+  }
+
+  initializeSubscription(params: InitializeSubscriptionParams): Promise<PaymentInitialization> {
+    return this.providers[params.provider].initializeSubscription({
+      planReference: params.planReference,
       amount: params.amount,
       reference: params.reference,
       ownerEmail: params.ownerEmail,

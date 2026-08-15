@@ -7,14 +7,23 @@ import { BillingModel, CarePlanType, Currency, PrismaClient } from '@prisma/clie
 const prisma = new PrismaClient();
 
 // PLACEHOLDER pricing only. Amounts are in minor units (cents, kobo). Replace
-// with the real, business approved prices before going live.
+// with the real, business approved prices before going live. For the monthly
+// plans, also set stripePriceId (a Stripe recurring Price) and paystackPlanCode
+// (a Paystack plan) once they are created at the providers; recurring billing
+// cannot start without them.
 interface PlanSeed {
   type: CarePlanType;
   name: string;
   description: string;
   billingModel: BillingModel;
   allowedHours: number[];
-  prices: { currency: Currency; unitAmountMinor: number; serviceFeeMinor: number }[];
+  prices: {
+    currency: Currency;
+    unitAmountMinor: number;
+    serviceFeeMinor: number;
+    stripePriceId?: string;
+    paystackPlanCode?: string;
+  }[];
 }
 
 const CARE_PLANS: PlanSeed[] = [
@@ -89,12 +98,16 @@ async function seedCarePlans(): Promise<void> {
         update: {
           unitAmountMinor: price.unitAmountMinor,
           serviceFeeMinor: price.serviceFeeMinor,
+          stripePriceId: price.stripePriceId ?? null,
+          paystackPlanCode: price.paystackPlanCode ?? null,
         },
         create: {
           planId: saved.id,
           currency: price.currency,
           unitAmountMinor: price.unitAmountMinor,
           serviceFeeMinor: price.serviceFeeMinor,
+          stripePriceId: price.stripePriceId ?? null,
+          paystackPlanCode: price.paystackPlanCode ?? null,
         },
       });
     }

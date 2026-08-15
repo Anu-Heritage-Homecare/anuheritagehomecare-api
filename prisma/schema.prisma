@@ -264,6 +264,11 @@ model CarePlanPrice {
   unitAmountMinor Int
   serviceFeeMinor Int      @default(0)
 
+  // Recurring billing references at the provider for monthly plans: a Stripe
+  // recurring Price id (USD) and a Paystack plan code (NGN).
+  stripePriceId    String? @db.VarChar(200)
+  paystackPlanCode String? @db.VarChar(200)
+
   @@unique([planId, currency])
   @@map("care_plan_prices")
 }

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { BookingsModule } from '@modules/bookings/bookings.module';
+import { CarePlansModule } from '@modules/care-plans/care-plans.module';
 import { KycModule } from '@modules/kyc/kyc.module';
 import { PAYABLE_SERVICE } from './application/ports/payable-service.port';
 import { PAYMENT_GATEWAY } from './application/ports/payment-gateway.port';
@@ -26,7 +27,7 @@ import { PaymentsController } from './presentation/payments.controller';
  * accounts; they require provider keys and a database to exercise.
  */
 @Module({
-  imports: [PassportModule, BookingsModule, KycModule],
+  imports: [PassportModule, BookingsModule, CarePlansModule, KycModule],
   controllers: [PaymentsController, PaymentWebhooksController],
   providers: [
     InitiatePaymentUseCase,

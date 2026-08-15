@@ -12,11 +12,11 @@ import {
   KycStatusService,
 } from '@modules/kyc/application/ports/kyc-status.port';
 import { Payment } from '../../domain/payment.entity';
-import { providerForCurrency } from '../../domain/payment-provider.enum';
+import { PaymentProvider, providerForCurrency } from '../../domain/payment-provider.enum';
 import { PAYMENT_REPOSITORY, PaymentRepository } from '../../domain/payment.repository';
 import { InitiatePaymentCommand } from '../commands/initiate-payment.command';
 import { PaymentInitiationResult } from '../dto/payment.result';
-import { PAYABLE_SERVICE, PayableService } from '../ports/payable-service.port';
+import { PAYABLE_SERVICE, PayableRecurring, PayableService } from '../ports/payable-service.port';
 import { PAYMENT_GATEWAY, PaymentGateway } from '../ports/payment-gateway.port';
 
 /**
@@ -53,19 +53,30 @@ export class InitiatePaymentUseCase {
     const amount = Money.fromMinor(payable.amountMinor, payable.currency);
     const provider = providerForCurrency(payable.currency);
     const paymentId = this.ids.generate();
+    const metadata = {
+      paymentId,
+      ownerId: command.ownerId,
+      payableType: command.payableType,
+      payableId: command.payableId,
+    };
 
-    const initialization = await this.gateway.initialize({
-      provider,
-      amount,
-      reference: paymentId,
-      ownerEmail: command.ownerEmail,
-      metadata: {
-        paymentId,
-        ownerId: command.ownerId,
-        payableType: command.payableType,
-        payableId: command.payableId,
-      },
-    });
+    const initialization =
+      payable.recurring === null
+        ? await this.gateway.initialize({
+            provider,
+            amount,
+            reference: paymentId,
+            ownerEmail: command.ownerEmail,
+            metadata,
+          })
+        : await this.gateway.initializeSubscription({
+            provider,
+            planReference: this.planReferenceFor(provider, payable.recurring),
+            amount,
+            reference: paymentId,
+            ownerEmail: command.ownerEmail,
+            metadata,
+          });
 
     const payment = Payment.initiate({
       id: paymentId,
@@ -88,5 +99,14 @@ export class InitiatePaymentUseCase {
       clientSecret: initialization.clientSecret ?? null,
       authorizationUrl: initialization.authorizationUrl ?? null,
     };
+  }
+
+  private planReferenceFor(provider: PaymentProvider, recurring: PayableRecurring): string {
+    const reference =
+      provider === PaymentProvider.Stripe ? recurring.stripePriceId : recurring.paystackPlanCode;
+    if (reference === null || reference.length === 0) {
+      throw new ValidationException('This plan is not configured for recurring billing yet');
+    }
+    return reference;
   }
 }

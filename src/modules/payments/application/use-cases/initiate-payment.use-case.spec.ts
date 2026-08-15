@@ -28,11 +28,25 @@ describe('InitiatePaymentUseCase', () => {
     currency: Currency.UnitedStatesDollar,
     amountMinor: 19000,
     alreadyPaid: false,
+    recurring: null,
+  };
+
+  const subscription: PayableSummary = {
+    ownerId: 'owner-1',
+    currency: Currency.UnitedStatesDollar,
+    amountMinor: 50000,
+    alreadyPaid: false,
+    recurring: { stripePriceId: 'price_standard_usd', paystackPlanCode: null },
   };
 
   beforeEach(() => {
     payments = new InMemoryPaymentRepository();
-    payables = new FakePayableService(new Map([['BOOKING:booking-1', booking]]));
+    payables = new FakePayableService(
+      new Map([
+        ['BOOKING:booking-1', booking],
+        ['SUBSCRIPTION:sub-1', subscription],
+      ]),
+    );
     useCase = new InitiatePaymentUseCase(
       payments,
       payables,
@@ -58,6 +72,18 @@ describe('InitiatePaymentUseCase', () => {
     expect(result.amountMinor).toBe(19000);
     expect(result.clientSecret).toBe('cs_pay-1');
     expect(payments.store.size).toBe(1);
+  });
+
+  it('starts a provider subscription for a monthly plan', async () => {
+    const result = await useCase.execute({
+      ...command,
+      payableType: PayableType.Subscription,
+      payableId: 'sub-1',
+    });
+
+    expect(result.amountMinor).toBe(50000);
+    const stored = [...payments.store.values()][0];
+    expect(stored.providerReference).toBe('sub_pay-1');
   });
 
   it('rejects paying for something that does not exist or is not owned', async () => {

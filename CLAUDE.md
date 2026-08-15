@@ -42,9 +42,14 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
   Catalog prices in `prisma/seed.ts` are placeholders pending real figures.
 - A `payments` context (Phase 2). A provider agnostic `PaymentGateway` port with
   a composite that dispatches to Stripe (USD) and Paystack (NGN) adapters by
-  currency, `initiate` to start a charge for a booking or subscription, saved
+  currency, `initiate` to start payment for a booking or subscription, saved
   payment methods, and signed provider webhooks that confirm the booking or
-  activate the subscription on success. Money never comes from the client; the
+  activate the subscription on success. One time bookings create a single charge;
+  monthly plans create a real recurring subscription at the provider (a Stripe
+  Subscription or a Paystack plan transaction), using the provider price and plan
+  references stored per currency on the catalog (`CarePlanPrice.stripePriceId`,
+  `paystackPlanCode`). Those provider references must be created at Stripe and
+  Paystack and seeded before recurring billing works. Money never comes from the client; the
   amount and currency are read from the payable. The provider adapters are
   written against the Stripe and Paystack REST APIs (no SDK dependency, using
   `fetch` and HMAC signature verification) but are NOT yet verified against live

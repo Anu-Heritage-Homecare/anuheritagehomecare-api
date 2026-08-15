@@ -1,12 +1,20 @@
 import { Currency } from '@shared/domain/currency.enum';
 import { PayableType } from '../../domain/payable-type.enum';
 
+export interface PayableRecurring {
+  /** The Stripe recurring price id and Paystack plan code for the owner currency. */
+  stripePriceId: string | null;
+  paystackPlanCode: string | null;
+}
+
 export interface PayableSummary {
   ownerId: string;
   currency: Currency;
   amountMinor: number;
   /** True once the payable has already been paid for (confirmed or active). */
   alreadyPaid: boolean;
+  /** Present for monthly subscriptions, null for one time bookings. */
+  recurring: PayableRecurring | null;
 }
 
 /**
