@@ -9,7 +9,9 @@ import { AppModule } from './app.module';
 import { AppConfig } from './config/configuration';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // rawBody is retained so payment webhook signatures can be verified against the
+  // exact bytes the provider signed.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
 
   // Route Nest logs through pino so everything is structured and redacted.
   app.useLogger(app.get(Logger));

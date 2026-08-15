@@ -53,6 +53,15 @@ export const envSchema = z.object({
   // slots until real caregiver availability exists.
   BOOKING_DAY_START_HOUR: z.coerce.number().int().min(0).max(23).default(8),
   BOOKING_DAY_END_HOUR: z.coerce.number().int().min(1).max(24).default(21),
+
+  // Payment providers. Stripe serves USD, Paystack serves NGN. Keys are optional
+  // so the service still boots without them; the adapters fail closed if a
+  // provider is used before its key is configured.
+  STRIPE_SECRET_KEY: z.string().default(''),
+  STRIPE_WEBHOOK_SECRET: z.string().default(''),
+  PAYSTACK_SECRET_KEY: z.string().default(''),
+  PAYSTACK_WEBHOOK_SECRET: z.string().default(''),
+  PAYMENT_CALLBACK_URL: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

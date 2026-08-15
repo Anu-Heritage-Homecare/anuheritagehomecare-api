@@ -5,6 +5,7 @@ export interface AccessTokenClaims {
   sub: string;
   userType: UserType;
   country: Country;
+  email: string;
   typ: 'access';
 }
 

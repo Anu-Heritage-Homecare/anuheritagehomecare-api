@@ -36,5 +36,6 @@ import { SubscriptionsController } from './presentation/subscriptions.controller
     { provide: SUBSCRIPTION_REPOSITORY, useClass: SubscriptionPrismaRepository },
     { provide: CARE_RECIPIENT_ACCESS, useClass: PrismaCareRecipientAccess },
   ],
+  exports: [BOOKING_REPOSITORY, SUBSCRIPTION_REPOSITORY],
 })
 export class BookingsModule {}

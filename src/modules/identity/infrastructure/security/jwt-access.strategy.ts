@@ -12,6 +12,7 @@ export interface AuthenticatedUser {
   userId: string;
   userType: UserType;
   country: Country;
+  email: string;
 }
 
 /**
@@ -33,6 +34,11 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt-access') 
     if (payload.typ !== 'access') {
       throw new UnauthorizedException();
     }
-    return { userId: payload.sub, userType: payload.userType, country: payload.country };
+    return {
+      userId: payload.sub,
+      userType: payload.userType,
+      country: payload.country,
+      email: payload.email,
+    };
   }
 }

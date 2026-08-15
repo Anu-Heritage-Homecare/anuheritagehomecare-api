@@ -30,6 +30,7 @@ export class TokenIssuerService {
       sub: user.id,
       userType: user.userType,
       country: user.address.country,
+      email: user.email.value,
     });
     const refresh = await this.tokens.signRefresh({ sub: user.id });
 

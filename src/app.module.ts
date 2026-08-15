@@ -9,6 +9,7 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { CarePlansModule } from './modules/care-plans/care-plans.module';
 import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
 import { ClientsModule } from './modules/clients/clients.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { AllExceptionsFilter } from './shared/infrastructure/http/all-exceptions.filter';
@@ -83,6 +84,7 @@ import { SharedModule } from './shared/shared.module';
     CareRecipientsModule,
     CarePlansModule,
     BookingsModule,
+    PaymentsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

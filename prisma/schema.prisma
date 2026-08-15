@@ -352,3 +352,67 @@ enum SubscriptionStatus {
 
   @@map("subscription_status")
 }
+
+// Bounded context: Payments.
+//
+// A payment charges for a booking or a subscription through a provider chosen by
+// the owner's currency (Stripe for USD, Paystack for NGN). The provider is the
+// source of truth for the outcome, confirmed through verification and webhooks.
+model Payment {
+  id                String          @id @default(uuid()) @db.Uuid
+  ownerId           String          @db.Uuid
+  payableType       PayableType
+  payableId         String          @db.Uuid
+  provider          PaymentProvider
+  providerReference String          @unique @db.VarChar(200)
+  currency          Currency
+  amountMinor       Int
+  status            PaymentStatus   @default(PENDING)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([ownerId])
+  @@index([payableType, payableId])
+  @@map("payments")
+}
+
+// A saved card, tokenised by the provider. The raw card is never stored; only an
+// opaque provider reference plus display metadata (brand, last four).
+model PaymentMethod {
+  id                  String          @id @default(uuid()) @db.Uuid
+  ownerId             String          @db.Uuid
+  provider            PaymentProvider
+  providerCustomerRef String?         @db.VarChar(200)
+  providerMethodRef   String          @db.VarChar(200)
+  brand               String          @db.VarChar(40)
+  last4               String          @db.VarChar(4)
+  expMonth            Int
+  expYear             Int
+  isDefault           Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+
+  @@index([ownerId])
+  @@map("payment_methods")
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYSTACK
+
+  @@map("payment_provider")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+
+  @@map("payment_status")
+}
+
+enum PayableType {
+  BOOKING
+  SUBSCRIPTION
+
+  @@map("payable_type")
+}

@@ -47,12 +47,21 @@ export interface BookingConfig {
   readonly dayEndHour: number;
 }
 
+export interface PaymentConfig {
+  readonly stripeSecretKey: string;
+  readonly stripeWebhookSecret: string;
+  readonly paystackSecretKey: string;
+  readonly paystackWebhookSecret: string;
+  readonly callbackUrl: string;
+}
+
 export function buildConfig(env: Env): {
   app: AppConfig;
   auth: AuthConfig;
   otp: OtpConfig;
   mail: MailConfig;
   booking: BookingConfig;
+  payment: PaymentConfig;
 } {
   return {
     app: {
@@ -94,6 +103,13 @@ export function buildConfig(env: Env): {
     booking: {
       dayStartHour: env.BOOKING_DAY_START_HOUR,
       dayEndHour: env.BOOKING_DAY_END_HOUR,
+    },
+    payment: {
+      stripeSecretKey: env.STRIPE_SECRET_KEY,
+      stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET,
+      paystackSecretKey: env.PAYSTACK_SECRET_KEY,
+      paystackWebhookSecret: env.PAYSTACK_WEBHOOK_SECRET,
+      callbackUrl: env.PAYMENT_CALLBACK_URL,
     },
   };
 }

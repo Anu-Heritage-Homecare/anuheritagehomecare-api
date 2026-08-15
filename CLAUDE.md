@@ -38,8 +38,18 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
   land in `PENDING_PAYMENT`. Money is stored as integer minor units with an
   explicit `Currency` (shared kernel `Money` value object); the billing currency
   is derived server side from the owner's country, which the access token now
-  carries. Payments (Stripe for USD, Paystack for NGN) are Phase 2 and not built
-  yet. Catalog prices in `prisma/seed.ts` are placeholders pending real figures.
+  carries (the token also carries the owner's email for the payment providers).
+  Catalog prices in `prisma/seed.ts` are placeholders pending real figures.
+- A `payments` context (Phase 2). A provider agnostic `PaymentGateway` port with
+  a composite that dispatches to Stripe (USD) and Paystack (NGN) adapters by
+  currency, `initiate` to start a charge for a booking or subscription, saved
+  payment methods, and signed provider webhooks that confirm the booking or
+  activate the subscription on success. Money never comes from the client; the
+  amount and currency are read from the payable. The provider adapters are
+  written against the Stripe and Paystack REST APIs (no SDK dependency, using
+  `fetch` and HMAC signature verification) but are NOT yet verified against live
+  accounts: they need provider keys and a database. Keys are optional in config,
+  and each adapter fails closed if used without its key.
 - Shared kernel (base `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`,
   `Money`, `Currency`,
   transport agnostic `DomainException`), Prisma service and module, global
@@ -195,20 +205,22 @@ persist it in the repo.
   creation to family owners specifically once caregiver accounts exist (today any
   authenticated user can own a record, and access is owner scoped); and any
   richer care plan modelling that scheduling will need later.
-- Care plan checkout is being built in phases. Phase 1 (catalog, Flexible
-  bookings, monthly subscriptions, server side pricing) is done. Phase 2 is
-  payments: a `PaymentGateway` port with Stripe (USD) and Paystack (NGN) adapters
-  chosen by currency, saved payment methods, a charge that confirms the booking
-  or activates the subscription, and provider webhooks. Phase 2 needs provider
-  credentials and a database to verify. Replace the placeholder catalog prices in
-  `prisma/seed.ts` with real figures before launch.
+- Care plan checkout: Phase 1 (catalog, Flexible bookings, monthly
+  subscriptions, server side pricing) and Phase 2 (payments: Stripe and Paystack
+  behind a gateway port, initiate, saved methods, signed webhooks) are both
+  built. Still to do before payments go live: provider test credentials and a
+  database, then verify the full charge and webhook flow end to end against
+  Stripe and Paystack test accounts; wire real card tokenisation so saved payment
+  methods are populated (only listing exists today); and replace the placeholder
+  catalog prices in `prisma/seed.ts` with real figures.
 - Nothing is pushed. When asked to push, confirm the branch/remote first.
 - The `identity` migration (`User`, `VerificationCode`, `RefreshToken`) and the
   `care-recipients` migration (`CareRecipient` plus the `Gender`, `CareNeed`,
   `CareFrequency`, `CareRecipientStatus` and `OnboardingStep` enums) and the
-  care plans and bookings migration (`CarePlan`, `CarePlanPrice`, `Booking`,
-  `Subscription` plus the `Currency`, `BillingModel`, `CarePlanType`,
-  `BookingStatus` and `SubscriptionStatus` enums) are authored in
+  care plans, bookings and payments migration (`CarePlan`, `CarePlanPrice`,
+  `Booking`, `Subscription`, `Payment`, `PaymentMethod` plus the `Currency`,
+  `BillingModel`, `CarePlanType`, `BookingStatus`, `SubscriptionStatus`,
+  `PaymentProvider`, `PaymentStatus` and `PayableType` enums) are authored in
   `prisma/schema.prisma` but not applied. Run `npm run prisma:migrate` once a
   database is provisioned, then `npm run prisma:seed` to populate the catalog.
   Beyond that there are no real domain migrations past the sample `Client` model.
