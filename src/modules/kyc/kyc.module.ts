@@ -2,15 +2,19 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { KYC_STATUS_SERVICE } from './application/ports/kyc-status.port';
 import { KYC_VERIFIER } from './application/ports/kyc-verifier.port';
+import { KYC_WEBHOOK_GATEWAY } from './application/ports/kyc-webhook.port';
 import { GetKycStatusUseCase } from './application/use-cases/get-kyc-status.use-case';
+import { HandleKycWebhookUseCase } from './application/use-cases/handle-kyc-webhook.use-case';
 import { SubmitKycUseCase } from './application/use-cases/submit-kyc.use-case';
 import { KYC_VERIFICATION_REPOSITORY } from './domain/kyc-verification.repository';
 import { KycVerificationPrismaRepository } from './infrastructure/persistence/kyc-verification-prisma.repository';
 import { RepositoryKycStatusService } from './infrastructure/status/repository-kyc-status.service';
 import { CompositeKycVerifier } from './infrastructure/verifier/composite-kyc-verifier';
 import { QoreIdKycVerifier } from './infrastructure/verifier/qoreid-kyc-verifier';
+import { StripeIdentityWebhookGateway } from './infrastructure/verifier/stripe-identity-webhook.gateway';
 import { StripeKycVerifier } from './infrastructure/verifier/stripe-kyc-verifier';
 import { KycController } from './presentation/kyc.controller';
+import { KycWebhooksController } from './presentation/kyc-webhooks.controller';
 
 /**
  * KYC composition root. The provider agnostic KycVerifier port is bound to a
@@ -19,13 +23,15 @@ import { KycController } from './presentation/kyc.controller';
  */
 @Module({
   imports: [PassportModule],
-  controllers: [KycController],
+  controllers: [KycController, KycWebhooksController],
   providers: [
     SubmitKycUseCase,
     GetKycStatusUseCase,
+    HandleKycWebhookUseCase,
     StripeKycVerifier,
     QoreIdKycVerifier,
     { provide: KYC_VERIFIER, useClass: CompositeKycVerifier },
+    { provide: KYC_WEBHOOK_GATEWAY, useClass: StripeIdentityWebhookGateway },
     { provide: KYC_VERIFICATION_REPOSITORY, useClass: KycVerificationPrismaRepository },
     { provide: KYC_STATUS_SERVICE, useClass: RepositoryKycStatusService },
   ],

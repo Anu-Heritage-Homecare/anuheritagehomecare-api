@@ -61,9 +61,10 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
   (last four) and the provider reference are stored, never the full number, and
   the document fields are redacted from logs. A verified KYC is required before
   `payments` will initiate a charge (returns the `KYC_REQUIRED` code otherwise).
-  The QoreID and Stripe Identity adapters are written but not yet verified against
-  live accounts; Stripe Identity is asynchronous, so completing a US verification
-  by webhook is a documented follow up.
+  QoreID verifies synchronously; Stripe Identity is asynchronous, so a signed
+  Stripe Identity webhook (`POST /api/v1/kyc/webhook/stripe`) completes the US
+  verification. The QoreID and Stripe adapters are written but not yet verified
+  against live accounts.
 - Shared kernel (base `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`,
   `Money`, `Currency`,
   transport agnostic `DomainException`), Prisma service and module, global

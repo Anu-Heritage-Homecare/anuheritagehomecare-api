@@ -59,6 +59,7 @@ export interface KycConfig {
   readonly qoreIdClientId: string;
   readonly qoreIdSecret: string;
   readonly qoreIdBaseUrl: string;
+  readonly stripeIdentityWebhookSecret: string;
 }
 
 export function buildConfig(env: Env): {
@@ -122,6 +123,7 @@ export function buildConfig(env: Env): {
       qoreIdClientId: env.QOREID_CLIENT_ID,
       qoreIdSecret: env.QOREID_SECRET,
       qoreIdBaseUrl: env.QOREID_BASE_URL,
+      stripeIdentityWebhookSecret: env.STRIPE_IDENTITY_WEBHOOK_SECRET,
     },
   };
 }

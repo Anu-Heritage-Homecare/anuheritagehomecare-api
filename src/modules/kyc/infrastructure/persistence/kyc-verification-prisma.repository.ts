@@ -31,4 +31,9 @@ export class KycVerificationPrismaRepository implements KycVerificationRepositor
     const row = await this.prisma.kycVerification.findUnique({ where: { ownerId } });
     return row ? KycVerificationMapper.toDomain(row) : null;
   }
+
+  async findByProviderReference(providerReference: string): Promise<KycVerification | null> {
+    const row = await this.prisma.kycVerification.findFirst({ where: { providerReference } });
+    return row ? KycVerificationMapper.toDomain(row) : null;
+  }
 }

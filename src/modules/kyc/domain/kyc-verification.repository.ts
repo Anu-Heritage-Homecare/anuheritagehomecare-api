@@ -4,6 +4,7 @@ import { KycVerification } from './kyc-verification.entity';
 export interface KycVerificationRepository {
   save(verification: KycVerification): Promise<void>;
   findByOwner(ownerId: string): Promise<KycVerification | null>;
+  findByProviderReference(providerReference: string): Promise<KycVerification | null>;
 }
 
 export const KYC_VERIFICATION_REPOSITORY = Symbol('KYC_VERIFICATION_REPOSITORY');

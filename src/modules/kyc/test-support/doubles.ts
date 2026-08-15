@@ -5,6 +5,11 @@ import {
   KycVerificationOutcome,
   KycVerifier,
 } from '../application/ports/kyc-verifier.port';
+import {
+  KycWebhookEvent,
+  KycWebhookGateway,
+  KycWebhookOutcome,
+} from '../application/ports/kyc-webhook.port';
 import { KycVerification } from '../domain/kyc-verification.entity';
 import { KycVerificationRepository } from '../domain/kyc-verification.repository';
 
@@ -31,6 +36,23 @@ export class InMemoryKycRepository implements KycVerificationRepository {
 
   findByOwner(ownerId: string): Promise<KycVerification | null> {
     return Promise.resolve(this.store.get(ownerId) ?? null);
+  }
+
+  findByProviderReference(providerReference: string): Promise<KycVerification | null> {
+    const found = [...this.store.values()].find(
+      (verification) => verification.providerReference === providerReference,
+    );
+    return Promise.resolve(found ?? null);
+  }
+}
+
+/** Webhook gateway that parses a JSON body and rejects a bad signature. */
+export class FakeKycWebhookGateway implements KycWebhookGateway {
+  parse(_provider: unknown, rawBody: string, signature: string): KycWebhookEvent {
+    if (signature !== 'valid') {
+      throw new Error('Invalid signature');
+    }
+    return JSON.parse(rawBody) as { providerReference: string; outcome: KycWebhookOutcome };
   }
 }
 

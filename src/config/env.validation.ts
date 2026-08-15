@@ -69,6 +69,9 @@ export const envSchema = z.object({
   QOREID_CLIENT_ID: z.string().default(''),
   QOREID_SECRET: z.string().default(''),
   QOREID_BASE_URL: z.string().default('https://api.qoreid.com'),
+  // Signing secret for the Stripe Identity webhook endpoint (distinct from the
+  // payments webhook endpoint secret).
+  STRIPE_IDENTITY_WEBHOOK_SECRET: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;
