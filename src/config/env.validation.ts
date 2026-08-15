@@ -48,6 +48,11 @@ export const envSchema = z.object({
   SMTP_USER: z.string().default(''),
   SMTP_PASSWORD: z.string().default(''),
   MAIL_FROM: z.string().min(1).default('Anu Heritage Homecare <no-reply@anuheritagehomecare.com>'),
+
+  // Bookable hours in a day (local), used to generate Flexible booking time
+  // slots until real caregiver availability exists.
+  BOOKING_DAY_START_HOUR: z.coerce.number().int().min(0).max(23).default(8),
+  BOOKING_DAY_END_HOUR: z.coerce.number().int().min(1).max(24).default(21),
 });
 
 export type Env = z.infer<typeof envSchema>;

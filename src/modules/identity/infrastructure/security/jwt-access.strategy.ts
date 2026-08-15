@@ -4,12 +4,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { AuthConfig } from '@config/configuration';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AccessTokenClaims } from '../../application/ports/token-service.port';
+import { Country } from '../../domain/country.enum';
 import { UserType } from '../../domain/user-type.enum';
 
 /** The authenticated principal attached to the request by the access strategy. */
 export interface AuthenticatedUser {
   userId: string;
   userType: UserType;
+  country: Country;
 }
 
 /**
@@ -31,6 +33,6 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt-access') 
     if (payload.typ !== 'access') {
       throw new UnauthorizedException();
     }
-    return { userId: payload.sub, userType: payload.userType };
+    return { userId: payload.sub, userType: payload.userType, country: payload.country };
   }
 }

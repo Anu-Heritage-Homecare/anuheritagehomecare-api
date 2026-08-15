@@ -30,5 +30,6 @@ import { CareRecipientsController } from './presentation/care-recipients.control
     ListCareRecipientsUseCase,
     { provide: CARE_RECIPIENT_REPOSITORY, useClass: CareRecipientPrismaRepository },
   ],
+  exports: [CARE_RECIPIENT_REPOSITORY],
 })
 export class CareRecipientsModule {}

@@ -29,6 +29,7 @@ export class TokenIssuerService {
     const accessToken = await this.tokens.signAccess({
       sub: user.id,
       userType: user.userType,
+      country: user.address.country,
     });
     const refresh = await this.tokens.signRefresh({ sub: user.id });
 

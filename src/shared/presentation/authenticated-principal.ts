@@ -6,4 +6,6 @@
 export interface AuthenticatedPrincipal {
   userId: string;
   userType: string;
+  /** ISO country code of the owner's market (for example US or NG). */
+  country: string;
 }

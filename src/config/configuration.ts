@@ -42,11 +42,17 @@ export interface MailConfig {
   readonly from: string;
 }
 
+export interface BookingConfig {
+  readonly dayStartHour: number;
+  readonly dayEndHour: number;
+}
+
 export function buildConfig(env: Env): {
   app: AppConfig;
   auth: AuthConfig;
   otp: OtpConfig;
   mail: MailConfig;
+  booking: BookingConfig;
 } {
   return {
     app: {
@@ -84,6 +90,10 @@ export function buildConfig(env: Env): {
       user: env.SMTP_USER,
       password: env.SMTP_PASSWORD,
       from: env.MAIL_FROM,
+    },
+    booking: {
+      dayStartHour: env.BOOKING_DAY_START_HOUR,
+      dayEndHour: env.BOOKING_DAY_END_HOUR,
     },
   };
 }

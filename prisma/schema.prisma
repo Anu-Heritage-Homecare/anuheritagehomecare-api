@@ -232,3 +232,123 @@ enum OnboardingStep {
 
   @@map("onboarding_step")
 }
+
+// Bounded context: Care plans (the catalog the family owner chooses from).
+//
+// Reference data: the four plans, how each is billed, the hour options for the
+// hourly plan, and the price in each supported currency. Money is stored as an
+// integer number of minor units (cents, kobo) to avoid floating point rounding.
+model CarePlan {
+  id           String       @id @default(uuid()) @db.Uuid
+  type         CarePlanType @unique
+  name         String       @db.VarChar(120)
+  description  String       @db.VarChar(300)
+  billingModel BillingModel
+  allowedHours Int[]        @default([])
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  prices CarePlanPrice[]
+
+  @@map("care_plans")
+}
+
+// The price of a plan in one currency. `unitAmountMinor` is the hourly rate for
+// an hourly plan or the monthly price for a monthly plan.
+model CarePlanPrice {
+  id              String   @id @default(uuid()) @db.Uuid
+  planId          String   @db.Uuid
+  plan            CarePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  currency        Currency
+  unitAmountMinor Int
+  serviceFeeMinor Int      @default(0)
+
+  @@unique([planId, currency])
+  @@map("care_plan_prices")
+}
+
+// Bounded context: Bookings (a one time hourly booking for the Flexible plan).
+//
+// Pricing is snapshotted at creation so later catalog changes never rewrite past
+// orders. `ownerId` and `careRecipientId` reference other contexts by id only.
+model Booking {
+  id              String       @id @default(uuid()) @db.Uuid
+  ownerId         String       @db.Uuid
+  careRecipientId String       @db.Uuid
+  planType        CarePlanType
+  hours           Int
+  serviceDate     DateTime     @db.Date
+  startMinute     Int
+  endMinute       Int
+  currency        Currency
+  hourlyRateMinor Int
+  subtotalMinor   Int
+  serviceFeeMinor Int
+  totalMinor      Int
+  status          BookingStatus @default(PENDING_PAYMENT)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([ownerId])
+  @@index([careRecipientId])
+  @@map("bookings")
+}
+
+// A recurring monthly subscription for the Standard, Premium or Live in plans.
+model Subscription {
+  id                String             @id @default(uuid()) @db.Uuid
+  ownerId           String             @db.Uuid
+  careRecipientId   String             @db.Uuid
+  planType          CarePlanType
+  startDate         DateTime           @db.Date
+  currency          Currency
+  monthlyPriceMinor Int
+  status            SubscriptionStatus @default(PENDING_PAYMENT)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([ownerId])
+  @@index([careRecipientId])
+  @@map("subscriptions")
+}
+
+enum Currency {
+  USD
+  NGN
+
+  @@map("currency")
+}
+
+enum BillingModel {
+  HOURLY
+  MONTHLY
+
+  @@map("billing_model")
+}
+
+enum CarePlanType {
+  FLEXIBLE
+  STANDARD_MONTHLY
+  PREMIUM
+  LIVE_IN
+
+  @@map("care_plan_type")
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+
+  @@map("booking_status")
+}
+
+enum SubscriptionStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+
+  @@map("subscription_status")
+}

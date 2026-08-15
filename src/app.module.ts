@@ -5,6 +5,8 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, buildConfig } from './config/configuration';
 import { validateEnv } from './config/env.validation';
+import { BookingsModule } from './modules/bookings/bookings.module';
+import { CarePlansModule } from './modules/care-plans/care-plans.module';
 import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { HealthModule } from './modules/health/health.module';
@@ -79,6 +81,8 @@ import { SharedModule } from './shared/shared.module';
     ClientsModule,
     IdentityModule,
     CareRecipientsModule,
+    CarePlansModule,
+    BookingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

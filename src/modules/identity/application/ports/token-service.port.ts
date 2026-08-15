@@ -1,8 +1,10 @@
+import { Country } from '../../domain/country.enum';
 import { UserType } from '../../domain/user-type.enum';
 
 export interface AccessTokenClaims {
   sub: string;
   userType: UserType;
+  country: Country;
   typ: 'access';
 }
 
