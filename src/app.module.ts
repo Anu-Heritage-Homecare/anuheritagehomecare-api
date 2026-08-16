@@ -11,6 +11,7 @@ import { CareRecipientsModule } from './modules/care-recipients/care-recipients.
 import { ClientsModule } from './modules/clients/clients.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { VisitsModule } from './modules/visits/visits.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { AllExceptionsFilter } from './shared/infrastructure/http/all-exceptions.filter';
@@ -90,6 +91,7 @@ import { SharedModule } from './shared/shared.module';
     BookingsModule,
     KycModule,
     PaymentsModule,
+    VisitsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

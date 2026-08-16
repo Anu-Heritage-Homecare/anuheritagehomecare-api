@@ -74,6 +74,26 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
   Stripe Identity webhook (`POST /api/v1/kyc/webhook/stripe`) completes the US
   verification. The QoreID and Stripe adapters are written but not yet verified
   against live accounts.
+- A `visits` context (the caregiver work schedule). A `Visit` is one scheduled
+  care session assigning a caregiver to a care recipient on a day and time window
+  (`startMinute`/`endMinute`, timezone free), with a status
+  (`SCHEDULED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `MISSED`). The visit owns
+  its checklist of `VisitTask`s and its free text special instructions; the
+  recipient's own identity, health note and address are read from the care
+  recipients context, never duplicated. Two caregiver facing, JWT protected and
+  caregiver scoped reads: `GET /api/v1/caregiver/schedule` (a single day by
+  `date`, default today, or an inclusive `from`/`to` range for the Week view,
+  with an optional `status` filter) and `GET /api/v1/caregiver/visits/:id` (the
+  full appointment detail: recipient, tasks, special instructions, health note
+  from the recipient's medical conditions and allergies, and an emergency
+  contact). The recipient age is derived server side from the date of birth,
+  which never leaves the application layer. The schedule batches its recipient
+  lookups (no query per visit). How visits are created and assigned (from
+  bookings and subscriptions, or by an admin) and the check in and complete
+  transitions are deliberately not built yet; the schedule reads whatever visits
+  exist. The emergency contact is currently derived from the family owner's
+  account (name and phone); if a distinct contact is captured later, only the
+  `IdentityOwnerContactDirectory` adapter changes.
 - Shared kernel (base `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`,
   `Money`, `Currency`,
   transport agnostic `DomainException`), Prisma service and module, global
@@ -249,7 +269,9 @@ persist it in the repo.
   care plans, bookings and payments migration (`CarePlan`, `CarePlanPrice`,
   `Booking`, `Subscription`, `Payment`, `PaymentMethod` plus the `Currency`,
   `BillingModel`, `CarePlanType`, `BookingStatus`, `SubscriptionStatus`,
-  `PaymentProvider`, `PaymentStatus` and `PayableType` enums) are authored in
-  `prisma/schema.prisma` but not applied. Run `npm run prisma:migrate` once a
-  database is provisioned, then `npm run prisma:seed` to populate the catalog.
-  Beyond that there are no real domain migrations past the sample `Client` model.
+  `PaymentProvider`, `PaymentStatus` and `PayableType` enums), and the `visits`
+  migration (`Visit`, `VisitTask` plus the `VisitStatus` enum, and the
+  `mustChangePassword` column on `User`) are authored in `prisma/schema.prisma`
+  but not applied. Run `npm run prisma:migrate` once a database is provisioned,
+  then `npm run prisma:seed` to populate the catalog. Beyond that there are no
+  real domain migrations past the sample `Client` model.

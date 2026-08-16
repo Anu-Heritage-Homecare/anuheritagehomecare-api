@@ -61,5 +61,8 @@ import { AuthController } from './presentation/auth.controller';
     { provide: EMAIL_SENDER, useClass: NodemailerEmailSender },
     { provide: OTP_GENERATOR, useClass: CryptoOtpGenerator },
   ],
+  // Exported so other contexts can read a user (for example the visits context
+  // resolving a recipient's family owner as the emergency contact).
+  exports: [USER_REPOSITORY],
 })
 export class IdentityModule {}

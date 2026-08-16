@@ -54,6 +54,13 @@ export class InMemoryCareRecipientRepository implements CareRecipientRepository 
     return Promise.resolve(this.store.get(id) ?? null);
   }
 
+  findByIds(ids: string[]): Promise<CareRecipient[]> {
+    const found = ids
+      .map((id) => this.store.get(id))
+      .filter((recipient): recipient is CareRecipient => recipient !== undefined);
+    return Promise.resolve(found);
+  }
+
   listByOwner(ownerId: string): Promise<CareRecipient[]> {
     const owned = [...this.store.values()].filter((recipient) => recipient.ownerId === ownerId);
     return Promise.resolve(owned);

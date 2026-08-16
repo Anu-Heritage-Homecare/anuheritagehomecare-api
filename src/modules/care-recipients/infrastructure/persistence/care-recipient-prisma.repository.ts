@@ -49,6 +49,14 @@ export class CareRecipientPrismaRepository implements CareRecipientRepository {
     return row ? CareRecipientMapper.toDomain(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<CareRecipient[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.careRecipient.findMany({ where: { id: { in: ids } } });
+    return rows.map((row) => CareRecipientMapper.toDomain(row));
+  }
+
   async listByOwner(ownerId: string): Promise<CareRecipient[]> {
     const rows = await this.prisma.careRecipient.findMany({
       where: { ownerId },

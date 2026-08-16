@@ -8,6 +8,7 @@ import { CareRecipient } from './care-recipient.entity';
 export interface CareRecipientRepository {
   save(recipient: CareRecipient): Promise<void>;
   findById(id: string): Promise<CareRecipient | null>;
+  findByIds(ids: string[]): Promise<CareRecipient[]>;
   listByOwner(ownerId: string): Promise<CareRecipient[]>;
 }
 

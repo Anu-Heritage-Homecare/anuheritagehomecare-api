@@ -304,6 +304,45 @@ model Booking {
   @@map("bookings")
 }
 
+// A scheduled care session assigning a caregiver to a care recipient on a given
+// day and time window. How visits are created and assigned (from bookings and
+// subscriptions, or by an admin) is not built yet; this models the execution
+// record the caregiver schedule reads. Recipient facing detail (name, health,
+// address) is not duplicated here; it is read from the care recipients context.
+model Visit {
+  id                  String      @id @default(uuid()) @db.Uuid
+  caregiverId         String      @db.Uuid
+  careRecipientId     String      @db.Uuid
+  scheduledDate       DateTime    @db.Date
+  startMinute         Int
+  endMinute           Int
+  status              VisitStatus @default(SCHEDULED)
+  specialInstructions String[]
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  tasks VisitTask[]
+
+  @@index([caregiverId, scheduledDate])
+  @@index([careRecipientId])
+  @@map("visits")
+}
+
+// A single task on a visit checklist (for example Blood Pressure, Meal
+// Preparation). Owned by the Visit aggregate and replaced wholesale on save.
+model VisitTask {
+  id        String  @id @default(uuid()) @db.Uuid
+  visitId   String  @db.Uuid
+  label     String  @db.VarChar(200)
+  completed Boolean @default(false)
+  position  Int
+
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([visitId])
+  @@map("visit_tasks")
+}
+
 // A recurring monthly subscription for the Standard, Premium or Live in plans.
 model Subscription {
   id                String             @id @default(uuid()) @db.Uuid
@@ -351,6 +390,16 @@ enum BookingStatus {
   CANCELLED
 
   @@map("booking_status")
+}
+
+enum VisitStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  MISSED
+
+  @@map("visit_status")
 }
 
 enum SubscriptionStatus {
