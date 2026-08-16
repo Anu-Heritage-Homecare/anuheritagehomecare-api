@@ -32,6 +32,11 @@ export class UserProfileResponseDto {
   @ApiProperty()
   isFamilyOwner!: boolean;
 
+  @ApiProperty({
+    description: 'When true the client must force a password change before normal use',
+  })
+  mustChangePassword!: boolean;
+
   @ApiProperty({ enum: UserStatus, enumName: 'UserStatus' })
   status!: UserStatus;
 
@@ -46,6 +51,7 @@ export class UserProfileResponseDto {
     dto.emailVerified = result.emailVerified;
     dto.phoneVerified = result.phoneVerified;
     dto.isFamilyOwner = result.isFamilyOwner;
+    dto.mustChangePassword = result.mustChangePassword;
     dto.status = result.status;
     return dto;
   }

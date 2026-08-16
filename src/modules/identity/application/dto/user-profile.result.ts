@@ -16,6 +16,7 @@ export interface UserProfileResult {
   emailVerified: boolean;
   phoneVerified: boolean;
   isFamilyOwner: boolean;
+  mustChangePassword: boolean;
   status: UserStatus;
 }
 
@@ -30,6 +31,7 @@ export function toUserProfile(user: User): UserProfileResult {
     emailVerified: user.emailVerified,
     phoneVerified: user.phoneVerified,
     isFamilyOwner: user.isFamilyOwner,
+    mustChangePassword: user.mustChangePassword,
     status: user.status,
   };
 }

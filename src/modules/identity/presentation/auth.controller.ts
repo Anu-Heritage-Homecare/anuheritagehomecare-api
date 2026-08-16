@@ -7,6 +7,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-principal';
+import { CurrentUser } from '@shared/presentation/current-user.decorator';
+import { ChangePasswordUseCase } from '../application/use-cases/change-password.use-case';
 import { LoginUseCase } from '../application/use-cases/login.use-case';
 import { LogoutUseCase } from '../application/use-cases/logout.use-case';
 import { RefreshTokenUseCase } from '../application/use-cases/refresh-token.use-case';
@@ -17,6 +20,7 @@ import { ResetPasswordUseCase } from '../application/use-cases/reset-password.us
 import { VerifyEmailUseCase } from '../application/use-cases/verify-email.use-case';
 import { VerifyPasswordResetOtpUseCase } from '../application/use-cases/verify-password-reset-otp.use-case';
 import { AuthTokensResponseDto } from './dto/auth-tokens-response.dto';
+import { ChangePasswordRequestDto } from './dto/change-password-request.dto';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { LogoutRequestDto } from './dto/logout-request.dto';
 import { MessageResponseDto } from './dto/message-response.dto';
@@ -53,6 +57,7 @@ export class AuthController {
     private readonly requestPasswordReset: RequestPasswordResetUseCase,
     private readonly verifyPasswordResetOtp: VerifyPasswordResetOtpUseCase,
     private readonly resetPassword: ResetPasswordUseCase,
+    private readonly changePassword: ChangePasswordUseCase,
   ) {}
 
   @Post('register')
@@ -147,5 +152,26 @@ export class AuthController {
   async resetUserPassword(@Body() body: ResetPasswordRequestDto): Promise<MessageResponseDto> {
     const result = await this.resetPassword.execute(body);
     return MessageResponseDto.fromResult(result);
+  }
+
+  @Post('password/change')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({
+    summary: 'Change the password of the authenticated user (also the forced first login change)',
+  })
+  @ApiOkResponse({ type: AuthTokensResponseDto })
+  async changeUserPassword(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: ChangePasswordRequestDto,
+  ): Promise<AuthTokensResponseDto> {
+    const result = await this.changePassword.execute({
+      userId: principal.userId,
+      currentPassword: body.currentPassword,
+      newPassword: body.newPassword,
+    });
+    return AuthTokensResponseDto.fromResult(result);
   }
 }

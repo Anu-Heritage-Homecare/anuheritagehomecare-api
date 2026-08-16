@@ -11,31 +11,62 @@ interface BuildUserOptions {
   email?: string;
   phone?: string;
   passwordHash?: string;
+  userType?: UserType;
   verified?: boolean;
+  /** Simulate an account provisioned with a temporary password. */
+  mustChangePassword?: boolean;
 }
 
 /** Build a User aggregate for specs, optionally already email verified. */
 export function buildUser(options: BuildUserOptions = {}): User {
+  const id = options.id ?? 'user-1';
+  const userType = options.userType ?? UserType.FamilyMember;
+  const name = PersonName.create('Ada', 'Obi');
+  const email = EmailAddress.create(options.email ?? 'ada.obi@example.com');
+  const phone = PhoneNumber.create(options.phone ?? '+2348031234567');
+  const address = PostalAddress.create({
+    line1: '12 Marina Road',
+    city: 'Lagos',
+    state: 'Lagos',
+    postalCode: '101233',
+    country: 'NG',
+  });
+
   const user = User.register({
-    id: options.id ?? 'user-1',
-    userType: UserType.FamilyMember,
-    name: PersonName.create('Ada', 'Obi'),
-    email: EmailAddress.create(options.email ?? 'ada.obi@example.com'),
-    phone: PhoneNumber.create(options.phone ?? '+2348031234567'),
-    address: PostalAddress.create({
-      line1: '12 Marina Road',
-      city: 'Lagos',
-      state: 'Lagos',
-      postalCode: '101233',
-      country: 'NG',
-    }),
+    id,
+    userType,
+    name,
+    email,
+    phone,
+    address,
     passwordHash: options.passwordHash ?? 'hashed:S3curePass',
-    isFamilyOwner: true,
+    isFamilyOwner: userType === UserType.FamilyMember,
     now: FIXED_NOW,
   });
   if (options.verified) {
     user.markEmailVerified(FIXED_NOW);
   }
   user.clearDomainEvents();
-  return user;
+
+  if (!options.mustChangePassword) {
+    return user;
+  }
+
+  // Rehydrate the persisted state of an account still holding a temporary
+  // password, exactly as it would load from the database.
+  return User.rehydrate(id, {
+    userType,
+    name,
+    email,
+    phone,
+    address,
+    passwordHash: user.passwordHash,
+    emailVerified: user.emailVerified,
+    phoneVerified: user.phoneVerified,
+    isFamilyOwner: user.isFamilyOwner,
+    mustChangePassword: true,
+    status: user.status,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  });
 }

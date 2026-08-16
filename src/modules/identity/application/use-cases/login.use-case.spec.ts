@@ -46,6 +46,17 @@ describe('LoginUseCase', () => {
     expect(refreshTokens.store.size).toBe(1);
   });
 
+  it('surfaces mustChangePassword so the client can force a password change', async () => {
+    await users.save(buildUser({ verified: true, mustChangePassword: true }));
+
+    const result = await useCase.execute({
+      email: 'ada.obi@example.com',
+      password: 'S3curePass',
+    });
+
+    expect(result.user.mustChangePassword).toBe(true);
+  });
+
   it('blocks login until the email is verified', async () => {
     await users.save(buildUser({ verified: false }));
 

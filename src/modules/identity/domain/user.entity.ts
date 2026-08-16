@@ -18,6 +18,7 @@ interface UserProps {
   emailVerified: boolean;
   phoneVerified: boolean;
   isFamilyOwner: boolean;
+  mustChangePassword: boolean;
   status: UserStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -61,6 +62,7 @@ export class User extends AggregateRoot<string> {
       emailVerified: false,
       phoneVerified: false,
       isFamilyOwner: params.isFamilyOwner,
+      mustChangePassword: false,
       status: UserStatus.PendingVerification,
       createdAt: params.now,
       updatedAt: params.now,
@@ -95,9 +97,14 @@ export class User extends AggregateRoot<string> {
     this.addDomainEvent(new UserEmailVerifiedEvent(this.id, this.props.email.value));
   }
 
-  /** Replace the stored password hash (used by the reset flow). */
+  /**
+   * Replace the stored password hash. Used by the reset flow and the
+   * authenticated change flow. Any successful change clears a pending
+   * must change password requirement, since the user now owns their password.
+   */
   public changePassword(newPasswordHash: string, now: Date): void {
     this.props.passwordHash = newPasswordHash;
+    this.props.mustChangePassword = false;
     this.props.updatedAt = now;
   }
 
@@ -135,6 +142,11 @@ export class User extends AggregateRoot<string> {
 
   public get isFamilyOwner(): boolean {
     return this.props.isFamilyOwner;
+  }
+
+  /** Whether the client must force a password change before normal use. */
+  public get mustChangePassword(): boolean {
+    return this.props.mustChangePassword;
   }
 
   public get status(): UserStatus {

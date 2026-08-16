@@ -15,7 +15,16 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
   members, email verification and forgot password by emailed OTP, and JWT access
   plus rotating refresh tokens. Login is blocked until the email is verified and
   returns the `EMAIL_NOT_VERIFIED` code so the app can route to the verify
-  screen. The Prisma models exist and the client is generated, but the migration
+  screen. Caregivers, whose credentials are issued out of band (an admin
+  provisions them; that provisioning surface is not built yet), log in with the
+  same endpoint. An account provisioned with a temporary password carries a
+  `mustChangePassword` flag that the login response surfaces so the app forces a
+  password change on first login; the authenticated `POST /api/v1/auth/password/change`
+  (verifies the current password, sets a new one, revokes every other session and
+  returns a fresh token pair) clears it, and any password change, including a
+  forgotten password reset, clears it too. Forgot password works for caregivers
+  as it does for family members, since it is keyed on email and is user type
+  agnostic. The Prisma models exist and the client is generated, but the migration
   is not yet applied (no database provisioned at time of writing).
 - A mobile `care-recipients` bounded context, built end to end and unit tested:
   after signup a family owner onboards each loved one through a multi step wizard
@@ -209,11 +218,16 @@ persist it in the repo.
 
 - The `clients` context is a reference pattern; real bounded contexts (for
   example care workers, visits, scheduling) are not built yet.
-- The mobile `identity` context covers signup, login, email verification and
-  password reset. Still to do for identity: caregiver self signup, the admin
-  module and admin users, phone verification by SMS, and a full `Family`
-  aggregate (for now a family owner is a `FAMILY_MEMBER` flagged
-  `isFamilyOwner`).
+- The mobile `identity` context covers signup, login, email verification,
+  password reset, and the forced first login password change for provisioned
+  caregivers (the `mustChangePassword` flag plus `POST /auth/password/change`).
+  Still to do for identity: the admin module and admin users and the caregiver
+  provisioning surface that sets `mustChangePassword` and issues the temporary
+  password (deferred deliberately; the flag and change flow are ready for it),
+  phone verification by SMS, and a full `Family` aggregate (for now a family
+  owner is a `FAMILY_MEMBER` flagged `isFamilyOwner`). The caregiver home
+  dashboard is deferred until the visits, scheduling and earnings contexts exist,
+  since it only aggregates their data.
 - The `care-recipients` context covers the loved one onboarding wizard end to
   end. Still to do: a real profile photo upload endpoint (storage was not
   provisioned, so only an opaque `photoKey` is stored for now); restricting

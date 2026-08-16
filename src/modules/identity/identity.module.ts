@@ -7,6 +7,7 @@ import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
 import { TOKEN_SERVICE } from './application/ports/token-service.port';
 import { OtpService } from './application/services/otp.service';
 import { TokenIssuerService } from './application/services/token-issuer.service';
+import { ChangePasswordUseCase } from './application/use-cases/change-password.use-case';
 import { LoginUseCase } from './application/use-cases/login.use-case';
 import { LogoutUseCase } from './application/use-cases/logout.use-case';
 import { RefreshTokenUseCase } from './application/use-cases/refresh-token.use-case';
@@ -48,6 +49,7 @@ import { AuthController } from './presentation/auth.controller';
     RequestPasswordResetUseCase,
     VerifyPasswordResetOtpUseCase,
     ResetPasswordUseCase,
+    ChangePasswordUseCase,
     OtpService,
     TokenIssuerService,
     JwtAccessStrategy,

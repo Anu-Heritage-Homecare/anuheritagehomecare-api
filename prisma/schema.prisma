@@ -60,6 +60,10 @@ model User {
   emailVerified Boolean    @default(false)
   phoneVerified Boolean    @default(false)
   isFamilyOwner Boolean    @default(false)
+  // True for an account provisioned with a temporary password (for example a
+  // caregiver onboarded by an admin). Login still succeeds but signals the client
+  // to force a password change; any password change clears the flag.
+  mustChangePassword Boolean @default(false)
   status        UserStatus @default(PENDING_VERIFICATION)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
