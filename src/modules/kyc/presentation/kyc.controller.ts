@@ -44,10 +44,12 @@ export class KycController {
     const result = await this.submitKyc.execute({
       ownerId: principal.userId,
       country: principal.country,
-      fullName: body.fullName,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      dateOfBirth: body.dateOfBirth,
       documentType: body.documentType,
-      ssnLast4: body.ssnLast4,
       idNumber: body.idNumber,
+      faceImageBase64: body.faceImage,
     });
     return KycStatusResponseDto.fromResult(result);
   }

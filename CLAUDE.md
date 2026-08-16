@@ -64,16 +64,29 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
   `fetch` and HMAC signature verification) but are NOT yet verified against live
   accounts: they need provider keys and a database. Keys are optional in config,
   and each adapter fails closed if used without its key.
-- A `kyc` context (family owner identity verification). US owners verify the last
-  four of their SSN through Stripe; Nigeria owners verify a NIN or international
-  passport through QoreID, chosen by the owner's country. Only a masked remnant
-  (last four) and the provider reference are stored, never the full number, and
-  the document fields are redacted from logs. A verified KYC is required before
-  `payments` will initiate a charge (returns the `KYC_REQUIRED` code otherwise).
-  QoreID verifies synchronously; Stripe Identity is asynchronous, so a signed
-  Stripe Identity webhook (`POST /api/v1/kyc/webhook/stripe`) completes the US
-  verification. The QoreID and Stripe adapters are written but not yet verified
-  against live accounts.
+- A `kyc` context (family owner identity verification with a live face match).
+  The owner submits their first name, last name and date of birth plus a document,
+  and a live selfie. Nigeria owners verify a NIN, driver's licence or passport
+  through QoreID (synchronous, with QoreID's per document face match). US owners
+  verify through a Stripe Identity document plus selfie session (Stripe extracts
+  the ID data, matches the selfie to the ID photo and checks liveness); the SSN is
+  no longer used, since a number carries no photo to match a face against. The
+  application compares the claimed name and date of birth against what the
+  provider returns for the real holder (normalised, in the `identity-matcher`);
+  if the person is real but a detail or the face does not match, the owner is
+  `REJECTED` and the field level differences are stored for the (deferred) admin
+  audit, while the response returns only the names of the mismatched fields (never
+  the provider's values). `FAILED` means the document could not be verified at
+  all. Only a masked remnant (last four) and the outcome are stored, never the
+  full number or the selfie; the document number, date of birth and selfie are
+  redacted from logs. A verified KYC is required before `payments` will initiate a
+  charge (returns the `KYC_REQUIRED` code otherwise). QoreID decides
+  synchronously; Stripe Identity is asynchronous, so submitting returns a
+  `clientSecret` for the frontend Stripe SDK and a signed webhook
+  (`POST /api/v1/kyc/webhook/stripe`) carries the extracted identity so the US
+  comparison and decision happen there. The QoreID and Stripe adapters are written
+  but not yet verified against live accounts. No in house face matching is done or
+  planned; face match is always the provider's.
 - A `visits` context (the caregiver work schedule). A `Visit` is one scheduled
   care session assigning a caregiver to a care recipient on a day and time window
   (`startMinute`/`endMinute`, timezone free), with a status
@@ -294,7 +307,11 @@ persist it in the repo.
   `mustChangePassword` column on `User`), and the location and geofence migration
   (`LocationPing` plus the `LocationMode` enum, the `latitude`/`longitude` columns
   on `CareRecipient`, and the `clockInAt`/`clockOutAt`/`arrivalLatitude`/
-  `arrivalLongitude` columns on `Visit`) are authored in `prisma/schema.prisma`
-  but not applied. Run `npm run prisma:migrate` once a database is provisioned,
+  `arrivalLongitude` columns on `Visit`), and the KYC face match migration (the
+  new `FaceMatchOutcome` enum, the `REJECTED` status and `DRIVERS_LICENSE`
+  document type, and the `claimedFirstName`/`claimedLastName`/`claimedDateOfBirth`/
+  `faceMatch`/`mismatches` columns on `KycVerification`, with `documentType` and
+  `maskedReference` now nullable and `SSN_LAST4` removed) are authored in
+  `prisma/schema.prisma` but not applied. Run `npm run prisma:migrate` once a database is provisioned,
   then `npm run prisma:seed` to populate the catalog. Beyond that there are no
   real domain migrations past the sample `Client` model.

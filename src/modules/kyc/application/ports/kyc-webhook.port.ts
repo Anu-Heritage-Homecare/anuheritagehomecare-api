@@ -1,10 +1,23 @@
+import { FaceMatchOutcome } from '../../domain/face-match-outcome.enum';
+import { ProviderIdentity } from '../../domain/identity-matcher';
+import { KycDocumentType } from '../../domain/kyc-document-type.enum';
 import { KycProvider } from '../../domain/kyc-provider.enum';
 
-export type KycWebhookOutcome = 'verified' | 'failed' | 'pending';
+export type KycWebhookState = 'verified' | 'failed' | 'pending';
 
+/**
+ * A parsed identity webhook. On a verified event the provider (Stripe Identity)
+ * has extracted the document holder's identity and matched their selfie, so the
+ * event carries that data for the application to compare against the claimed
+ * details before deciding to verify or reject.
+ */
 export interface KycWebhookEvent {
   providerReference: string;
-  outcome: KycWebhookOutcome;
+  state: KycWebhookState;
+  identity?: ProviderIdentity | null;
+  faceMatch?: FaceMatchOutcome | null;
+  documentType?: KycDocumentType | null;
+  maskedReference?: string | null;
 }
 
 /**

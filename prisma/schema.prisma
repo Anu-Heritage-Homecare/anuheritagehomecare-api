@@ -520,17 +520,27 @@ enum PayableType {
 // verify a NIN or international passport through QoreID. Only a masked reference
 // (last four) and the provider's reference are stored, never the full number.
 model KycVerification {
-  id                String          @id @default(uuid()) @db.Uuid
-  ownerId           String          @unique @db.Uuid
+  id                String           @id @default(uuid()) @db.Uuid
+  ownerId           String           @unique @db.Uuid
   country           Country
   provider          KycProvider
-  documentType      KycDocumentType
-  maskedReference   String          @db.VarChar(20)
-  providerReference String?         @db.VarChar(200)
-  status            KycStatus       @default(PENDING)
+  // Learned from the provider; null for the US until the Stripe session completes.
+  documentType      KycDocumentType?
+  // The details the owner claimed, kept to compare against the provider record
+  // and for the admin audit. Sensitive; never logged.
+  claimedFirstName   String          @db.VarChar(100)
+  claimedLastName    String          @db.VarChar(100)
+  claimedDateOfBirth DateTime        @db.Date
+  maskedReference   String?          @db.VarChar(20)
+  providerReference String?          @db.VarChar(200)
+  faceMatch         FaceMatchOutcome?
+  // Fields that did not match the provider record ([{field, provided, returned}]),
+  // stored for the admin audit only. Sensitive; never logged.
+  mismatches        Json?
+  status            KycStatus        @default(PENDING)
   verifiedAt        DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@map("kyc_verifications")
 }
@@ -545,15 +555,24 @@ enum KycProvider {
 enum KycStatus {
   PENDING
   VERIFIED
+  REJECTED
   FAILED
 
   @@map("kyc_status")
 }
 
 enum KycDocumentType {
-  SSN_LAST4
   NIN
+  DRIVERS_LICENSE
   PASSPORT
 
   @@map("kyc_document_type")
+}
+
+enum FaceMatchOutcome {
+  MATCH
+  NO_MATCH
+  NOT_AVAILABLE
+
+  @@map("face_match_outcome")
 }

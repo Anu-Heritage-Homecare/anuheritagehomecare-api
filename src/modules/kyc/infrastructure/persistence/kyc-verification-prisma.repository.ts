@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import { KycVerification } from '../../domain/kyc-verification.entity';
 import { KycVerificationRepository } from '../../domain/kyc-verification.repository';
@@ -11,15 +12,21 @@ export class KycVerificationPrismaRepository implements KycVerificationRepositor
 
   async save(verification: KycVerification): Promise<void> {
     const row = KycVerificationMapper.toPersistence(verification);
+    const mismatches = row.mismatches ?? Prisma.JsonNull;
     await this.prisma.kycVerification.upsert({
       where: { id: row.id },
-      create: row,
+      create: { ...row, mismatches },
       update: {
         country: row.country,
         provider: row.provider,
         documentType: row.documentType,
+        claimedFirstName: row.claimedFirstName,
+        claimedLastName: row.claimedLastName,
+        claimedDateOfBirth: row.claimedDateOfBirth,
         maskedReference: row.maskedReference,
         providerReference: row.providerReference,
+        faceMatch: row.faceMatch,
+        mismatches,
         status: row.status,
         verifiedAt: row.verifiedAt,
         updatedAt: row.updatedAt,

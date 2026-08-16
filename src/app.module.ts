@@ -55,9 +55,10 @@ import { SharedModule } from './shared/shared.module';
                 'req.body.allergies',
                 'req.body.medications',
                 'req.body.fullAddress',
-                // KYC identity documents are sensitive personal data.
-                'req.body.ssnLast4',
+                // KYC identity documents, selfies and dates of birth are sensitive.
                 'req.body.idNumber',
+                'req.body.faceImage',
+                'req.body.dateOfBirth',
                 // Caregiver location telemetry is sensitive; keep the coordinate
                 // batch and any clock in position out of the logs.
                 'req.body.points',

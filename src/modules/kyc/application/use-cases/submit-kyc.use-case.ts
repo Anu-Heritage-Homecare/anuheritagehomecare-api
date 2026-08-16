@@ -2,8 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generator.port';
 import { ValidationException } from '@shared/domain/domain-exception';
+import { FaceMatchOutcome } from '../../domain/face-match-outcome.enum';
+import { ClaimedIdentity, compareIdentity } from '../../domain/identity-matcher';
 import { KycDocumentType } from '../../domain/kyc-document-type.enum';
-import { kycProviderForCountry } from '../../domain/kyc-provider.enum';
+import { KycProvider, kycProviderForCountry } from '../../domain/kyc-provider.enum';
 import { KycVerification } from '../../domain/kyc-verification.entity';
 import {
   KYC_VERIFICATION_REPOSITORY,
@@ -14,10 +16,20 @@ import { KycStatusResult, toKycStatusResult } from '../dto/kyc.result';
 import { KYC_VERIFIER, KycVerifier } from '../ports/kyc-verifier.port';
 
 /**
- * Use case: submit the family owner's identity for verification. Validates the
- * document against the owner's market, sends it to the provider, and records the
- * outcome. Only a masked remnant (last four) is persisted, never the full number.
- * An already verified owner is returned unchanged without re verifying.
+ * Use case: submit the family owner's identity for verification.
+ *
+ * Nigeria (QoreID) is synchronous: the owner sends a document number and a live
+ * selfie, QoreID returns the record and a face result, and this use case compares
+ * the claimed name and date of birth against the record. If everything matches
+ * the owner is verified; if the person is real but a detail or the face does not
+ * match, the owner is rejected and the differences are stored for the admin audit.
+ *
+ * The United States (Stripe Identity) is asynchronous: this opens a document plus
+ * selfie session and returns a client secret for the frontend SDK. The comparison
+ * and decision happen when the signed webhook arrives.
+ *
+ * The full document number and the selfie are never stored; only a masked remnant
+ * and the outcome. An already verified owner is returned unchanged.
  */
 @Injectable()
 export class SubmitKycUseCase {
@@ -29,15 +41,7 @@ export class SubmitKycUseCase {
   ) {}
 
   async execute(command: SubmitKycCommand): Promise<KycStatusResult> {
-    const documentType = SubmitKycUseCase.toDocumentType(command.documentType);
-    SubmitKycUseCase.assertDocumentAllowed(command.country, documentType);
-
-    const fullName = command.fullName.trim();
-    if (fullName.length === 0) {
-      throw new ValidationException('Full name is required for verification');
-    }
-
-    const documentValue = SubmitKycUseCase.extractDocumentValue(command, documentType);
+    const claimed = SubmitKycUseCase.toClaimedIdentity(command);
     const provider = kycProviderForCountry(command.country);
 
     const existing = await this.repository.findByOwner(command.ownerId);
@@ -45,73 +49,126 @@ export class SubmitKycUseCase {
       return toKycStatusResult(existing);
     }
 
+    const now = this.clock.now();
+    const id = existing?.id ?? this.ids.generate();
+
+    return provider === KycProvider.QoreId
+      ? this.verifyWithQoreId(command, claimed, id, now)
+      : this.startStripeSession(command, claimed, id, now);
+  }
+
+  /** Nigeria: verify synchronously and decide the outcome now. */
+  private async verifyWithQoreId(
+    command: SubmitKycCommand,
+    claimed: ClaimedIdentity,
+    id: string,
+    now: Date,
+  ): Promise<KycStatusResult> {
+    const documentType = SubmitKycUseCase.toDocumentType(command.documentType);
+    const idNumber = SubmitKycUseCase.validateIdNumber(command.idNumber, documentType);
+    const faceImage = (command.faceImageBase64 ?? '').trim();
+    if (faceImage.length === 0) {
+      throw new ValidationException('A live photo is required for verification');
+    }
+
     const outcome = await this.verifier.verify({
-      provider,
+      provider: KycProvider.QoreId,
       country: command.country,
+      claimed,
       documentType,
-      fullName,
-      documentValue,
+      idNumber,
+      faceImageBase64: faceImage,
     });
 
-    const now = this.clock.now();
     const verification = KycVerification.start({
-      id: existing?.id ?? this.ids.generate(),
+      id,
       ownerId: command.ownerId,
       country: command.country,
-      provider,
+      provider: KycProvider.QoreId,
       documentType,
-      maskedReference: documentValue.slice(-4),
+      claimed,
       now,
     });
     if (outcome.providerReference !== null) {
       verification.recordProviderReference(outcome.providerReference);
     }
-    if (outcome.outcome === 'verified') {
-      verification.markVerified(now);
-    } else if (outcome.outcome === 'failed') {
+    verification.recordVerifiedDocument(
+      documentType,
+      outcome.maskedReference ?? idNumber.slice(-4),
+    );
+
+    if (outcome.state === 'not_found') {
       verification.markFailed(now);
+    } else {
+      const mismatches = compareIdentity(claimed, outcome.identity ?? {});
+      const faceMatch = outcome.faceMatch ?? FaceMatchOutcome.NotAvailable;
+      if (mismatches.length === 0 && faceMatch === FaceMatchOutcome.Match) {
+        verification.markVerified(now, faceMatch);
+      } else {
+        verification.markRejected(now, mismatches, faceMatch);
+      }
     }
 
     await this.repository.save(verification);
     return toKycStatusResult(verification);
   }
 
-  private static toDocumentType(raw: string): KycDocumentType {
-    const normalised = raw.trim().toUpperCase();
+  /** United States: open a Stripe Identity session; the webhook decides later. */
+  private async startStripeSession(
+    command: SubmitKycCommand,
+    claimed: ClaimedIdentity,
+    id: string,
+    now: Date,
+  ): Promise<KycStatusResult> {
+    const outcome = await this.verifier.verify({
+      provider: KycProvider.Stripe,
+      country: command.country,
+      claimed,
+    });
+
+    const verification = KycVerification.start({
+      id,
+      ownerId: command.ownerId,
+      country: command.country,
+      provider: KycProvider.Stripe,
+      documentType: null,
+      claimed,
+      now,
+    });
+    if (outcome.providerReference !== null) {
+      verification.recordProviderReference(outcome.providerReference);
+    }
+
+    await this.repository.save(verification);
+    return toKycStatusResult(verification, outcome.clientSecret ?? null);
+  }
+
+  private static toClaimedIdentity(command: SubmitKycCommand): ClaimedIdentity {
+    const firstName = command.firstName.trim();
+    const lastName = command.lastName.trim();
+    if (firstName.length === 0 || lastName.length === 0) {
+      throw new ValidationException('First and last name are required for verification');
+    }
+    const dateOfBirth = new Date(command.dateOfBirth);
+    if (Number.isNaN(dateOfBirth.getTime())) {
+      throw new ValidationException('A valid date of birth is required for verification');
+    }
+    return { firstName, lastName, dateOfBirth };
+  }
+
+  private static toDocumentType(raw: string | undefined): KycDocumentType {
+    const normalised = (raw ?? '').trim().toUpperCase();
     const match = Object.values(KycDocumentType).find((type) => String(type) === normalised);
     if (match === undefined) {
-      throw new ValidationException(`Unknown document type: ${raw}`);
+      throw new ValidationException(
+        'A document type is required (NIN, driver licence or passport)',
+      );
     }
     return match;
   }
 
-  private static assertDocumentAllowed(country: string, documentType: KycDocumentType): void {
-    const code = country.trim().toUpperCase();
-    if (code === 'US' && documentType !== KycDocumentType.SsnLast4) {
-      throw new ValidationException('United States verification uses the last four of an SSN');
-    }
-    if (
-      code === 'NG' &&
-      documentType !== KycDocumentType.Nin &&
-      documentType !== KycDocumentType.Passport
-    ) {
-      throw new ValidationException('Nigeria verification uses a NIN or an international passport');
-    }
-  }
-
-  private static extractDocumentValue(
-    command: SubmitKycCommand,
-    documentType: KycDocumentType,
-  ): string {
-    if (documentType === KycDocumentType.SsnLast4) {
-      const value = (command.ssnLast4 ?? '').trim();
-      if (!/^\d{4}$/.test(value)) {
-        throw new ValidationException('The SSN last four must be exactly four digits');
-      }
-      return value;
-    }
-
-    const value = (command.idNumber ?? '').trim();
+  private static validateIdNumber(raw: string | undefined, documentType: KycDocumentType): string {
+    const value = (raw ?? '').trim();
     if (documentType === KycDocumentType.Nin) {
       if (!/^\d{11}$/.test(value)) {
         throw new ValidationException('A NIN must be eleven digits');
@@ -119,7 +176,7 @@ export class SubmitKycUseCase {
       return value;
     }
     if (!/^[A-Za-z0-9]{5,20}$/.test(value)) {
-      throw new ValidationException('An international passport number is invalid');
+      throw new ValidationException('The document number is invalid');
     }
     return value.toUpperCase();
   }
