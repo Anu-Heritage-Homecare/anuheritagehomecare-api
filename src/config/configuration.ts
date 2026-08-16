@@ -47,6 +47,10 @@ export interface BookingConfig {
   readonly dayEndHour: number;
 }
 
+export interface GeofenceConfig {
+  readonly radiusMeters: number;
+}
+
 export interface PaymentConfig {
   readonly stripeSecretKey: string;
   readonly stripeWebhookSecret: string;
@@ -68,6 +72,7 @@ export function buildConfig(env: Env): {
   otp: OtpConfig;
   mail: MailConfig;
   booking: BookingConfig;
+  geofence: GeofenceConfig;
   payment: PaymentConfig;
   kyc: KycConfig;
 } {
@@ -111,6 +116,9 @@ export function buildConfig(env: Env): {
     booking: {
       dayStartHour: env.BOOKING_DAY_START_HOUR,
       dayEndHour: env.BOOKING_DAY_END_HOUR,
+    },
+    geofence: {
+      radiusMeters: env.GEOFENCE_RADIUS_METERS,
     },
     payment: {
       stripeSecretKey: env.STRIPE_SECRET_KEY,

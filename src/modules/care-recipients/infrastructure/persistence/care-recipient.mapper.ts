@@ -33,6 +33,8 @@ export class CareRecipientMapper {
       relationship: row.relationship,
       livingSituation: row.livingSituation,
       photoKey: row.photoKey,
+      latitude: row.latitude,
+      longitude: row.longitude,
     });
 
     const health =
@@ -87,6 +89,8 @@ export class CareRecipientMapper {
       relationship: profile.relationship,
       livingSituation: profile.livingSituation,
       photoKey: profile.photoKey,
+      latitude: profile.location?.latitude ?? null,
+      longitude: profile.location?.longitude ?? null,
       careNeeds: recipient.careNeeds.map((need) => CareRecipientMapper.TO_PERSISTENCE_NEED[need]),
       medicalConditions: health?.medicalConditions ?? [],
       allergies: health?.allergies ?? [],

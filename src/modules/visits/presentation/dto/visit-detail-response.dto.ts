@@ -61,6 +61,12 @@ export class VisitDetailResponseDto {
   @ApiProperty({ example: '14:00' })
   endTime!: string;
 
+  @ApiProperty({ nullable: true, description: 'Server stamped clock in time', example: null })
+  clockInAt!: string | null;
+
+  @ApiProperty({ nullable: true, description: 'Server stamped clock out time', example: null })
+  clockOutAt!: string | null;
+
   @ApiProperty({ example: '123 Maple Street, Sunnyvale, CA 94086' })
   address!: string;
 
@@ -86,6 +92,8 @@ export class VisitDetailResponseDto {
     dto.date = result.date;
     dto.startTime = minutesToClock(result.startMinute);
     dto.endTime = minutesToClock(result.endMinute);
+    dto.clockInAt = result.clockInAt;
+    dto.clockOutAt = result.clockOutAt;
     dto.address = result.address;
     dto.recipient = { ...result.recipient };
     dto.tasks = result.tasks.map((task) => ({ ...task }));

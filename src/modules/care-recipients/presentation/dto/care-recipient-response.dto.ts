@@ -79,6 +79,12 @@ export class CareRecipientResponseDto {
   @ApiPropertyOptional({ nullable: true })
   photoKey!: string | null;
 
+  @ApiPropertyOptional({ nullable: true, example: 37.3861 })
+  latitude!: number | null;
+
+  @ApiPropertyOptional({ nullable: true, example: -122.0839 })
+  longitude!: number | null;
+
   @ApiProperty({ isArray: true, enum: CareNeed, enumName: 'CareNeed' })
   careNeeds!: CareNeed[];
 
@@ -112,6 +118,8 @@ export class CareRecipientResponseDto {
     dto.relationship = result.relationship;
     dto.livingSituation = result.livingSituation;
     dto.photoKey = result.photoKey;
+    dto.latitude = result.latitude;
+    dto.longitude = result.longitude;
     dto.careNeeds = result.careNeeds;
     dto.health = result.health;
     dto.schedule = result.schedule;

@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import { Clock } from '@shared/application/ports/clock.port';
 import {
   CareRecipientDirectory,
@@ -15,6 +16,11 @@ import { VisitWindow } from '../domain/value-objects/visit-window.vo';
 
 export const FIXED_NOW = new Date('2026-07-12T12:00:00.000Z');
 export const fixedClock: Clock = { now: () => FIXED_NOW };
+
+/** A ConfigService that only answers the geofence radius the use cases read. */
+export function fakeGeofenceConfig(radiusMeters = 150): ConfigService {
+  return { getOrThrow: () => ({ radiusMeters }) } as unknown as ConfigService;
+}
 
 interface BuildVisitOptions {
   id?: string;
@@ -61,6 +67,9 @@ export function buildVisit(options: BuildVisitOptions = {}): Visit {
     status,
     tasks,
     specialInstructions: visit.specialInstructions,
+    clockInAt: null,
+    clockOutAt: null,
+    arrivalLocation: null,
     createdAt: visit.createdAt,
     updatedAt: visit.updatedAt,
   });
@@ -79,6 +88,8 @@ export function buildSnapshot(overrides: Partial<RecipientSnapshot> = {}): Recip
     medicalConditions: ['Diabetes', 'High Fall Risk'],
     allergies: ['Penicillin Allergy'],
     photoKey: null,
+    latitude: 37.3861,
+    longitude: -122.0839,
     ...overrides,
   };
 }

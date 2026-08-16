@@ -7,6 +7,8 @@ export interface VisitDetailResult {
   date: string;
   startMinute: number;
   endMinute: number;
+  clockInAt: string | null;
+  clockOutAt: string | null;
   address: string;
   recipient: {
     id: string;

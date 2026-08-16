@@ -15,6 +15,8 @@ export interface RecipientSnapshot {
   medicalConditions: string[];
   allergies: string[];
   photoKey: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface CareRecipientDirectory {

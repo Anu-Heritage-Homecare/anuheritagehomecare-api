@@ -38,6 +38,8 @@ export class PrismaCareRecipientDirectory implements CareRecipientDirectory {
         medicalConditions: health?.medicalConditions ?? [],
         allergies: health?.allergies ?? [],
         photoKey: recipient.profile.photoKey,
+        latitude: recipient.profile.location?.latitude ?? null,
+        longitude: recipient.profile.location?.longitude ?? null,
       });
     }
 

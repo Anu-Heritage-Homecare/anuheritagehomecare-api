@@ -167,6 +167,11 @@ model CareRecipient {
   livingSituation String   @db.VarChar(120)
   photoKey        String?  @db.VarChar(500)
 
+  // Pinned location of the address, captured at onboarding. Required before a
+  // caregiver can clock in, since the arrival geofence is computed against it.
+  latitude  Float?
+  longitude Float?
+
   // Step 2: care needs (empty until the step is completed).
   careNeeds CareNeed[] @default([])
 
@@ -318,6 +323,12 @@ model Visit {
   endMinute           Int
   status              VisitStatus @default(SCHEDULED)
   specialInstructions String[]
+  // Attendance, stamped server side when the caregiver clocks in and out. The
+  // arrival coordinates record where the geofenced clock in was accepted.
+  clockInAt         DateTime?
+  clockOutAt        DateTime?
+  arrivalLatitude   Float?
+  arrivalLongitude  Float?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -400,6 +411,34 @@ enum VisitStatus {
   MISSED
 
   @@map("visit_status")
+}
+
+// A single location breadcrumb reported by a caregiver's device. Append only and
+// high volume: written in batches and read later for the admin movement audit
+// (path replay, travel time, long stops). Sent frequently during navigation and
+// occasionally in the background, distinguished by `mode`. `visitId` is an
+// optional tag; it is not a foreign key so telemetry never blocks on a visit row.
+model LocationPing {
+  id             String       @id @default(uuid()) @db.Uuid
+  caregiverId    String       @db.Uuid
+  visitId        String?      @db.Uuid
+  latitude       Float
+  longitude      Float
+  accuracyMeters Float?
+  mode           LocationMode
+  recordedAt     DateTime
+  receivedAt     DateTime     @default(now())
+
+  @@index([caregiverId, recordedAt])
+  @@index([visitId])
+  @@map("location_pings")
+}
+
+enum LocationMode {
+  NAVIGATION
+  BACKGROUND
+
+  @@map("location_mode")
 }
 
 enum SubscriptionStatus {

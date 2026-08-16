@@ -20,6 +20,8 @@ export interface CareRecipientResult {
   relationship: string;
   livingSituation: string;
   photoKey: string | null;
+  latitude: number | null;
+  longitude: number | null;
   careNeeds: CareNeed[];
   health: {
     medicalConditions: string[];
@@ -61,6 +63,8 @@ export function toCareRecipientResult(recipient: CareRecipient): CareRecipientRe
     relationship: profile.relationship,
     livingSituation: profile.livingSituation,
     photoKey: profile.photoKey,
+    latitude: profile.location?.latitude ?? null,
+    longitude: profile.location?.longitude ?? null,
     careNeeds: recipient.careNeeds,
     health:
       health === null

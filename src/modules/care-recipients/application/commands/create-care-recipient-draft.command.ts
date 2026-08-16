@@ -14,4 +14,6 @@ export interface CreateCareRecipientDraftCommand {
   relationship: string;
   livingSituation: string;
   photoKey?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }

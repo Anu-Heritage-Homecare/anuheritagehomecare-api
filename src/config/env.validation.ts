@@ -54,6 +54,10 @@ export const envSchema = z.object({
   BOOKING_DAY_START_HOUR: z.coerce.number().int().min(0).max(23).default(8),
   BOOKING_DAY_END_HOUR: z.coerce.number().int().min(1).max(24).default(21),
 
+  // Arrival geofence: how close (in metres) a caregiver must be to a care
+  // recipient's pinned address to clock in. Applied to every recipient for now.
+  GEOFENCE_RADIUS_METERS: z.coerce.number().int().positive().max(5000).default(150),
+
   // Payment providers. Stripe serves USD, Paystack serves NGN. Keys are optional
   // so the service still boots without them; the adapters fail closed if a
   // provider is used before its key is configured.

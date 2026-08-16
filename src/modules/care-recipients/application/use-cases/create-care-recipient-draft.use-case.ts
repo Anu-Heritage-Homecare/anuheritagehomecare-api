@@ -35,6 +35,8 @@ export class CreateCareRecipientDraftUseCase {
       relationship: command.relationship,
       livingSituation: command.livingSituation,
       photoKey: command.photoKey,
+      latitude: command.latitude,
+      longitude: command.longitude,
     });
 
     const recipient = CareRecipient.startDraft({

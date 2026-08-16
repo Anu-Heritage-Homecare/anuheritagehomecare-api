@@ -88,12 +88,32 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
   from the recipient's medical conditions and allergies, and an emergency
   contact). The recipient age is derived server side from the date of birth,
   which never leaves the application layer. The schedule batches its recipient
-  lookups (no query per visit). How visits are created and assigned (from
-  bookings and subscriptions, or by an admin) and the check in and complete
-  transitions are deliberately not built yet; the schedule reads whatever visits
-  exist. The emergency contact is currently derived from the family owner's
-  account (name and phone); if a distinct contact is captured later, only the
-  `IdentityOwnerContactDirectory` adapter changes.
+  lookups (no query per visit). Attendance is a geofenced clock in and out:
+  `POST /api/v1/caregiver/visits/:id/clock-in` takes the caregiver's current
+  latitude and longitude, checks it falls inside the geofence around the
+  recipient's pinned address (radius from `GEOFENCE_RADIUS_METERS`, default 150),
+  and on success starts the visit (`IN_PROGRESS`) and stamps a server `clockInAt`;
+  `clock-out` stamps `clockOutAt` and completes it. Outside the geofence returns
+  the `OUTSIDE_GEOFENCE` code (422). The server timestamps are the source of truth
+  for how long a visit took. How visits are created and assigned (from bookings
+  and subscriptions, or by an admin) is still deferred; the schedule reads
+  whatever visits exist. The emergency contact is currently derived from the
+  family owner's account (name and phone); if a distinct contact is captured
+  later, only the `IdentityOwnerContactDirectory` adapter changes.
+- A `tracking` context (caregiver location telemetry). One append only
+  `POST /api/v1/caregiver/locations` ingests a batch (up to 500) of location
+  breadcrumbs for the authenticated caregiver: latitude, longitude, optional
+  accuracy, a `mode` (`NAVIGATION` sent every few minutes while travelling, or
+  `BACKGROUND` sent occasionally), the device `recordedAt`, and an optional
+  `visitId` tag. The server stamps `receivedAt` and bulk inserts. `LocationPing`
+  rows are immutable and feed the future admin movement audit (path replay, total
+  travel time, long stops), which is a read model deferred until the admin module
+  exists. Location is sensitive personal data: caregivers may only write their
+  own points, and coordinates are redacted from logs. The care recipient now
+  carries the pinned `latitude`/`longitude` of its address (captured at
+  onboarding, optional there but required before a caregiver can clock in), stored
+  through a shared kernel `Coordinates` value object (validates lat/lng, haversine
+  distance and the geofence check).
 - Shared kernel (base `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`,
   `Money`, `Currency`,
   transport agnostic `DomainException`), Prisma service and module, global
@@ -269,9 +289,12 @@ persist it in the repo.
   care plans, bookings and payments migration (`CarePlan`, `CarePlanPrice`,
   `Booking`, `Subscription`, `Payment`, `PaymentMethod` plus the `Currency`,
   `BillingModel`, `CarePlanType`, `BookingStatus`, `SubscriptionStatus`,
-  `PaymentProvider`, `PaymentStatus` and `PayableType` enums), and the `visits`
+  `PaymentProvider`, `PaymentStatus` and `PayableType` enums), the `visits`
   migration (`Visit`, `VisitTask` plus the `VisitStatus` enum, and the
-  `mustChangePassword` column on `User`) are authored in `prisma/schema.prisma`
+  `mustChangePassword` column on `User`), and the location and geofence migration
+  (`LocationPing` plus the `LocationMode` enum, the `latitude`/`longitude` columns
+  on `CareRecipient`, and the `clockInAt`/`clockOutAt`/`arrivalLatitude`/
+  `arrivalLongitude` columns on `Visit`) are authored in `prisma/schema.prisma`
   but not applied. Run `npm run prisma:migrate` once a database is provisioned,
   then `npm run prisma:seed` to populate the catalog. Beyond that there are no
   real domain migrations past the sample `Client` model.

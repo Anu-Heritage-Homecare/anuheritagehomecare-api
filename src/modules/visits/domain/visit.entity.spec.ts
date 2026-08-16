@@ -1,4 +1,5 @@
-import { ValidationException } from '@shared/domain/domain-exception';
+import { Coordinates } from '@shared/domain/coordinates.vo';
+import { OutsideGeofenceException, ValidationException } from '@shared/domain/domain-exception';
 import { VisitStatus } from './visit-status.enum';
 import { Visit } from './visit.entity';
 import { VisitTask } from './value-objects/visit-task.vo';
@@ -33,6 +34,46 @@ describe('Visit', () => {
   it('keeps its task checklist', () => {
     const visit = schedule({ tasks: [VisitTask.create('Blood Pressure', true)] });
     expect(visit.tasks).toEqual([VisitTask.create('Blood Pressure', true)]);
+  });
+});
+
+describe('Visit clock in and out', () => {
+  const center = Coordinates.create(37.3861, -122.0839);
+
+  it('clocks in within the geofence and starts the visit', () => {
+    const visit = schedule();
+    visit.clockIn({
+      at: Coordinates.create(37.3871, -122.0839),
+      geofenceCenter: center,
+      radiusMeters: 150,
+      now: NOW,
+    });
+    expect(visit.status).toBe(VisitStatus.InProgress);
+    expect(visit.clockInAt).toEqual(NOW);
+    expect(visit.arrivalLocation?.latitude).toBe(37.3871);
+  });
+
+  it('refuses to clock in from outside the geofence', () => {
+    const visit = schedule();
+    expect(() =>
+      visit.clockIn({
+        at: Coordinates.create(37.4, -122.09),
+        geofenceCenter: center,
+        radiusMeters: 150,
+        now: NOW,
+      }),
+    ).toThrow(OutsideGeofenceException);
+    expect(visit.status).toBe(VisitStatus.Scheduled);
+  });
+
+  it('clocks out only after clocking in', () => {
+    const visit = schedule();
+    expect(() => visit.clockOut(NOW)).toThrow(ValidationException);
+
+    visit.clockIn({ at: center, geofenceCenter: center, radiusMeters: 150, now: NOW });
+    visit.clockOut(NOW);
+    expect(visit.status).toBe(VisitStatus.Completed);
+    expect(visit.clockOutAt).toEqual(NOW);
   });
 });
 

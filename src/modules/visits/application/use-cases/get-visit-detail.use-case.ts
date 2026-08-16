@@ -57,6 +57,8 @@ export class GetVisitDetailUseCase {
       date: toIsoDate(visit.scheduledDate),
       startMinute: visit.window.startMinute,
       endMinute: visit.window.endMinute,
+      clockInAt: visit.clockInAt === null ? null : visit.clockInAt.toISOString(),
+      clockOutAt: visit.clockOutAt === null ? null : visit.clockOutAt.toISOString(),
       address: recipient.fullAddress,
       recipient: {
         id: recipient.id,

@@ -1,3 +1,4 @@
+import { Coordinates } from '@shared/domain/coordinates.vo';
 import { ValidationException } from '@shared/domain/domain-exception';
 import { ValueObject } from '@shared/domain/value-object.base';
 import { Gender } from '../gender.enum';
@@ -12,6 +13,7 @@ interface RecipientProfileProps {
   relationship: string;
   livingSituation: string;
   photoKey: string | null;
+  location: Coordinates | null;
 }
 
 interface RecipientProfileInput {
@@ -24,6 +26,8 @@ interface RecipientProfileInput {
   relationship: string;
   livingSituation: string;
   photoKey?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 const MAX_NAME_LENGTH = 200;
@@ -65,6 +69,7 @@ export class RecipientProfile extends ValueObject<RecipientProfileProps> {
       MAX_LOCALITY_LENGTH,
     );
     const photoKey = RecipientProfile.normalisePhotoKey(input.photoKey);
+    const location = RecipientProfile.toLocation(input.latitude, input.longitude);
 
     return new RecipientProfile({
       name,
@@ -76,7 +81,25 @@ export class RecipientProfile extends ValueObject<RecipientProfileProps> {
       relationship,
       livingSituation,
       photoKey,
+      location,
     });
+  }
+
+  private static toLocation(
+    latitude: number | null | undefined,
+    longitude: number | null | undefined,
+  ): Coordinates | null {
+    const hasLat = latitude !== null && latitude !== undefined;
+    const hasLon = longitude !== null && longitude !== undefined;
+    if (!hasLat && !hasLon) {
+      return null;
+    }
+    if (hasLat !== hasLon) {
+      throw new ValidationException(
+        'Latitude and longitude must be provided together for the address location',
+      );
+    }
+    return Coordinates.create(latitude as number, longitude as number);
   }
 
   private static assertRequired(raw: string, label: string, maxLength: number): string {
@@ -159,5 +182,10 @@ export class RecipientProfile extends ValueObject<RecipientProfileProps> {
 
   public get photoKey(): string | null {
     return this.props.photoKey;
+  }
+
+  /** The pinned geographic location of the address, if captured. */
+  public get location(): Coordinates | null {
+    return this.props.location;
   }
 }

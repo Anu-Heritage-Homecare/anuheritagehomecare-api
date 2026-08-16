@@ -1,5 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsDateString,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { Gender } from '../../domain/gender.enum';
 
 /**
@@ -64,4 +74,24 @@ export class CreateCareRecipientDraftRequestDto {
   @IsString()
   @MaxLength(500)
   photoKey?: string;
+
+  @ApiPropertyOptional({
+    example: 37.3861,
+    description: 'Pinned latitude of the address; required later for the arrival geofence',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude?: number;
+
+  @ApiPropertyOptional({
+    example: -122.0839,
+    description: 'Pinned longitude of the address; sent together with latitude',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude?: number;
 }

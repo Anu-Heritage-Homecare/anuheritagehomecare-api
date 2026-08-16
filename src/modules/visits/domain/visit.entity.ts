@@ -1,5 +1,6 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root.base';
-import { ValidationException } from '@shared/domain/domain-exception';
+import { Coordinates } from '@shared/domain/coordinates.vo';
+import { OutsideGeofenceException, ValidationException } from '@shared/domain/domain-exception';
 import { VisitStatus } from './visit-status.enum';
 import { VisitTask } from './value-objects/visit-task.vo';
 import { VisitWindow } from './value-objects/visit-window.vo';
@@ -12,6 +13,9 @@ interface VisitProps {
   status: VisitStatus;
   tasks: VisitTask[];
   specialInstructions: string[];
+  clockInAt: Date | null;
+  clockOutAt: Date | null;
+  arrivalLocation: Coordinates | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,10 +29,10 @@ const MAX_INSTRUCTIONS = 50;
  * instructions; the recipient's own details (identity, health, address) live in
  * the care recipients context and are read from there, never duplicated here.
  *
- * The lifecycle transitions (check in, complete) are not built yet, so the only
- * factory creates a SCHEDULED visit and other states are reached through
- * rehydration. All construction goes through factory methods so the aggregate is
- * never in an invalid state.
+ * The factory creates a SCHEDULED visit; the caregiver then moves it through its
+ * lifecycle with the geofenced `clockIn` and the completing `clockOut`. All
+ * construction goes through factory methods so the aggregate is never in an
+ * invalid state.
  */
 export class Visit extends AggregateRoot<string> {
   private props: VisitProps;
@@ -57,6 +61,9 @@ export class Visit extends AggregateRoot<string> {
       status: VisitStatus.Scheduled,
       tasks: params.tasks ?? [],
       specialInstructions: Visit.cleanInstructions(params.specialInstructions),
+      clockInAt: null,
+      clockOutAt: null,
+      arrivalLocation: null,
       createdAt: params.now,
       updatedAt: params.now,
     });
@@ -65,6 +72,40 @@ export class Visit extends AggregateRoot<string> {
   /** Rehydrate an existing visit from persistence without emitting events. */
   public static rehydrate(id: string, props: VisitProps): Visit {
     return new Visit(id, props);
+  }
+
+  /**
+   * Clock in on arrival. The caregiver's current position must fall inside the
+   * geofence around the recipient's pinned address, and the visit must not
+   * already be under way or finished. On success the visit starts and the server
+   * stamps the arrival time and location.
+   */
+  public clockIn(params: {
+    at: Coordinates;
+    geofenceCenter: Coordinates;
+    radiusMeters: number;
+    now: Date;
+  }): void {
+    if (this.props.status !== VisitStatus.Scheduled) {
+      throw new ValidationException('This visit cannot be clocked into');
+    }
+    if (!params.geofenceCenter.isWithinMeters(params.at, params.radiusMeters)) {
+      throw new OutsideGeofenceException();
+    }
+    this.props.status = VisitStatus.InProgress;
+    this.props.clockInAt = params.now;
+    this.props.arrivalLocation = params.at;
+    this.props.updatedAt = params.now;
+  }
+
+  /** Clock out, completing a visit that is under way. */
+  public clockOut(now: Date): void {
+    if (this.props.status !== VisitStatus.InProgress) {
+      throw new ValidationException('You must clock in before clocking out');
+    }
+    this.props.status = VisitStatus.Completed;
+    this.props.clockOutAt = now;
+    this.props.updatedAt = now;
   }
 
   private static assertValidDate(value: Date): Date {
@@ -114,6 +155,18 @@ export class Visit extends AggregateRoot<string> {
 
   public get specialInstructions(): string[] {
     return [...this.props.specialInstructions];
+  }
+
+  public get clockInAt(): Date | null {
+    return this.props.clockInAt;
+  }
+
+  public get clockOutAt(): Date | null {
+    return this.props.clockOutAt;
+  }
+
+  public get arrivalLocation(): Coordinates | null {
+    return this.props.arrivalLocation;
   }
 
   public get createdAt(): Date {

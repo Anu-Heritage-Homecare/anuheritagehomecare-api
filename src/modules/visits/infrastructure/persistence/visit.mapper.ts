@@ -3,6 +3,7 @@ import {
   VisitStatus as PrismaVisitStatus,
   VisitTask as PrismaVisitTask,
 } from '@prisma/client';
+import { Coordinates } from '@shared/domain/coordinates.vo';
 import { Visit } from '../../domain/visit.entity';
 import { VisitStatus } from '../../domain/visit-status.enum';
 import { VisitTask } from '../../domain/value-objects/visit-task.vo';
@@ -28,6 +29,11 @@ export class VisitMapper {
       .sort((a, b) => a.position - b.position)
       .map((task) => VisitTask.create(task.label, task.completed));
 
+    const arrivalLocation =
+      row.arrivalLatitude === null || row.arrivalLongitude === null
+        ? null
+        : Coordinates.create(row.arrivalLatitude, row.arrivalLongitude);
+
     return Visit.rehydrate(row.id, {
       caregiverId: row.caregiverId,
       careRecipientId: row.careRecipientId,
@@ -36,6 +42,9 @@ export class VisitMapper {
       status: VisitMapper.TO_DOMAIN_STATUS[row.status],
       tasks,
       specialInstructions: row.specialInstructions,
+      clockInAt: row.clockInAt,
+      clockOutAt: row.clockOutAt,
+      arrivalLocation,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -51,6 +60,10 @@ export class VisitMapper {
       endMinute: visit.window.endMinute,
       status: VisitMapper.TO_PERSISTENCE_STATUS[visit.status],
       specialInstructions: visit.specialInstructions,
+      clockInAt: visit.clockInAt,
+      clockOutAt: visit.clockOutAt,
+      arrivalLatitude: visit.arrivalLocation?.latitude ?? null,
+      arrivalLongitude: visit.arrivalLocation?.longitude ?? null,
       createdAt: visit.createdAt,
       updatedAt: visit.updatedAt,
     };

@@ -91,3 +91,17 @@ export class KycRequiredException extends DomainException {
     super(message);
   }
 }
+
+/**
+ * Raised when a caregiver tries to clock in while outside the care recipient's
+ * arrival geofence. Carries a distinct `code` so the mobile client can tell the
+ * caregiver to get closer rather than treating it as a generic failure.
+ */
+export class OutsideGeofenceException extends DomainException {
+  public readonly code = 'OUTSIDE_GEOFENCE';
+  public readonly kind: DomainExceptionKind = 'UNPROCESSABLE';
+
+  constructor(message = 'You are too far from the address to clock in') {
+    super(message);
+  }
+}
