@@ -1,6 +1,17 @@
 import { User } from '../../domain/user.entity';
+import { Country } from '../../domain/country.enum';
 import { UserStatus } from '../../domain/user-status.enum';
 import { UserType } from '../../domain/user-type.enum';
+
+/** The postal address of a user, as a flat projection. */
+export interface UserAddressResult {
+  line1: string;
+  line2: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: Country;
+}
 
 /**
  * Flat, serialisable projection of a user for the presentation layer. Never
@@ -13,6 +24,7 @@ export interface UserProfileResult {
   lastName: string;
   email: string;
   phone: string;
+  address: UserAddressResult;
   emailVerified: boolean;
   phoneVerified: boolean;
   isFamilyOwner: boolean;
@@ -28,6 +40,14 @@ export function toUserProfile(user: User): UserProfileResult {
     lastName: user.name.lastName,
     email: user.email.value,
     phone: user.phone.value,
+    address: {
+      line1: user.address.line1,
+      line2: user.address.line2,
+      city: user.address.city,
+      state: user.address.state,
+      postalCode: user.address.postalCode,
+      country: user.address.country,
+    },
     emailVerified: user.emailVerified,
     phoneVerified: user.phoneVerified,
     isFamilyOwner: user.isFamilyOwner,

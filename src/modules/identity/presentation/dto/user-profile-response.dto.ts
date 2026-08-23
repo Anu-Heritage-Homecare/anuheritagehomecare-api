@@ -1,7 +1,40 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UserProfileResult } from '../../application/dto/user-profile.result';
+import { UserAddressResult, UserProfileResult } from '../../application/dto/user-profile.result';
+import { Country } from '../../domain/country.enum';
 import { UserStatus } from '../../domain/user-status.enum';
 import { UserType } from '../../domain/user-type.enum';
+
+/** The postal address of a user in an HTTP response. */
+export class UserAddressResponseDto {
+  @ApiProperty()
+  line1!: string;
+
+  @ApiProperty({ nullable: true })
+  line2!: string | null;
+
+  @ApiProperty()
+  city!: string;
+
+  @ApiProperty()
+  state!: string;
+
+  @ApiProperty()
+  postalCode!: string;
+
+  @ApiProperty({ enum: Country, enumName: 'Country' })
+  country!: Country;
+
+  static fromResult(result: UserAddressResult): UserAddressResponseDto {
+    const dto = new UserAddressResponseDto();
+    dto.line1 = result.line1;
+    dto.line2 = result.line2;
+    dto.city = result.city;
+    dto.state = result.state;
+    dto.postalCode = result.postalCode;
+    dto.country = result.country;
+    return dto;
+  }
+}
 
 /** HTTP response contract for a user profile. Never carries secrets. */
 export class UserProfileResponseDto {
@@ -22,6 +55,9 @@ export class UserProfileResponseDto {
 
   @ApiProperty()
   phone!: string;
+
+  @ApiProperty({ type: UserAddressResponseDto })
+  address!: UserAddressResponseDto;
 
   @ApiProperty()
   emailVerified!: boolean;
@@ -48,6 +84,7 @@ export class UserProfileResponseDto {
     dto.lastName = result.lastName;
     dto.email = result.email;
     dto.phone = result.phone;
+    dto.address = UserAddressResponseDto.fromResult(result.address);
     dto.emailVerified = result.emailVerified;
     dto.phoneVerified = result.phoneVerified;
     dto.isFamilyOwner = result.isFamilyOwner;

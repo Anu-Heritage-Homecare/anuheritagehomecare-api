@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -10,6 +10,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-principal';
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { ChangePasswordUseCase } from '../application/use-cases/change-password.use-case';
+import { GetMyProfileUseCase } from '../application/use-cases/get-my-profile.use-case';
 import { LoginUseCase } from '../application/use-cases/login.use-case';
 import { LogoutUseCase } from '../application/use-cases/logout.use-case';
 import { RefreshTokenUseCase } from '../application/use-cases/refresh-token.use-case';
@@ -31,6 +32,7 @@ import { RequestPasswordResetRequestDto } from './dto/request-password-reset-req
 import { ResendEmailVerificationRequestDto } from './dto/resend-email-verification-request.dto';
 import { ResetPasswordRequestDto } from './dto/reset-password-request.dto';
 import { ResetTokenResponseDto } from './dto/reset-token-response.dto';
+import { UserProfileResponseDto } from './dto/user-profile-response.dto';
 import { VerifyEmailRequestDto } from './dto/verify-email-request.dto';
 import { VerifyPasswordResetOtpRequestDto } from './dto/verify-password-reset-otp-request.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -58,7 +60,20 @@ export class AuthController {
     private readonly verifyPasswordResetOtp: VerifyPasswordResetOtpUseCase,
     private readonly resetPassword: ResetPasswordUseCase,
     private readonly changePassword: ChangePasswordUseCase,
+    private readonly getMyProfile: GetMyProfileUseCase,
   ) {}
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get the personal information of the authenticated user' })
+  @ApiOkResponse({ type: UserProfileResponseDto })
+  async myProfile(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): Promise<UserProfileResponseDto> {
+    const result = await this.getMyProfile.execute({ userId: principal.userId });
+    return UserProfileResponseDto.fromResult(result);
+  }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
