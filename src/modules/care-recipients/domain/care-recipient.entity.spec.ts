@@ -4,6 +4,7 @@ import { CareRecipient } from './care-recipient.entity';
 import { CareNeed } from './care-need.enum';
 import { CareRecipientStatus } from './care-recipient-status.enum';
 import { OnboardingStep } from './onboarding-step.enum';
+import { Medication } from './medication.entity';
 import { CareSchedule } from './value-objects/care-schedule.vo';
 import { HealthInformation } from './value-objects/health-information.vo';
 
@@ -41,17 +42,53 @@ describe('CareRecipient', () => {
     expect(recipient.careNeeds).toEqual([CareNeed.Bathing]);
     expect(recipient.onboardingStep).toBe(OnboardingStep.Health);
 
-    recipient.setHealthInformation(HealthInformation.create({ needsMedicationHelp: false }), NOW);
+    recipient.setHealthInformation(
+      HealthInformation.create({ needsMedicationHelp: false }),
+      [],
+      NOW,
+    );
     expect(recipient.onboardingStep).toBe(OnboardingStep.Schedule);
 
     recipient.setSchedule(schedule(), NOW);
     expect(recipient.onboardingStep).toBe(OnboardingStep.Review);
   });
 
+  it('records the medication schedule alongside the health information', () => {
+    const recipient = draft();
+    recipient.setCareNeeds([CareNeed.Bathing], NOW);
+
+    const metformin = Medication.create({ id: 'med-1', name: 'Metformin', dose: '500 mg' });
+    recipient.setHealthInformation(
+      HealthInformation.create({ needsMedicationHelp: true }),
+      [metformin],
+      NOW,
+    );
+
+    expect(recipient.medications).toHaveLength(1);
+    expect(recipient.medications[0].name).toBe('Metformin');
+  });
+
+  it('rejects medications when no medication help is needed', () => {
+    const recipient = draft();
+    const metformin = Medication.create({ id: 'med-1', name: 'Metformin' });
+
+    expect(() =>
+      recipient.setHealthInformation(
+        HealthInformation.create({ needsMedicationHelp: false }),
+        [metformin],
+        NOW,
+      ),
+    ).toThrow(ValidationException);
+  });
+
   it('does not regress the pointer when an earlier step is re-edited', () => {
     const recipient = draft();
     recipient.setCareNeeds([CareNeed.Bathing], NOW);
-    recipient.setHealthInformation(HealthInformation.create({ needsMedicationHelp: false }), NOW);
+    recipient.setHealthInformation(
+      HealthInformation.create({ needsMedicationHelp: false }),
+      [],
+      NOW,
+    );
 
     recipient.setCareNeeds([CareNeed.Dressing], NOW);
 

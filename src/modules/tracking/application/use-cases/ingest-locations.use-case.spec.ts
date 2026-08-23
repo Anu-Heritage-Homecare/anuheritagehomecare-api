@@ -48,6 +48,25 @@ describe('IngestLocationsUseCase', () => {
     expect(repo.saved[1].accuracyMeters).toBeNull();
   });
 
+  it('tags emergency points with the SOS alert they are streamed for', async () => {
+    const result = await useCase.execute({
+      caregiverId: 'caregiver-1',
+      points: [
+        {
+          latitude: 37.3861,
+          longitude: -122.0839,
+          mode: LocationMode.Emergency,
+          recordedAt: '2026-07-12T09:12:00.000Z',
+          sosAlertId: '22222222-2222-2222-2222-222222222222',
+        },
+      ],
+    });
+
+    expect(result.accepted).toBe(1);
+    expect(repo.saved[0].mode).toBe(LocationMode.Emergency);
+    expect(repo.saved[0].sosAlertId).toBe('22222222-2222-2222-2222-222222222222');
+  });
+
   it('rejects a batch containing an out of range coordinate', async () => {
     await expect(
       useCase.execute({

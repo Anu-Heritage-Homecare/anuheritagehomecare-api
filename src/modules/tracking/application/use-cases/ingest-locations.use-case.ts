@@ -37,6 +37,7 @@ export class IngestLocationsUseCase {
         id: this.ids.generate(),
         caregiverId: command.caregiverId,
         visitId: point.visitId ?? null,
+        sosAlertId: point.sosAlertId ?? null,
         position: Coordinates.create(point.latitude, point.longitude),
         accuracyMeters: point.accuracyMeters ?? null,
         mode: point.mode,

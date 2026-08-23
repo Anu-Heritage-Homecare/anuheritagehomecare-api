@@ -1,9 +1,11 @@
 import { Coordinates } from '@shared/domain/coordinates.vo';
 import { OutsideGeofenceException, ValidationException } from '@shared/domain/domain-exception';
+import { MedicationAdministrationOutcome } from './medication-administration-outcome.enum';
 import { VisitStatus } from './visit-status.enum';
 import { Visit } from './visit.entity';
 import { VisitTask } from './value-objects/visit-task.vo';
 import { VisitWindow } from './value-objects/visit-window.vo';
+import { VitalsReading } from './value-objects/vitals-reading.vo';
 
 const NOW = new Date('2026-07-12T12:00:00.000Z');
 
@@ -74,6 +76,151 @@ describe('Visit clock in and out', () => {
     visit.clockOut(NOW);
     expect(visit.status).toBe(VisitStatus.Completed);
     expect(visit.clockOutAt).toEqual(NOW);
+  });
+});
+
+describe('Visit care actions', () => {
+  const center = Coordinates.create(37.3861, -122.0839);
+
+  function started(tasks: VisitTask[] = []): Visit {
+    const visit = schedule({ tasks });
+    visit.clockIn({ at: center, geofenceCenter: center, radiusMeters: 150, now: NOW });
+    return visit;
+  }
+
+  it('records a medication outcome once per medication', () => {
+    const visit = started();
+    visit.recordMedication({
+      medicationId: 'med-1',
+      outcome: MedicationAdministrationOutcome.Refused,
+      note: 'Patient refused',
+      now: NOW,
+    });
+    visit.recordMedication({
+      medicationId: 'med-1',
+      outcome: MedicationAdministrationOutcome.Administered,
+      now: NOW,
+    });
+
+    expect(visit.medicationAdministrations).toHaveLength(1);
+    expect(visit.medicationAdministrations[0].outcome).toBe(
+      MedicationAdministrationOutcome.Administered,
+    );
+    expect(visit.medicationAdministrations[0].note).toBeNull();
+  });
+
+  it('refuses to record medication before the visit is in progress', () => {
+    const visit = schedule();
+    expect(() =>
+      visit.recordMedication({
+        medicationId: 'med-1',
+        outcome: MedicationAdministrationOutcome.Administered,
+        now: NOW,
+      }),
+    ).toThrow(ValidationException);
+  });
+
+  it('appends vitals readings', () => {
+    const visit = started();
+    visit.recordVitals(VitalsReading.create({ heartRate: 72, recordedAt: NOW }), NOW);
+    visit.recordVitals(VitalsReading.create({ oxygenSaturation: 98, recordedAt: NOW }), NOW);
+    expect(visit.vitals).toHaveLength(2);
+  });
+
+  it('toggles a checklist task by position', () => {
+    const visit = started([VisitTask.create('Assist with morning'), VisitTask.create('Bathing')]);
+    visit.setTaskCompletion(1, true, NOW);
+    expect(visit.tasks[1].completed).toBe(true);
+    expect(visit.tasks[0].completed).toBe(false);
+  });
+
+  it('rejects toggling a task that does not exist', () => {
+    const visit = started([VisitTask.create('Assist with morning')]);
+    expect(() => visit.setTaskCompletion(5, true, NOW)).toThrow(ValidationException);
+  });
+
+  it('saves visit and family notes with photo keys', () => {
+    const visit = started();
+    visit.saveNotes({
+      visitNote: '  Patient in good spirits  ',
+      familyNote: '',
+      photoKeys: ['key-1', '  ', 'key-2'],
+      now: NOW,
+    });
+    expect(visit.visitNote).toBe('Patient in good spirits');
+    expect(visit.familyNote).toBeNull();
+    expect(visit.photoKeys).toEqual(['key-1', 'key-2']);
+  });
+});
+
+describe('Visit breaks', () => {
+  const center = Coordinates.create(37.3861, -122.0839);
+  const later = new Date('2026-07-12T12:20:00.000Z'); // 20 minutes after NOW
+
+  function started(): Visit {
+    const visit = schedule();
+    visit.clockIn({ at: center, geofenceCenter: center, radiusMeters: 150, now: NOW });
+    return visit;
+  }
+
+  it('starts a break, moving the visit to ON_BREAK', () => {
+    const visit = started();
+    visit.startBreak(NOW);
+    expect(visit.status).toBe(VisitStatus.OnBreak);
+    expect(visit.onBreakSince).toEqual(NOW);
+  });
+
+  it('ends a break, accumulating the break time and resuming', () => {
+    const visit = started();
+    visit.startBreak(NOW);
+    visit.endBreak(later);
+    expect(visit.status).toBe(VisitStatus.InProgress);
+    expect(visit.onBreakSince).toBeNull();
+    expect(visit.breakSeconds).toBe(20 * 60);
+  });
+
+  it('refuses to clock out while on a break', () => {
+    const visit = started();
+    visit.startBreak(NOW);
+    expect(() => visit.clockOut(later)).toThrow(ValidationException);
+  });
+
+  it('refuses to start a break unless the visit is in progress', () => {
+    const visit = schedule();
+    expect(() => visit.startBreak(NOW)).toThrow(ValidationException);
+  });
+
+  it('refuses to end a break when none is open', () => {
+    const visit = started();
+    expect(() => visit.endBreak(NOW)).toThrow(ValidationException);
+  });
+
+  it('blocks recording actions while on a break', () => {
+    const visit = started();
+    visit.startBreak(NOW);
+    expect(() =>
+      visit.recordVitals(VitalsReading.create({ heartRate: 72, recordedAt: NOW }), NOW),
+    ).toThrow(ValidationException);
+  });
+});
+
+describe('VitalsReading', () => {
+  const NOW = new Date('2026-07-12T12:00:00.000Z');
+
+  it('requires at least one measure', () => {
+    expect(() => VitalsReading.create({ recordedAt: NOW })).toThrow(ValidationException);
+  });
+
+  it('rejects a diastolic higher than the systolic', () => {
+    expect(() => VitalsReading.create({ systolic: 80, diastolic: 120, recordedAt: NOW })).toThrow(
+      ValidationException,
+    );
+  });
+
+  it('rejects an oxygen saturation above 100', () => {
+    expect(() => VitalsReading.create({ oxygenSaturation: 101, recordedAt: NOW })).toThrow(
+      ValidationException,
+    );
   });
 });
 

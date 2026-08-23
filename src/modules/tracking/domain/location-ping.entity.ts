@@ -6,6 +6,7 @@ import { LocationMode } from './location-mode.enum';
 interface LocationPingProps {
   caregiverId: string;
   visitId: string | null;
+  sosAlertId: string | null;
   position: Coordinates;
   accuracyMeters: number | null;
   mode: LocationMode;
@@ -31,6 +32,7 @@ export class LocationPing extends Entity<string> {
     id: string;
     caregiverId: string;
     visitId?: string | null;
+    sosAlertId?: string | null;
     position: Coordinates;
     accuracyMeters?: number | null;
     mode: LocationMode;
@@ -51,6 +53,7 @@ export class LocationPing extends Entity<string> {
     return new LocationPing(params.id, {
       caregiverId: params.caregiverId,
       visitId: params.visitId ?? null,
+      sosAlertId: params.sosAlertId ?? null,
       position: params.position,
       accuracyMeters: params.accuracyMeters ?? null,
       mode: params.mode,
@@ -65,6 +68,10 @@ export class LocationPing extends Entity<string> {
 
   public get visitId(): string | null {
     return this.props.visitId;
+  }
+
+  public get sosAlertId(): string | null {
+    return this.props.sosAlertId;
   }
 
   public get position(): Coordinates {

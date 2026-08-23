@@ -37,6 +37,12 @@ export class PrismaCareRecipientDirectory implements CareRecipientDirectory {
         careNeeds: recipient.careNeeds,
         medicalConditions: health?.medicalConditions ?? [],
         allergies: health?.allergies ?? [],
+        medications: recipient.medications.map((medication) => ({
+          id: medication.id,
+          name: medication.name,
+          dose: medication.dose,
+          scheduleMinute: medication.scheduleMinute,
+        })),
         photoKey: recipient.profile.photoKey,
         latitude: recipient.profile.location?.latitude ?? null,
         longitude: recipient.profile.location?.longitude ?? null,

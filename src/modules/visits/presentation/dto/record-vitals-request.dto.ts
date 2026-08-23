@@ -1,0 +1,52 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsInt, IsOptional, Max, Min } from 'class-validator';
+
+const MAX_PRESSURE = 400;
+const MAX_HEART_RATE = 400;
+const MAX_WEIGHT_GRAMS = 500_000;
+
+/**
+ * A set of vital signs recorded during a visit. Every measure is optional, but at
+ * least one must be supplied (enforced in the domain). Weight is whole grams.
+ */
+export class RecordVitalsRequestDto {
+  @ApiPropertyOptional({ minimum: 0, maximum: MAX_PRESSURE, example: 120 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(MAX_PRESSURE)
+  systolic?: number | null;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: MAX_PRESSURE, example: 80 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(MAX_PRESSURE)
+  diastolic?: number | null;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: MAX_HEART_RATE, example: 72 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(MAX_HEART_RATE)
+  heartRate?: number | null;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 100, example: 98 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  oxygenSaturation?: number | null;
+
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: MAX_WEIGHT_GRAMS,
+    example: 98000,
+    description: 'Weight in whole grams (98 kg = 98000)',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(MAX_WEIGHT_GRAMS)
+  weightGrams?: number | null;
+}

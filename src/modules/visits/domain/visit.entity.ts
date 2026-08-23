@@ -1,9 +1,13 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root.base';
 import { Coordinates } from '@shared/domain/coordinates.vo';
 import { OutsideGeofenceException, ValidationException } from '@shared/domain/domain-exception';
+import { MedicationAdministrationOutcome } from './medication-administration-outcome.enum';
 import { VisitStatus } from './visit-status.enum';
+import { MedicationAdministration } from './value-objects/medication-administration.vo';
+import { VisitBreak } from './value-objects/visit-break.vo';
 import { VisitTask } from './value-objects/visit-task.vo';
 import { VisitWindow } from './value-objects/visit-window.vo';
+import { VitalsReading } from './value-objects/vitals-reading.vo';
 
 interface VisitProps {
   caregiverId: string;
@@ -13,6 +17,12 @@ interface VisitProps {
   status: VisitStatus;
   tasks: VisitTask[];
   specialInstructions: string[];
+  medicationAdministrations: MedicationAdministration[];
+  vitals: VitalsReading[];
+  breaks: VisitBreak[];
+  visitNote: string | null;
+  familyNote: string | null;
+  photoKeys: string[];
   clockInAt: Date | null;
   clockOutAt: Date | null;
   arrivalLocation: Coordinates | null;
@@ -20,8 +30,27 @@ interface VisitProps {
   updatedAt: Date;
 }
 
+/**
+ * A snapshot of which parts of the visit record the caregiver has filled in,
+ * surfaced on the pre completion review screen. It reports state, it does not
+ * gate completion: a caregiver may still end a visit with optional items unfilled.
+ */
+export interface VisitCompletionChecklist {
+  tasksTotal: number;
+  tasksCompleted: number;
+  allTasksCompleted: boolean;
+  medicationGiven: boolean;
+  vitalsRecorded: boolean;
+  notesAdded: boolean;
+  familyNoteAdded: boolean;
+  photosUploaded: boolean;
+}
+
 const MAX_INSTRUCTION_LENGTH = 300;
 const MAX_INSTRUCTIONS = 50;
+const MAX_NOTE_LENGTH = 4000;
+const MAX_PHOTOS = 20;
+const MAX_PHOTO_KEY_LENGTH = 500;
 
 /**
  * Visit aggregate root: one scheduled care session for a care recipient, carried
@@ -61,6 +90,12 @@ export class Visit extends AggregateRoot<string> {
       status: VisitStatus.Scheduled,
       tasks: params.tasks ?? [],
       specialInstructions: Visit.cleanInstructions(params.specialInstructions),
+      medicationAdministrations: [],
+      vitals: [],
+      breaks: [],
+      visitNote: null,
+      familyNote: null,
+      photoKeys: [],
       clockInAt: null,
       clockOutAt: null,
       arrivalLocation: null,
@@ -100,12 +135,132 @@ export class Visit extends AggregateRoot<string> {
 
   /** Clock out, completing a visit that is under way. */
   public clockOut(now: Date): void {
+    if (this.props.status === VisitStatus.OnBreak) {
+      throw new ValidationException('End your break before ending the visit');
+    }
     if (this.props.status !== VisitStatus.InProgress) {
       throw new ValidationException('You must clock in before clocking out');
     }
     this.props.status = VisitStatus.Completed;
     this.props.clockOutAt = now;
     this.props.updatedAt = now;
+  }
+
+  /** Begin a break. The visit must be under way; it moves to ON_BREAK. */
+  public startBreak(now: Date): void {
+    if (this.props.status !== VisitStatus.InProgress) {
+      throw new ValidationException('The visit must be in progress to take a break');
+    }
+    this.props.breaks = [...this.props.breaks, VisitBreak.open(now)];
+    this.props.status = VisitStatus.OnBreak;
+    this.props.updatedAt = now;
+  }
+
+  /** End the open break, returning the visit to IN_PROGRESS. */
+  public endBreak(now: Date): void {
+    if (this.props.status !== VisitStatus.OnBreak) {
+      throw new ValidationException('The visit is not currently on a break');
+    }
+    this.props.breaks = this.props.breaks.map((entry) => (entry.isOpen ? entry.close(now) : entry));
+    this.props.status = VisitStatus.InProgress;
+    this.props.updatedAt = now;
+  }
+
+  /**
+   * Record what the caregiver did with one scheduled medication. Idempotent per
+   * medication: recording the same one again overwrites the previous outcome.
+   * The medication id is validated against the recipient's schedule by the use
+   * case; the visit only records the reference and the outcome.
+   */
+  public recordMedication(params: {
+    medicationId: string;
+    outcome: MedicationAdministrationOutcome;
+    note?: string | null;
+    now: Date;
+  }): MedicationAdministration {
+    this.assertInProgress('recording medication');
+    const administration = MedicationAdministration.create({
+      medicationId: params.medicationId,
+      outcome: params.outcome,
+      note: params.note,
+      recordedAt: params.now,
+    });
+    this.props.medicationAdministrations = [
+      ...this.props.medicationAdministrations.filter(
+        (existing) => existing.medicationId !== params.medicationId,
+      ),
+      administration,
+    ];
+    this.props.updatedAt = params.now;
+    return administration;
+  }
+
+  /** Append a set of vital signs recorded during the visit. */
+  public recordVitals(reading: VitalsReading, now: Date): void {
+    this.assertInProgress('recording vitals');
+    this.props.vitals = [...this.props.vitals, reading];
+    this.props.updatedAt = now;
+  }
+
+  /** Mark a checklist task, identified by its position, complete or not. */
+  public setTaskCompletion(index: number, completed: boolean, now: Date): void {
+    this.assertInProgress('updating a task');
+    if (!Number.isInteger(index) || index < 0 || index >= this.props.tasks.length) {
+      throw new ValidationException('That task does not exist on this visit');
+    }
+    const current = this.props.tasks[index];
+    this.props.tasks = this.props.tasks.map((task, position) =>
+      position === index ? VisitTask.create(current.label, completed) : task,
+    );
+    this.props.updatedAt = now;
+  }
+
+  /** Save the visit and family notes and any attached photo keys (replaces all). */
+  public saveNotes(params: {
+    visitNote?: string | null;
+    familyNote?: string | null;
+    photoKeys?: string[];
+    now: Date;
+  }): void {
+    this.assertInProgress('saving notes');
+    this.props.visitNote = Visit.cleanNote(params.visitNote);
+    this.props.familyNote = Visit.cleanNote(params.familyNote);
+    this.props.photoKeys = Visit.cleanPhotoKeys(params.photoKeys);
+    this.props.updatedAt = params.now;
+  }
+
+  private assertInProgress(action: string): void {
+    if (this.props.status !== VisitStatus.InProgress) {
+      throw new ValidationException(`The visit must be in progress before ${action}`);
+    }
+  }
+
+  private static cleanNote(raw: string | null | undefined): string | null {
+    if (raw === null || raw === undefined) {
+      return null;
+    }
+    const note = raw.trim();
+    if (note.length === 0) {
+      return null;
+    }
+    if (note.length > MAX_NOTE_LENGTH) {
+      throw new ValidationException('A note exceeds the maximum length');
+    }
+    return note;
+  }
+
+  private static cleanPhotoKeys(raw: string[] | undefined): string[] {
+    const keys = raw ?? [];
+    if (keys.length > MAX_PHOTOS) {
+      throw new ValidationException('Too many photos attached to the visit');
+    }
+    const cleaned = keys.map((key) => key.trim()).filter((key) => key.length > 0);
+    for (const key of cleaned) {
+      if (key.length > MAX_PHOTO_KEY_LENGTH) {
+        throw new ValidationException('A photo key exceeds the maximum length');
+      }
+    }
+    return cleaned;
   }
 
   private static assertValidDate(value: Date): Date {
@@ -155,6 +310,72 @@ export class Visit extends AggregateRoot<string> {
 
   public get specialInstructions(): string[] {
     return [...this.props.specialInstructions];
+  }
+
+  public get medicationAdministrations(): MedicationAdministration[] {
+    return [...this.props.medicationAdministrations];
+  }
+
+  public get vitals(): VitalsReading[] {
+    return [...this.props.vitals];
+  }
+
+  public get visitNote(): string | null {
+    return this.props.visitNote;
+  }
+
+  public get familyNote(): string | null {
+    return this.props.familyNote;
+  }
+
+  public get photoKeys(): string[] {
+    return [...this.props.photoKeys];
+  }
+
+  public get breaks(): VisitBreak[] {
+    return [...this.props.breaks];
+  }
+
+  /** Total whole seconds spent on closed breaks during the visit. */
+  public get breakSeconds(): number {
+    return this.props.breaks.reduce((total, entry) => total + entry.durationSeconds, 0);
+  }
+
+  /**
+   * Whole seconds actively spent on the visit: arrival to departure, less any
+   * break time. Null until the visit has both a clock in and a clock out, so it
+   * only reads once the visit is completed.
+   */
+  public get activeSeconds(): number | null {
+    if (this.props.clockInAt === null || this.props.clockOutAt === null) {
+      return null;
+    }
+    const elapsed = Math.floor(
+      (this.props.clockOutAt.getTime() - this.props.clockInAt.getTime()) / 1000,
+    );
+    return Math.max(0, elapsed - this.breakSeconds);
+  }
+
+  /** Which parts of the visit record are filled in, for the review screen. */
+  public get completionChecklist(): VisitCompletionChecklist {
+    const tasksTotal = this.props.tasks.length;
+    const tasksCompleted = this.props.tasks.filter((task) => task.completed).length;
+    return {
+      tasksTotal,
+      tasksCompleted,
+      allTasksCompleted: tasksTotal > 0 && tasksCompleted === tasksTotal,
+      medicationGiven: this.props.medicationAdministrations.length > 0,
+      vitalsRecorded: this.props.vitals.length > 0,
+      notesAdded: this.props.visitNote !== null,
+      familyNoteAdded: this.props.familyNote !== null,
+      photosUploaded: this.props.photoKeys.length > 0,
+    };
+  }
+
+  /** When the current open break began, or null if the visit is not on break. */
+  public get onBreakSince(): Date | null {
+    const open = this.props.breaks.find((entry) => entry.isOpen);
+    return open === undefined ? null : open.startedAt;
   }
 
   public get clockInAt(): Date | null {

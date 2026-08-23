@@ -5,6 +5,14 @@ import { CareRecipientStatus } from '../../domain/care-recipient-status.enum';
 import { Gender } from '../../domain/gender.enum';
 import { OnboardingStep } from '../../domain/onboarding-step.enum';
 
+/** One medication on the schedule, projected for the presentation layer. */
+export interface MedicationResult {
+  id: string;
+  name: string;
+  dose: string | null;
+  scheduleMinute: number | null;
+}
+
 /** Flat, serialisable projection of a care recipient for the presentation layer. */
 export interface CareRecipientResult {
   id: string;
@@ -27,7 +35,7 @@ export interface CareRecipientResult {
     medicalConditions: string[];
     allergies: string[];
     needsMedicationHelp: boolean;
-    medications: string[];
+    medications: MedicationResult[];
   } | null;
   schedule: {
     frequency: CareFrequency;
@@ -73,7 +81,12 @@ export function toCareRecipientResult(recipient: CareRecipient): CareRecipientRe
             medicalConditions: health.medicalConditions,
             allergies: health.allergies,
             needsMedicationHelp: health.needsMedicationHelp,
-            medications: health.medications,
+            medications: recipient.medications.map((medication) => ({
+              id: medication.id,
+              name: medication.name,
+              dose: medication.dose,
+              scheduleMinute: medication.scheduleMinute,
+            })),
           },
     schedule:
       schedule === null

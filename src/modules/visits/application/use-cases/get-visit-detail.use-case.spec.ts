@@ -62,6 +62,19 @@ describe('GetVisitDetailUseCase', () => {
     expect(detail.emergencyContact).toEqual({ name: 'Sarah Adams John', phone: '+14155550100' });
   });
 
+  it('surfaces the recipient medications with no administration until one is recorded', async () => {
+    await visits.save(buildVisit({ id: 'visit-med' }));
+
+    const detail = await useCase.execute({ caregiverId: 'caregiver-1', visitId: 'visit-med' });
+
+    expect(detail.medications).toEqual([
+      { id: 'med-1', name: 'Metformin', dose: '500 mg', scheduleMinute: 510, administration: null },
+      { id: 'med-2', name: 'Amlodipine', dose: '5 mg', scheduleMinute: 540, administration: null },
+    ]);
+    expect(detail.vitals).toEqual([]);
+    expect(detail.notes).toEqual({ visitNote: null, familyNote: null, photoKeys: [] });
+  });
+
   it('returns a null emergency contact when the owner has no account on file', async () => {
     recipients.add(buildSnapshot({ id: 'recipient-2', ownerId: 'owner-unknown' }));
     await visits.save(buildVisit({ id: 'visit-2', careRecipientId: 'recipient-2' }));

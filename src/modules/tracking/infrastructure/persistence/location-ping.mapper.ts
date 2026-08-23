@@ -16,6 +16,7 @@ export class LocationPingMapper {
       id: ping.id,
       caregiverId: ping.caregiverId,
       visitId: ping.visitId,
+      sosAlertId: ping.sosAlertId,
       latitude: ping.position.latitude,
       longitude: ping.position.longitude,
       accuracyMeters: ping.accuracyMeters,
@@ -28,5 +29,6 @@ export class LocationPingMapper {
   private static readonly TO_PERSISTENCE_MODE: Record<LocationMode, PrismaLocationMode> = {
     [LocationMode.Navigation]: 'NAVIGATION',
     [LocationMode.Background]: 'BACKGROUND',
+    [LocationMode.Emergency]: 'EMERGENCY',
   };
 }

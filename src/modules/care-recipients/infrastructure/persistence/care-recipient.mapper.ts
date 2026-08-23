@@ -4,6 +4,7 @@ import {
   CareNeed as PrismaCareNeed,
   CareRecipientStatus as PrismaStatus,
   Gender as PrismaGender,
+  Medication as PrismaMedication,
   OnboardingStep as PrismaOnboardingStep,
 } from '@prisma/client';
 import { CareRecipient } from '../../domain/care-recipient.entity';
@@ -11,18 +12,31 @@ import { CareFrequency } from '../../domain/care-frequency.enum';
 import { CareNeed } from '../../domain/care-need.enum';
 import { CareRecipientStatus } from '../../domain/care-recipient-status.enum';
 import { Gender } from '../../domain/gender.enum';
+import { Medication } from '../../domain/medication.entity';
 import { OnboardingStep } from '../../domain/onboarding-step.enum';
 import { CareSchedule } from '../../domain/value-objects/care-schedule.vo';
 import { HealthInformation } from '../../domain/value-objects/health-information.vo';
 import { RecipientProfile } from '../../domain/value-objects/recipient-profile.vo';
 
+type CareRecipientRow = PrismaCareRecipient & { medications: PrismaMedication[] };
+
+/** Persisted shape of a single medication, ready to write under its recipient. */
+export interface MedicationRow {
+  id: string;
+  name: string;
+  dose: string | null;
+  scheduleMinute: number | null;
+  position: number;
+}
+
 /**
- * Translates between the Prisma CareRecipient row and the aggregate. The only
- * place that knows both shapes, so the domain stays free of Prisma types. Health
- * and schedule sections are null in the domain until their wizard step is done.
+ * Translates between the Prisma CareRecipient row (with its medication rows) and
+ * the aggregate. The only place that knows both shapes, so the domain stays free
+ * of Prisma types. Health and schedule sections are null in the domain until
+ * their wizard step is done; medications are ordered by their stored position.
  */
 export class CareRecipientMapper {
-  static toDomain(row: PrismaCareRecipient): CareRecipient {
+  static toDomain(row: CareRecipientRow): CareRecipient {
     const profile = RecipientProfile.create({
       name: row.name,
       gender: CareRecipientMapper.TO_DOMAIN_GENDER[row.gender],
@@ -44,8 +58,18 @@ export class CareRecipientMapper {
             medicalConditions: row.medicalConditions,
             allergies: row.allergies,
             needsMedicationHelp: row.needsMedicationHelp,
-            medications: row.medications,
           });
+
+    const medications = [...row.medications]
+      .sort((a, b) => a.position - b.position)
+      .map((medication) =>
+        Medication.create({
+          id: medication.id,
+          name: medication.name,
+          dose: medication.dose,
+          scheduleMinute: medication.scheduleMinute,
+        }),
+      );
 
     const schedule =
       row.careFrequency === null || row.estimatedStartDate === null || row.expectedDuration === null
@@ -63,6 +87,7 @@ export class CareRecipientMapper {
       profile,
       careNeeds: row.careNeeds.map((need) => CareRecipientMapper.TO_DOMAIN_NEED[need]),
       health,
+      medications,
       schedule,
       completedAt: row.completedAt,
       createdAt: row.createdAt,
@@ -95,7 +120,6 @@ export class CareRecipientMapper {
       medicalConditions: health?.medicalConditions ?? [],
       allergies: health?.allergies ?? [],
       needsMedicationHelp: health === null ? null : health.needsMedicationHelp,
-      medications: health?.medications ?? [],
       careFrequency:
         schedule === null ? null : CareRecipientMapper.TO_PERSISTENCE_FREQUENCY[schedule.frequency],
       estimatedStartDate: schedule?.estimatedStartDate ?? null,
@@ -104,6 +128,16 @@ export class CareRecipientMapper {
       createdAt: recipient.createdAt,
       updatedAt: recipient.updatedAt,
     };
+  }
+
+  static toMedicationRows(recipient: CareRecipient): MedicationRow[] {
+    return recipient.medications.map((medication, index) => ({
+      id: medication.id,
+      name: medication.name,
+      dose: medication.dose,
+      scheduleMinute: medication.scheduleMinute,
+      position: index,
+    }));
   }
 
   private static readonly TO_DOMAIN_STATUS: Record<PrismaStatus, CareRecipientStatus> = {

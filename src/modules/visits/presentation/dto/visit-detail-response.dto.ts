@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { VisitDetailResult } from '../../application/dto/visit-detail.result';
+import { MedicationAdministrationOutcome } from '../../domain/medication-administration-outcome.enum';
 import { VisitStatus } from '../../domain/visit-status.enum';
 import { minutesToClock } from './time-format';
 
@@ -36,6 +37,72 @@ class HealthNoteDto {
   allergies!: string[];
 }
 
+class MedicationAdministrationDto {
+  @ApiProperty({
+    enum: MedicationAdministrationOutcome,
+    enumName: 'MedicationAdministrationOutcome',
+  })
+  outcome!: MedicationAdministrationOutcome;
+
+  @ApiProperty({ nullable: true, example: 'Patient refused' })
+  note!: string | null;
+
+  @ApiProperty()
+  recordedAt!: string;
+}
+
+class VisitMedicationDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ example: 'Metformin' })
+  name!: string;
+
+  @ApiProperty({ nullable: true, example: '500 mg' })
+  dose!: string | null;
+
+  @ApiProperty({ nullable: true, example: 510, description: 'Minutes from midnight' })
+  scheduleMinute!: number | null;
+
+  @ApiProperty({
+    type: MedicationAdministrationDto,
+    nullable: true,
+    description: 'The outcome recorded on this visit, or null if not yet recorded',
+  })
+  administration!: MedicationAdministrationDto | null;
+}
+
+class VisitVitalsDto {
+  @ApiProperty({ nullable: true, example: 120 })
+  systolic!: number | null;
+
+  @ApiProperty({ nullable: true, example: 80 })
+  diastolic!: number | null;
+
+  @ApiProperty({ nullable: true, example: 72 })
+  heartRate!: number | null;
+
+  @ApiProperty({ nullable: true, example: 98 })
+  oxygenSaturation!: number | null;
+
+  @ApiProperty({ nullable: true, example: 98000, description: 'Weight in whole grams' })
+  weightGrams!: number | null;
+
+  @ApiProperty()
+  recordedAt!: string;
+}
+
+class VisitNotesDto {
+  @ApiProperty({ nullable: true })
+  visitNote!: string | null;
+
+  @ApiProperty({ nullable: true })
+  familyNote!: string | null;
+
+  @ApiProperty({ type: [String] })
+  photoKeys!: string[];
+}
+
 class EmergencyContactDto {
   @ApiProperty({ example: 'Sarah Adams John' })
   name!: string;
@@ -67,6 +134,16 @@ export class VisitDetailResponseDto {
   @ApiProperty({ nullable: true, description: 'Server stamped clock out time', example: null })
   clockOutAt!: string | null;
 
+  @ApiProperty({ example: 0, description: 'Total whole seconds spent on closed breaks' })
+  breakSeconds!: number;
+
+  @ApiProperty({
+    nullable: true,
+    description: 'When the current open break began, or null if not on break',
+    example: null,
+  })
+  onBreakSince!: string | null;
+
   @ApiProperty({ example: '123 Maple Street, Sunnyvale, CA 94086' })
   address!: string;
 
@@ -82,6 +159,15 @@ export class VisitDetailResponseDto {
   @ApiProperty({ type: HealthNoteDto })
   healthNote!: HealthNoteDto;
 
+  @ApiProperty({ type: [VisitMedicationDto] })
+  medications!: VisitMedicationDto[];
+
+  @ApiProperty({ type: [VisitVitalsDto], description: 'Recorded vitals, oldest first' })
+  vitals!: VisitVitalsDto[];
+
+  @ApiProperty({ type: VisitNotesDto })
+  notes!: VisitNotesDto;
+
   @ApiProperty({ type: EmergencyContactDto, nullable: true })
   emergencyContact!: EmergencyContactDto | null;
 
@@ -94,11 +180,19 @@ export class VisitDetailResponseDto {
     dto.endTime = minutesToClock(result.endMinute);
     dto.clockInAt = result.clockInAt;
     dto.clockOutAt = result.clockOutAt;
+    dto.breakSeconds = result.breakSeconds;
+    dto.onBreakSince = result.onBreakSince;
     dto.address = result.address;
     dto.recipient = { ...result.recipient };
     dto.tasks = result.tasks.map((task) => ({ ...task }));
     dto.specialInstructions = result.specialInstructions;
     dto.healthNote = { ...result.healthNote };
+    dto.medications = result.medications.map((medication) => ({
+      ...medication,
+      administration: medication.administration === null ? null : { ...medication.administration },
+    }));
+    dto.vitals = result.vitals.map((reading) => ({ ...reading }));
+    dto.notes = { ...result.notes };
     dto.emergencyContact = result.emergencyContact === null ? null : { ...result.emergencyContact };
     return dto;
   }

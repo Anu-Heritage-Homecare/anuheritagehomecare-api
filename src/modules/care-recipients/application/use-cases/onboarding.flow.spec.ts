@@ -39,7 +39,7 @@ describe('Care recipient onboarding flow', () => {
     repo = new InMemoryCareRecipientRepository();
     create = new CreateCareRecipientDraftUseCase(repo, fixedClock, sequentialIds());
     needs = new UpdateCareNeedsUseCase(repo, fixedClock);
-    health = new UpdateHealthInformationUseCase(repo, fixedClock);
+    health = new UpdateHealthInformationUseCase(repo, fixedClock, sequentialIds('med'));
     schedule = new UpdateCareScheduleUseCase(repo, fixedClock);
     finalize = new FinalizeCareRecipientUseCase(repo, fixedClock);
     get = new GetCareRecipientUseCase(repo);
@@ -56,7 +56,7 @@ describe('Care recipient onboarding flow', () => {
       ownerId: 'owner-1',
       careRecipientId: id,
       needsMedicationHelp: true,
-      medications: ['Metformin 500mg'],
+      medications: [{ name: 'Metformin', dose: '500 mg', scheduleMinute: 510 }],
     });
     const scheduled = await schedule.execute({
       ownerId: 'owner-1',
@@ -70,7 +70,9 @@ describe('Care recipient onboarding flow', () => {
     const done = await finalize.execute({ ownerId: 'owner-1', careRecipientId: id });
     expect(done.status).toBe(CareRecipientStatus.Active);
     expect(done.nextStep).toBe(OnboardingStep.Completed);
-    expect(done.health?.medications).toEqual(['Metformin 500mg']);
+    expect(done.health?.medications).toEqual([
+      { id: 'med-1', name: 'Metformin', dose: '500 mg', scheduleMinute: 510 },
+    ]);
     expect(done.schedule?.estimatedStartDate).toBe('2026-08-20');
   });
 

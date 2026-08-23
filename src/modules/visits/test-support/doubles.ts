@@ -8,11 +8,16 @@ import {
   OwnerContact,
   OwnerContactDirectory,
 } from '../application/ports/owner-contact-directory.port';
+import { SosAlert } from '../domain/sos-alert.entity';
+import { SosAlertRepository } from '../domain/sos-alert.repository';
 import { VisitStatus } from '../domain/visit-status.enum';
 import { Visit } from '../domain/visit.entity';
 import { VisitRepository } from '../domain/visit.repository';
+import { MedicationAdministration } from '../domain/value-objects/medication-administration.vo';
+import { VisitBreak } from '../domain/value-objects/visit-break.vo';
 import { VisitTask } from '../domain/value-objects/visit-task.vo';
 import { VisitWindow } from '../domain/value-objects/visit-window.vo';
+import { VitalsReading } from '../domain/value-objects/vitals-reading.vo';
 
 export const FIXED_NOW = new Date('2026-07-12T12:00:00.000Z');
 export const fixedClock: Clock = { now: () => FIXED_NOW };
@@ -32,6 +37,14 @@ interface BuildVisitOptions {
   status?: VisitStatus;
   tasks?: { label: string; completed: boolean }[];
   specialInstructions?: string[];
+  medicationAdministrations?: MedicationAdministration[];
+  vitals?: VitalsReading[];
+  breaks?: VisitBreak[];
+  visitNote?: string | null;
+  familyNote?: string | null;
+  photoKeys?: string[];
+  clockInAt?: Date | null;
+  clockOutAt?: Date | null;
 }
 
 /** Build a Visit aggregate for specs, in any status. */
@@ -67,8 +80,14 @@ export function buildVisit(options: BuildVisitOptions = {}): Visit {
     status,
     tasks,
     specialInstructions: visit.specialInstructions,
-    clockInAt: null,
-    clockOutAt: null,
+    medicationAdministrations: options.medicationAdministrations ?? [],
+    vitals: options.vitals ?? [],
+    breaks: options.breaks ?? [],
+    visitNote: options.visitNote ?? null,
+    familyNote: options.familyNote ?? null,
+    photoKeys: options.photoKeys ?? [],
+    clockInAt: options.clockInAt ?? null,
+    clockOutAt: options.clockOutAt ?? null,
     arrivalLocation: null,
     createdAt: visit.createdAt,
     updatedAt: visit.updatedAt,
@@ -87,6 +106,10 @@ export function buildSnapshot(overrides: Partial<RecipientSnapshot> = {}): Recip
     careNeeds: ['MEAL_PREPARATION', 'HOUSEKEEPING'],
     medicalConditions: ['Diabetes', 'High Fall Risk'],
     allergies: ['Penicillin Allergy'],
+    medications: [
+      { id: 'med-1', name: 'Metformin', dose: '500 mg', scheduleMinute: 510 },
+      { id: 'med-2', name: 'Amlodipine', dose: '5 mg', scheduleMinute: 540 },
+    ],
     photoKey: null,
     latitude: 37.3861,
     longitude: -122.0839,
@@ -138,6 +161,33 @@ export class FakeCareRecipientDirectory implements CareRecipientDirectory {
       }
     }
     return Promise.resolve(result);
+  }
+}
+
+export function sequentialIds(prefix = 'sos'): { generate: () => string } {
+  let counter = 0;
+  return {
+    generate: () => {
+      counter += 1;
+      return `${prefix}-${counter}`;
+    },
+  };
+}
+
+export class InMemorySosAlertRepository implements SosAlertRepository {
+  public readonly store = new Map<string, SosAlert>();
+
+  save(alert: SosAlert): Promise<void> {
+    this.store.set(alert.id, alert);
+    return Promise.resolve();
+  }
+
+  findById(id: string): Promise<SosAlert | null> {
+    return Promise.resolve(this.store.get(id) ?? null);
+  }
+
+  get all(): SosAlert[] {
+    return [...this.store.values()];
   }
 }
 

@@ -7,6 +7,7 @@
 export enum VisitStatus {
   Scheduled = 'SCHEDULED',
   InProgress = 'IN_PROGRESS',
+  OnBreak = 'ON_BREAK',
   Completed = 'COMPLETED',
   Cancelled = 'CANCELLED',
   Missed = 'MISSED',

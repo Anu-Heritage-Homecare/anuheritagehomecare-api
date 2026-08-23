@@ -8,6 +8,7 @@ export interface LocationPointInput {
   mode: LocationMode;
   recordedAt: string;
   visitId?: string | null;
+  sosAlertId?: string | null;
 }
 
 /**

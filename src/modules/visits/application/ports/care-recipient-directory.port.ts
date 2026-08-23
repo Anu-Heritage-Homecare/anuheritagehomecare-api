@@ -4,6 +4,14 @@
  * recipients domain shape. The adapter lives in infrastructure and delegates to
  * that context's repository.
  */
+/** One medication on the recipient's schedule, as the visits context needs it. */
+export interface RecipientMedication {
+  id: string;
+  name: string;
+  dose: string | null;
+  scheduleMinute: number | null;
+}
+
 export interface RecipientSnapshot {
   id: string;
   ownerId: string;
@@ -14,6 +22,7 @@ export interface RecipientSnapshot {
   careNeeds: string[];
   medicalConditions: string[];
   allergies: string[];
+  medications: RecipientMedication[];
   photoKey: string | null;
   latitude: number | null;
   longitude: number | null;

@@ -4,11 +4,20 @@ import { Visit } from '../../domain/visit.entity';
 import { VisitRepository } from '../../domain/visit.repository';
 import { VisitMapper } from './visit.mapper';
 
+/** Eager load every collection the Visit aggregate owns. */
+const VISIT_INCLUDE = {
+  tasks: true,
+  medicationAdministrations: true,
+  vitals: true,
+  breaks: true,
+} as const;
+
 /**
  * Prisma backed adapter for the VisitRepository port. The only class in the
  * module that talks to the database for visits. Saving replaces the visit's
- * checklist wholesale inside a transaction, since tasks are owned by the visit
- * aggregate. Reads eager load the tasks and order visits chronologically.
+ * owned collections (checklist, medication administrations, vitals) wholesale
+ * inside a transaction, since they belong to the aggregate. Reads eager load
+ * those collections and order visits chronologically.
  */
 @Injectable()
 export class VisitPrismaRepository implements VisitRepository {
@@ -17,6 +26,9 @@ export class VisitPrismaRepository implements VisitRepository {
   async save(visit: Visit): Promise<void> {
     const row = VisitMapper.toPersistence(visit);
     const tasks = VisitMapper.toTaskRows(visit);
+    const administrations = VisitMapper.toAdministrationRows(visit);
+    const vitals = VisitMapper.toVitalsRows(visit);
+    const breaks = VisitMapper.toBreakRows(visit);
 
     await this.prisma.$transaction([
       this.prisma.visit.upsert({
@@ -30,6 +42,9 @@ export class VisitPrismaRepository implements VisitRepository {
           endMinute: row.endMinute,
           status: row.status,
           specialInstructions: row.specialInstructions,
+          visitNote: row.visitNote,
+          familyNote: row.familyNote,
+          photoKeys: row.photoKeys,
           clockInAt: row.clockInAt,
           clockOutAt: row.clockOutAt,
           arrivalLatitude: row.arrivalLatitude,
@@ -41,18 +56,30 @@ export class VisitPrismaRepository implements VisitRepository {
       this.prisma.visitTask.createMany({
         data: tasks.map((task) => ({ ...task, visitId: row.id })),
       }),
+      this.prisma.medicationAdministration.deleteMany({ where: { visitId: row.id } }),
+      this.prisma.medicationAdministration.createMany({
+        data: administrations.map((administration) => ({ ...administration, visitId: row.id })),
+      }),
+      this.prisma.visitVitals.deleteMany({ where: { visitId: row.id } }),
+      this.prisma.visitVitals.createMany({
+        data: vitals.map((reading) => ({ ...reading, visitId: row.id })),
+      }),
+      this.prisma.visitBreak.deleteMany({ where: { visitId: row.id } }),
+      this.prisma.visitBreak.createMany({
+        data: breaks.map((entry) => ({ ...entry, visitId: row.id })),
+      }),
     ]);
   }
 
   async findById(id: string): Promise<Visit | null> {
-    const row = await this.prisma.visit.findUnique({ where: { id }, include: { tasks: true } });
+    const row = await this.prisma.visit.findUnique({ where: { id }, include: VISIT_INCLUDE });
     return row ? VisitMapper.toDomain(row) : null;
   }
 
   async listForCaregiverInRange(caregiverId: string, from: Date, to: Date): Promise<Visit[]> {
     const rows = await this.prisma.visit.findMany({
       where: { caregiverId, scheduledDate: { gte: from, lte: to } },
-      include: { tasks: true },
+      include: VISIT_INCLUDE,
       orderBy: [{ scheduledDate: 'asc' }, { startMinute: 'asc' }],
     });
     return rows.map((row) => VisitMapper.toDomain(row));

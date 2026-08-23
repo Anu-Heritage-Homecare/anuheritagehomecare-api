@@ -5,25 +5,24 @@ interface HealthInformationProps {
   medicalConditions: string[];
   allergies: string[];
   needsMedicationHelp: boolean;
-  medications: string[];
 }
 
 interface HealthInformationInput {
   medicalConditions?: string[];
   allergies?: string[];
   needsMedicationHelp: boolean;
-  medications?: string[];
 }
 
 const MAX_ITEM_LENGTH = 200;
 const MAX_ITEMS = 50;
 
 /**
- * Health and medication information for the care recipient. Conditions,
- * allergies and medications are free text lists entered by the family. When the
- * family indicates no medication help is needed, the medication list must be
- * empty so the two never contradict each other. This is sensitive personal data
- * and must never be logged.
+ * Health information for the care recipient: free text lists of conditions and
+ * allergies, plus whether the family needs help managing medication. The
+ * medication schedule itself is a structured collection owned directly by the
+ * CareRecipient aggregate (see the Medication entity), because a caregiver
+ * records administration against individual entries. This is sensitive personal
+ * data and must never be logged.
  */
 export class HealthInformation extends ValueObject<HealthInformationProps> {
   private constructor(props: HealthInformationProps) {
@@ -36,19 +35,11 @@ export class HealthInformation extends ValueObject<HealthInformationProps> {
       'Medical conditions',
     );
     const allergies = HealthInformation.cleanList(input.allergies, 'Allergies');
-    const medications = HealthInformation.cleanList(input.medications, 'Medications');
-
-    if (!input.needsMedicationHelp && medications.length > 0) {
-      throw new ValidationException(
-        'Medications cannot be listed when no medication help is needed',
-      );
-    }
 
     return new HealthInformation({
       medicalConditions,
       allergies,
       needsMedicationHelp: input.needsMedicationHelp,
-      medications,
     });
   }
 
@@ -76,9 +67,5 @@ export class HealthInformation extends ValueObject<HealthInformationProps> {
 
   public get needsMedicationHelp(): boolean {
     return this.props.needsMedicationHelp;
-  }
-
-  public get medications(): string[] {
-    return [...this.props.medications];
   }
 }

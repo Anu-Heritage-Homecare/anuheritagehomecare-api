@@ -176,10 +176,13 @@ model CareRecipient {
   careNeeds CareNeed[] @default([])
 
   // Step 3: health and medication information (null until the step is completed).
+  // Free text conditions and allergies stay on the row; the medication schedule is
+  // a structured child collection so a caregiver can record what was done with each
+  // dose during a visit (see MedicationAdministration in the visits context).
   medicalConditions  String[] @default([])
   allergies          String[] @default([])
   needsMedicationHelp Boolean?
-  medications        String[] @default([])
+  medications        Medication[]
 
   // Step 4: care schedule (null until the step is completed).
   careFrequency     CareFrequency?
@@ -193,6 +196,26 @@ model CareRecipient {
   @@index([ownerId])
   @@index([ownerId, status])
   @@map("care_recipients")
+}
+
+// One prescribed medication on a care recipient's schedule. Structured so the
+// caregiver can see the name, dose and time of day and record administration
+// against a specific entry. `scheduleMinute` is minutes from midnight (timezone
+// free), null when the family did not pin a time. Owned by the CareRecipient
+// aggregate and replaced wholesale when the health step is saved.
+model Medication {
+  id              String        @id @default(uuid()) @db.Uuid
+  careRecipientId String        @db.Uuid
+  name            String        @db.VarChar(200)
+  dose            String?       @db.VarChar(60)
+  scheduleMinute  Int?
+  position        Int
+  createdAt       DateTime      @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId])
+  @@map("medications")
 }
 
 enum CareRecipientStatus {
@@ -329,14 +352,121 @@ model Visit {
   clockOutAt        DateTime?
   arrivalLatitude   Float?
   arrivalLongitude  Float?
+  // Notes captured by the caregiver during the visit, for the doctor and the
+  // family. Free text about the recipient, so treated as sensitive and kept out
+  // of logs. `photoKeys` are opaque storage references (upload endpoint deferred).
+  visitNote  String? @db.VarChar(4000)
+  familyNote String? @db.VarChar(4000)
+  photoKeys  String[] @default([])
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
-  tasks VisitTask[]
+  tasks                    VisitTask[]
+  medicationAdministrations MedicationAdministration[]
+  vitals                   VisitVitals[]
+  breaks                   VisitBreak[]
 
   @@index([caregiverId, scheduledDate])
   @@index([careRecipientId])
   @@map("visits")
+}
+
+// A break a caregiver takes during a visit. Append only interval: `startedAt` is
+// stamped when the break begins and `endedAt` when it ends (null while the break
+// is open). Total break time is the sum of the closed intervals, and an open
+// interval means the visit is ON_BREAK. Owned by the Visit aggregate.
+model VisitBreak {
+  id        String    @id @default(uuid()) @db.Uuid
+  visitId   String    @db.Uuid
+  startedAt DateTime
+  endedAt   DateTime?
+
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([visitId])
+  @@map("visit_breaks")
+}
+
+// What the caregiver did with one scheduled medication during a visit: either it
+// was administered or it was not, with a reason. `medicationId` references a
+// Medication in the care recipients context by id only (no cross context foreign
+// key). One record per medication per visit. Owned by the Visit aggregate.
+model MedicationAdministration {
+  id           String                         @id @default(uuid()) @db.Uuid
+  visitId      String                         @db.Uuid
+  medicationId String                         @db.Uuid
+  outcome      MedicationAdministrationOutcome
+  note         String?                        @db.VarChar(500)
+  recordedAt   DateTime
+
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@unique([visitId, medicationId])
+  @@index([visitId])
+  @@map("medication_administrations")
+}
+
+// A set of vital signs a caregiver recorded during a visit. Append only: each
+// submission is a new reading stamped server side, so the history is preserved.
+// Every measure is optional; at least one is present. Weight is stored in whole
+// grams to avoid floating point. Owned by the Visit aggregate.
+model VisitVitals {
+  id                String   @id @default(uuid()) @db.Uuid
+  visitId           String   @db.Uuid
+  systolic          Int?
+  diastolic         Int?
+  heartRate         Int?
+  oxygenSaturation  Int?
+  weightGrams       Int?
+  recordedAt        DateTime
+
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([visitId])
+  @@map("visit_vitals")
+}
+
+enum MedicationAdministrationOutcome {
+  ADMINISTERED
+  REFUSED
+  OUT_OF_STOCK
+  PATIENT_ASLEEP
+
+  @@map("medication_administration_outcome")
+}
+
+// An emergency alert a caregiver raises from an active shift (the SOS button).
+// High signal: stored with the caregiver's current position and a snapshot of the
+// care recipient's details (name, address, pinned location) so a responder can act
+// without a live join. The caregiver can cancel an alert they raised in error.
+// Coordinates, the recipient name and the address are sensitive and kept out of
+// the logs. `visitId` and `careRecipientId` reference other rows by id only.
+model SosAlert {
+  id          String         @id @default(uuid()) @db.Uuid
+  caregiverId String         @db.Uuid
+  visitId     String         @db.Uuid
+  latitude    Float?
+  longitude   Float?
+  // Snapshot of the care recipient at the moment the alert was raised.
+  careRecipientId   String  @db.Uuid
+  recipientName     String? @db.VarChar(200)
+  recipientAddress  String? @db.VarChar(300)
+  recipientLatitude  Float?
+  recipientLongitude Float?
+  status      SosAlertStatus @default(ACTIVE)
+  cancelledAt DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([caregiverId, createdAt])
+  @@index([visitId])
+  @@map("sos_alerts")
+}
+
+enum SosAlertStatus {
+  ACTIVE
+  CANCELLED
+
+  @@map("sos_alert_status")
 }
 
 // A single task on a visit checklist (for example Blood Pressure, Meal
@@ -406,6 +536,7 @@ enum BookingStatus {
 enum VisitStatus {
   SCHEDULED
   IN_PROGRESS
+  ON_BREAK
   COMPLETED
   CANCELLED
   MISSED
@@ -422,6 +553,9 @@ model LocationPing {
   id             String       @id @default(uuid()) @db.Uuid
   caregiverId    String       @db.Uuid
   visitId        String?      @db.Uuid
+  // Set on points streamed at high frequency while an SOS alert is active, so the
+  // emergency path can be replayed. A tag only; not a foreign key.
+  sosAlertId     String?      @db.Uuid
   latitude       Float
   longitude      Float
   accuracyMeters Float?
@@ -431,12 +565,14 @@ model LocationPing {
 
   @@index([caregiverId, recordedAt])
   @@index([visitId])
+  @@index([sosAlertId])
   @@map("location_pings")
 }
 
 enum LocationMode {
   NAVIGATION
   BACKGROUND
+  EMERGENCY
 
   @@map("location_mode")
 }

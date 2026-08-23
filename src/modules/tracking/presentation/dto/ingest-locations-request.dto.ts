@@ -49,6 +49,14 @@ class LocationPointDto {
   @IsOptional()
   @IsUUID()
   visitId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'The active SOS alert this point is streamed for, if any',
+  })
+  @IsOptional()
+  @IsUUID()
+  sosAlertId?: string;
 }
 
 /** A batch of location breadcrumbs uploaded by the caregiver's device. */

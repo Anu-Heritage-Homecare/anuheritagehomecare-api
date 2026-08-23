@@ -51,6 +51,39 @@ export class GetVisitDetailUseCase {
 
     const contact = await this.ownerContacts.findContact(recipient.ownerId);
 
+    const administrationsByMedication = new Map(
+      visit.medicationAdministrations.map((administration) => [
+        administration.medicationId,
+        administration,
+      ]),
+    );
+    const medications = recipient.medications.map((medication) => {
+      const administration = administrationsByMedication.get(medication.id);
+      return {
+        id: medication.id,
+        name: medication.name,
+        dose: medication.dose,
+        scheduleMinute: medication.scheduleMinute,
+        administration:
+          administration === undefined
+            ? null
+            : {
+                outcome: administration.outcome,
+                note: administration.note,
+                recordedAt: administration.recordedAt.toISOString(),
+              },
+      };
+    });
+
+    const vitals = visit.vitals.map((reading) => ({
+      systolic: reading.systolic,
+      diastolic: reading.diastolic,
+      heartRate: reading.heartRate,
+      oxygenSaturation: reading.oxygenSaturation,
+      weightGrams: reading.weightGrams,
+      recordedAt: reading.recordedAt.toISOString(),
+    }));
+
     return {
       id: visit.id,
       status: visit.status,
@@ -59,6 +92,8 @@ export class GetVisitDetailUseCase {
       endMinute: visit.window.endMinute,
       clockInAt: visit.clockInAt === null ? null : visit.clockInAt.toISOString(),
       clockOutAt: visit.clockOutAt === null ? null : visit.clockOutAt.toISOString(),
+      breakSeconds: visit.breakSeconds,
+      onBreakSince: visit.onBreakSince === null ? null : visit.onBreakSince.toISOString(),
       address: recipient.fullAddress,
       recipient: {
         id: recipient.id,
@@ -72,6 +107,13 @@ export class GetVisitDetailUseCase {
       healthNote: {
         medicalConditions: recipient.medicalConditions,
         allergies: recipient.allergies,
+      },
+      medications,
+      vitals,
+      notes: {
+        visitNote: visit.visitNote,
+        familyNote: visit.familyNote,
+        photoKeys: visit.photoKeys,
       },
       emergencyContact: contact === null ? null : { name: contact.name, phone: contact.phone },
     };

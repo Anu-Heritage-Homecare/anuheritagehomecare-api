@@ -6,6 +6,20 @@ import { CareRecipientStatus } from '../../domain/care-recipient-status.enum';
 import { Gender } from '../../domain/gender.enum';
 import { OnboardingStep } from '../../domain/onboarding-step.enum';
 
+class MedicationResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ example: 'Metformin' })
+  name!: string;
+
+  @ApiProperty({ nullable: true, example: '500 mg' })
+  dose!: string | null;
+
+  @ApiProperty({ nullable: true, example: 510, description: 'Minutes from midnight' })
+  scheduleMinute!: number | null;
+}
+
 class CareRecipientHealthDto {
   @ApiProperty({ isArray: true, type: String })
   medicalConditions!: string[];
@@ -16,8 +30,8 @@ class CareRecipientHealthDto {
   @ApiProperty()
   needsMedicationHelp!: boolean;
 
-  @ApiProperty({ isArray: true, type: String })
-  medications!: string[];
+  @ApiProperty({ type: [MedicationResponseDto] })
+  medications!: MedicationResponseDto[];
 }
 
 class CareRecipientScheduleDto {

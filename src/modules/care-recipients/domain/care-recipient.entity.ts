@@ -4,6 +4,7 @@ import { CareNeed } from './care-need.enum';
 import { CareRecipientStatus } from './care-recipient-status.enum';
 import { CareRecipientCompletedEvent } from './events/care-recipient-completed.event';
 import { CareRecipientDraftedEvent } from './events/care-recipient-drafted.event';
+import { Medication } from './medication.entity';
 import { OnboardingStep, furthestStep } from './onboarding-step.enum';
 import { CareSchedule } from './value-objects/care-schedule.vo';
 import { HealthInformation } from './value-objects/health-information.vo';
@@ -16,6 +17,7 @@ interface CareRecipientProps {
   profile: RecipientProfile;
   careNeeds: CareNeed[];
   health: HealthInformation | null;
+  medications: Medication[];
   schedule: CareSchedule | null;
   completedAt: Date | null;
   createdAt: Date;
@@ -54,6 +56,7 @@ export class CareRecipient extends AggregateRoot<string> {
       profile: params.profile,
       careNeeds: [],
       health: null,
+      medications: [],
       schedule: null,
       completedAt: null,
       createdAt: params.now,
@@ -89,10 +92,24 @@ export class CareRecipient extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
-  /** Record health and medication information (step three). */
-  public setHealthInformation(health: HealthInformation, now: Date): void {
+  /**
+   * Record health information and the medication schedule (step three). The two
+   * are set together so the invariant between them holds: medications can only be
+   * listed when the family has said medication help is needed.
+   */
+  public setHealthInformation(
+    health: HealthInformation,
+    medications: Medication[],
+    now: Date,
+  ): void {
     this.assertMutable();
+    if (!health.needsMedicationHelp && medications.length > 0) {
+      throw new ValidationException(
+        'Medications cannot be listed when no medication help is needed',
+      );
+    }
     this.props.health = health;
+    this.props.medications = [...medications];
     this.advanceStep(OnboardingStep.Schedule);
     this.props.updatedAt = now;
   }
@@ -153,6 +170,10 @@ export class CareRecipient extends AggregateRoot<string> {
 
   public get health(): HealthInformation | null {
     return this.props.health;
+  }
+
+  public get medications(): Medication[] {
+    return [...this.props.medications];
   }
 
   public get schedule(): CareSchedule | null {

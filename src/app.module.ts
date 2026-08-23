@@ -64,6 +64,11 @@ import { SharedModule } from './shared/shared.module';
                 'req.body.points',
                 'req.body.latitude',
                 'req.body.longitude',
+                // Visit notes and medication notes are free text about the
+                // recipient (health data), so keep them out of the logs.
+                'req.body.visitNote',
+                'req.body.familyNote',
+                'req.body.note',
               ],
               remove: true,
             },
