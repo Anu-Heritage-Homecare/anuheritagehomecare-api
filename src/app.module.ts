@@ -9,6 +9,7 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { CarePlansModule } from './modules/care-plans/care-plans.module';
 import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
 import { ClientsModule } from './modules/clients/clients.module';
+import { EarningsModule } from './modules/earnings/earnings.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { VisitsModule } from './modules/visits/visits.module';
@@ -105,6 +106,7 @@ import { SharedModule } from './shared/shared.module';
     PaymentsModule,
     VisitsModule,
     TrackingModule,
+    EarningsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

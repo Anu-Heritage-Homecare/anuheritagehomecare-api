@@ -650,6 +650,32 @@ enum PayableType {
   @@map("payable_type")
 }
 
+// Bounded context: Earnings.
+//
+// The pay rate and rules for one caregiver, used to estimate their earnings for
+// the current pay period from the visits they worked. Money is stored as integer
+// minor units and rates as basis points to keep the arithmetic free of floating
+// point. Values are placeholders until real figures are set; a caregiver without
+// a row simply estimates to zero. One row per caregiver.
+model CaregiverPayRate {
+  id                    String   @id @default(uuid()) @db.Uuid
+  caregiverId           String   @unique @db.Uuid
+  currency              Currency
+  hourlyRateMinor       Int
+  // Overtime multiplier in basis points of the hourly rate (15000 = 1.5x).
+  overtimeMultiplierBps Int      @default(15000)
+  // Regular hours in a pay period before overtime applies.
+  regularHoursCap       Int      @default(80)
+  // Flat bonus in minor units for each visit worked on a weekend.
+  weekendBonusMinor     Int      @default(0)
+  // Tax and deductions in basis points of gross pay (250 = 2.5%).
+  taxRateBps            Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("caregiver_pay_rates")
+}
+
 // Bounded context: KYC (identity verification of the family owner).
 //
 // US owners verify the last four of their SSN through Stripe; Nigeria owners

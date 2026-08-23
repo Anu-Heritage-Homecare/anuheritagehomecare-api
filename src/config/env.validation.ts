@@ -58,6 +58,13 @@ export const envSchema = z.object({
   // recipient's pinned address to clock in. Applied to every recipient for now.
   GEOFENCE_RADIUS_METERS: z.coerce.number().int().positive().max(5000).default(150),
 
+  // Caregiver pay period. Periods are fixed length windows anchored to a
+  // reference date; payday falls a number of days after a period ends. Applied to
+  // every caregiver until per caregiver schedules exist.
+  EARNINGS_PAY_PERIOD_DAYS: z.coerce.number().int().positive().max(31).default(14),
+  EARNINGS_PAY_PERIOD_ANCHOR: z.coerce.date().default(new Date('2026-01-01T00:00:00.000Z')),
+  EARNINGS_PAYDAY_OFFSET_DAYS: z.coerce.number().int().min(0).max(31).default(1),
+
   // Payment providers. Stripe serves USD, Paystack serves NGN. Keys are optional
   // so the service still boots without them; the adapters fail closed if a
   // provider is used before its key is configured.

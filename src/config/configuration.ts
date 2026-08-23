@@ -51,6 +51,12 @@ export interface GeofenceConfig {
   readonly radiusMeters: number;
 }
 
+export interface EarningsConfig {
+  readonly payPeriodDays: number;
+  readonly payPeriodAnchor: Date;
+  readonly paydayOffsetDays: number;
+}
+
 export interface PaymentConfig {
   readonly stripeSecretKey: string;
   readonly stripeWebhookSecret: string;
@@ -73,6 +79,7 @@ export function buildConfig(env: Env): {
   mail: MailConfig;
   booking: BookingConfig;
   geofence: GeofenceConfig;
+  earnings: EarningsConfig;
   payment: PaymentConfig;
   kyc: KycConfig;
 } {
@@ -119,6 +126,11 @@ export function buildConfig(env: Env): {
     },
     geofence: {
       radiusMeters: env.GEOFENCE_RADIUS_METERS,
+    },
+    earnings: {
+      payPeriodDays: env.EARNINGS_PAY_PERIOD_DAYS,
+      payPeriodAnchor: env.EARNINGS_PAY_PERIOD_ANCHOR,
+      paydayOffsetDays: env.EARNINGS_PAYDAY_OFFSET_DAYS,
     },
     payment: {
       stripeSecretKey: env.STRIPE_SECRET_KEY,
