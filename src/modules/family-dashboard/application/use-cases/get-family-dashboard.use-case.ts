@@ -150,7 +150,11 @@ export class GetFamilyDashboardUseCase {
         caregiver:
           caregiver === undefined
             ? null
-            : { id: caregiver.id, name: `${caregiver.firstName} ${caregiver.lastName}`.trim() },
+            : {
+                id: caregiver.id,
+                name: `${caregiver.firstName} ${caregiver.lastName}`.trim(),
+                photoKey: caregiver.photoKey,
+              },
       },
       recentUpdates: this.buildUpdates(recipient, visit),
     };

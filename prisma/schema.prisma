@@ -59,6 +59,8 @@ model User {
   passwordHash  String     @db.VarChar(255)
   emailVerified Boolean    @default(false)
   phoneVerified Boolean    @default(false)
+  // Opaque storage key for the user's profile photo (upload deferred, key only).
+  photoKey      String?    @db.VarChar(500)
   isFamilyOwner Boolean    @default(false)
   // True for an account provisioned with a temporary password (for example a
   // caregiver onboarded by an admin). Login still succeeds but signals the client

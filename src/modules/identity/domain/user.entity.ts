@@ -16,6 +16,7 @@ interface UserProps {
   phone: PhoneNumber;
   address: PostalAddress;
   passwordHash: string;
+  photoKey: string | null;
   emailVerified: boolean;
   phoneVerified: boolean;
   isFamilyOwner: boolean;
@@ -62,6 +63,7 @@ export class User extends AggregateRoot<string> {
       phone: params.phone,
       address: params.address,
       passwordHash: params.passwordHash,
+      photoKey: null,
       emailVerified: false,
       phoneVerified: false,
       isFamilyOwner: params.isFamilyOwner,
@@ -167,6 +169,11 @@ export class User extends AggregateRoot<string> {
 
   public get passwordHash(): string {
     return this.props.passwordHash;
+  }
+
+  /** Opaque storage key for the profile photo, or null when none is set. */
+  public get photoKey(): string | null {
+    return this.props.photoKey;
   }
 
   public get emailVerified(): boolean {

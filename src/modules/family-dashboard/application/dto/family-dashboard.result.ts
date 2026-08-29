@@ -24,6 +24,7 @@ export interface DashboardTaskResult {
 export interface DashboardCaregiverResult {
   id: string;
   name: string;
+  photoKey: string | null;
 }
 
 export interface DashboardUpdateResult {

@@ -64,8 +64,8 @@ const VISIT: DashboardVisitView = {
 };
 
 const USERS: DashboardUserView[] = [
-  { id: 'owner-1', firstName: 'Sarah', lastName: 'Owner' },
-  { id: 'cg1', firstName: 'Sarah Adams', lastName: 'John' },
+  { id: 'owner-1', firstName: 'Sarah', lastName: 'Owner', photoKey: null },
+  { id: 'cg1', firstName: 'Sarah Adams', lastName: 'John', photoKey: 'caregivers/cg1.jpg' },
 ];
 
 describe('GetFamilyDashboardUseCase', () => {
@@ -87,7 +87,11 @@ describe('GetFamilyDashboardUseCase', () => {
     expect(recipient.todayVisit?.startedAt).toBe('2026-08-24T09:03:00.000Z');
     expect(recipient.todayVisit?.estimatedFinishMinute).toBe(19 * 60);
     expect(recipient.todayVisit?.progress).toEqual({ completed: 2, total: 3, percent: 67 });
-    expect(recipient.todayVisit?.caregiver).toEqual({ id: 'cg1', name: 'Sarah Adams John' });
+    expect(recipient.todayVisit?.caregiver).toEqual({
+      id: 'cg1',
+      name: 'Sarah Adams John',
+      photoKey: 'caregivers/cg1.jpg',
+    });
   });
 
   it('builds the recent updates feed newest first with friendly labels', async () => {

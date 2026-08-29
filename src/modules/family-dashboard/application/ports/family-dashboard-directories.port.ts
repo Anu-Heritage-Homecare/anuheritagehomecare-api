@@ -77,6 +77,7 @@ export interface DashboardUserView {
   id: string;
   firstName: string;
   lastName: string;
+  photoKey: string | null;
 }
 
 export interface FamilyUserDirectory {

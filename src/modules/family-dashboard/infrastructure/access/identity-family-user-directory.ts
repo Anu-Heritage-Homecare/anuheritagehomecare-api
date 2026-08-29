@@ -18,7 +18,12 @@ export class IdentityFamilyUserDirectory implements FamilyUserDirectory {
     return new Map(
       found.map((user) => [
         user.id,
-        { id: user.id, firstName: user.name.firstName, lastName: user.name.lastName },
+        {
+          id: user.id,
+          firstName: user.name.firstName,
+          lastName: user.name.lastName,
+          photoKey: user.photoKey,
+        },
       ]),
     );
   }
