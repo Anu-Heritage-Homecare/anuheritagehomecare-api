@@ -13,6 +13,7 @@ import { Visit } from '../../domain/visit.entity';
 import { VisitStatus } from '../../domain/visit-status.enum';
 import { MedicationAdministration } from '../../domain/value-objects/medication-administration.vo';
 import { VisitBreak } from '../../domain/value-objects/visit-break.vo';
+import { VisitObservation } from '../../domain/value-objects/visit-observation.vo';
 import { VisitTask } from '../../domain/value-objects/visit-task.vo';
 import { VisitWindow } from '../../domain/value-objects/visit-window.vo';
 import { VitalsReading } from '../../domain/value-objects/vitals-reading.vo';
@@ -28,6 +29,7 @@ type VisitRow = PrismaVisit & {
 export interface VisitTaskRow {
   label: string;
   completed: boolean;
+  completedAt: Date | null;
   position: number;
 }
 
@@ -46,6 +48,7 @@ export interface VisitVitalsRow {
   heartRate: number | null;
   oxygenSaturation: number | null;
   weightGrams: number | null;
+  temperatureTenths: number | null;
   recordedAt: Date;
 }
 
@@ -65,7 +68,7 @@ export class VisitMapper {
   static toDomain(row: VisitRow): Visit {
     const tasks = [...row.tasks]
       .sort((a, b) => a.position - b.position)
-      .map((task) => VisitTask.create(task.label, task.completed));
+      .map((task) => VisitTask.create(task.label, task.completed, task.completedAt));
 
     const medicationAdministrations = [...row.medicationAdministrations]
       .sort((a, b) => a.recordedAt.getTime() - b.recordedAt.getTime())
@@ -87,6 +90,8 @@ export class VisitMapper {
           heartRate: reading.heartRate,
           oxygenSaturation: reading.oxygenSaturation,
           weightGrams: reading.weightGrams,
+          temperatureCelsius:
+            reading.temperatureTenths === null ? null : reading.temperatureTenths / 10,
           recordedAt: reading.recordedAt,
         }),
       );
@@ -114,6 +119,12 @@ export class VisitMapper {
       visitNote: row.visitNote,
       familyNote: row.familyNote,
       photoKeys: row.photoKeys,
+      observation: VisitObservation.create({
+        mood: row.observationMood,
+        appetite: row.observationAppetite,
+        mobility: row.observationMobility,
+        medicationStatus: row.observationMedication,
+      }),
       clockInAt: row.clockInAt,
       clockOutAt: row.clockOutAt,
       arrivalLocation,
@@ -135,6 +146,10 @@ export class VisitMapper {
       visitNote: visit.visitNote,
       familyNote: visit.familyNote,
       photoKeys: visit.photoKeys,
+      observationMood: visit.observation.mood,
+      observationAppetite: visit.observation.appetite,
+      observationMobility: visit.observation.mobility,
+      observationMedication: visit.observation.medicationStatus,
       clockInAt: visit.clockInAt,
       clockOutAt: visit.clockOutAt,
       arrivalLatitude: visit.arrivalLocation?.latitude ?? null,
@@ -148,6 +163,7 @@ export class VisitMapper {
     return visit.tasks.map((task, index) => ({
       label: task.label,
       completed: task.completed,
+      completedAt: task.completedAt,
       position: index,
     }));
   }
@@ -168,6 +184,7 @@ export class VisitMapper {
       heartRate: reading.heartRate,
       oxygenSaturation: reading.oxygenSaturation,
       weightGrams: reading.weightGrams,
+      temperatureTenths: reading.temperatureTenths,
       recordedAt: reading.recordedAt,
     }));
   }

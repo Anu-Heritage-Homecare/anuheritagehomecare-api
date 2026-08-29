@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   MedicationAdministrationResult,
   VisitNotesResult,
+  VisitObservationsResult,
   VisitTasksResult,
   VitalsReadingResult,
 } from '../../application/dto/visit-care.result';
@@ -51,6 +52,9 @@ export class VitalsResponseDto {
   @ApiProperty({ nullable: true })
   weightGrams!: number | null;
 
+  @ApiProperty({ nullable: true, example: 36.8 })
+  temperatureCelsius!: number | null;
+
   @ApiProperty()
   recordedAt!: string;
 
@@ -61,7 +65,32 @@ export class VitalsResponseDto {
     dto.heartRate = result.heartRate;
     dto.oxygenSaturation = result.oxygenSaturation;
     dto.weightGrams = result.weightGrams;
+    dto.temperatureCelsius = result.temperatureCelsius;
     dto.recordedAt = result.recordedAt;
+    return dto;
+  }
+}
+
+/** The caregiver's qualitative observations for a visit. */
+export class VisitObservationsResponseDto {
+  @ApiProperty({ nullable: true, example: 'Good' })
+  mood!: string | null;
+
+  @ApiProperty({ nullable: true, example: 'Ate well' })
+  appetite!: string | null;
+
+  @ApiProperty({ nullable: true, example: 'Walked with walker' })
+  mobility!: string | null;
+
+  @ApiProperty({ nullable: true, example: 'All taken' })
+  medicationStatus!: string | null;
+
+  static fromResult(result: VisitObservationsResult): VisitObservationsResponseDto {
+    const dto = new VisitObservationsResponseDto();
+    dto.mood = result.mood;
+    dto.appetite = result.appetite;
+    dto.mobility = result.mobility;
+    dto.medicationStatus = result.medicationStatus;
     return dto;
   }
 }

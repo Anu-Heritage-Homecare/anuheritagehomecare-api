@@ -7,6 +7,7 @@ import { MedicationAdministration } from './value-objects/medication-administrat
 import { VisitBreak } from './value-objects/visit-break.vo';
 import { VisitTask } from './value-objects/visit-task.vo';
 import { VisitWindow } from './value-objects/visit-window.vo';
+import { VisitObservation } from './value-objects/visit-observation.vo';
 import { VitalsReading } from './value-objects/vitals-reading.vo';
 
 interface VisitProps {
@@ -23,6 +24,7 @@ interface VisitProps {
   visitNote: string | null;
   familyNote: string | null;
   photoKeys: string[];
+  observation: VisitObservation;
   clockInAt: Date | null;
   clockOutAt: Date | null;
   arrivalLocation: Coordinates | null;
@@ -96,6 +98,7 @@ export class Visit extends AggregateRoot<string> {
       visitNote: null,
       familyNote: null,
       photoKeys: [],
+      observation: VisitObservation.empty(),
       clockInAt: null,
       clockOutAt: null,
       arrivalLocation: null,
@@ -210,7 +213,9 @@ export class Visit extends AggregateRoot<string> {
     }
     const current = this.props.tasks[index];
     this.props.tasks = this.props.tasks.map((task, position) =>
-      position === index ? VisitTask.create(current.label, completed) : task,
+      position === index
+        ? VisitTask.create(current.label, completed, completed ? now : null)
+        : task,
     );
     this.props.updatedAt = now;
   }
@@ -227,6 +232,13 @@ export class Visit extends AggregateRoot<string> {
     this.props.familyNote = Visit.cleanNote(params.familyNote);
     this.props.photoKeys = Visit.cleanPhotoKeys(params.photoKeys);
     this.props.updatedAt = params.now;
+  }
+
+  /** Record the caregiver's qualitative observations (replaces the set). */
+  public setObservations(observation: VisitObservation, now: Date): void {
+    this.assertInProgress('recording observations');
+    this.props.observation = observation;
+    this.props.updatedAt = now;
   }
 
   private assertInProgress(action: string): void {
@@ -318,6 +330,10 @@ export class Visit extends AggregateRoot<string> {
 
   public get vitals(): VitalsReading[] {
     return [...this.props.vitals];
+  }
+
+  public get observation(): VisitObservation {
+    return this.props.observation;
   }
 
   public get visitNote(): string | null {

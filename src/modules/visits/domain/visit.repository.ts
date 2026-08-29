@@ -9,6 +9,12 @@ export interface VisitRepository {
   save(visit: Visit): Promise<void>;
   findById(id: string): Promise<Visit | null>;
   listForCaregiverInRange(caregiverId: string, from: Date, to: Date): Promise<Visit[]>;
+  /**
+   * Visits for several care recipients within a date range, ordered
+   * chronologically. Backs the family owner dashboard, which reads the day's
+   * visits for the recipients they own in one query (no query per recipient).
+   */
+  listForCareRecipientsInRange(careRecipientIds: string[], from: Date, to: Date): Promise<Visit[]>;
 }
 
 /** Injection token, since TypeScript interfaces do not exist at runtime. */

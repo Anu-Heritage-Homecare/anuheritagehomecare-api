@@ -84,4 +84,20 @@ export class VisitPrismaRepository implements VisitRepository {
     });
     return rows.map((row) => VisitMapper.toDomain(row));
   }
+
+  async listForCareRecipientsInRange(
+    careRecipientIds: string[],
+    from: Date,
+    to: Date,
+  ): Promise<Visit[]> {
+    if (careRecipientIds.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.visit.findMany({
+      where: { careRecipientId: { in: careRecipientIds }, scheduledDate: { gte: from, lte: to } },
+      include: VISIT_INCLUDE,
+      orderBy: [{ scheduledDate: 'asc' }, { startMinute: 'asc' }],
+    });
+    return rows.map((row) => VisitMapper.toDomain(row));
+  }
 }

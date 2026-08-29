@@ -14,16 +14,19 @@ import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
 import { UserType } from '@modules/identity/domain/user-type.enum';
 import { RecordMedicationAdministrationUseCase } from '../application/use-cases/record-medication-administration.use-case';
+import { RecordObservationsUseCase } from '../application/use-cases/record-observations.use-case';
 import { RecordVitalsUseCase } from '../application/use-cases/record-vitals.use-case';
 import { SaveVisitNotesUseCase } from '../application/use-cases/save-visit-notes.use-case';
 import { SetTaskCompletionUseCase } from '../application/use-cases/set-task-completion.use-case';
 import { RecordMedicationRequestDto } from './dto/record-medication-request.dto';
+import { RecordObservationsRequestDto } from './dto/record-observations-request.dto';
 import { RecordVitalsRequestDto } from './dto/record-vitals-request.dto';
 import { SaveVisitNotesRequestDto } from './dto/save-visit-notes-request.dto';
 import { SetTaskCompletionRequestDto } from './dto/set-task-completion-request.dto';
 import {
   MedicationAdministrationResponseDto,
   VisitNotesResponseDto,
+  VisitObservationsResponseDto,
   VisitTasksResponseDto,
   VitalsResponseDto,
 } from './dto/visit-care-response.dto';
@@ -43,6 +46,7 @@ export class CaregiverVisitCareController {
   constructor(
     private readonly recordMedication: RecordMedicationAdministrationUseCase,
     private readonly recordVitals: RecordVitalsUseCase,
+    private readonly recordObservations: RecordObservationsUseCase,
     private readonly saveNotes: SaveVisitNotesUseCase,
     private readonly setTaskCompletion: SetTaskCompletionUseCase,
   ) {}
@@ -84,8 +88,31 @@ export class CaregiverVisitCareController {
       heartRate: body.heartRate,
       oxygenSaturation: body.oxygenSaturation,
       weightGrams: body.weightGrams,
+      temperatureCelsius: body.temperatureCelsius,
     });
     return VitalsResponseDto.fromResult(result);
+  }
+
+  @Put(':id/observations')
+  @ApiOperation({
+    summary: 'Record qualitative observations (mood, appetite, mobility, medication)',
+  })
+  @ApiOkResponse({ type: VisitObservationsResponseDto })
+  async observations(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: RecordObservationsRequestDto,
+  ): Promise<VisitObservationsResponseDto> {
+    this.assertCaregiver(principal);
+    const result = await this.recordObservations.execute({
+      caregiverId: principal.userId,
+      visitId: id,
+      mood: body.mood,
+      appetite: body.appetite,
+      mobility: body.mobility,
+      medicationStatus: body.medicationStatus,
+    });
+    return VisitObservationsResponseDto.fromResult(result);
   }
 
   @Put(':id/notes')

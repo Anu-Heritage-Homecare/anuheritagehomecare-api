@@ -382,6 +382,12 @@ model Visit {
   visitNote  String? @db.VarChar(4000)
   familyNote String? @db.VarChar(4000)
   photoKeys  String[] @default([])
+  // The caregiver's qualitative observations for the visit (mood, appetite,
+  // mobility, whether medication was taken). Short free text, health related.
+  observationMood       String? @db.VarChar(120)
+  observationAppetite   String? @db.VarChar(120)
+  observationMobility   String? @db.VarChar(120)
+  observationMedication String? @db.VarChar(120)
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -442,6 +448,8 @@ model VisitVitals {
   heartRate         Int?
   oxygenSaturation  Int?
   weightGrams       Int?
+  // Body temperature in whole tenths of a degree Celsius (36.8 C = 368).
+  temperatureTenths Int?
   recordedAt        DateTime
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
@@ -496,11 +504,14 @@ enum SosAlertStatus {
 // A single task on a visit checklist (for example Blood Pressure, Meal
 // Preparation). Owned by the Visit aggregate and replaced wholesale on save.
 model VisitTask {
-  id        String  @id @default(uuid()) @db.Uuid
-  visitId   String  @db.Uuid
-  label     String  @db.VarChar(200)
-  completed Boolean @default(false)
-  position  Int
+  id          String    @id @default(uuid()) @db.Uuid
+  visitId     String    @db.Uuid
+  label       String    @db.VarChar(200)
+  completed   Boolean   @default(false)
+  // When the task was ticked off, so the activity feed can place it on a
+  // timeline. Null while the task is not complete.
+  completedAt DateTime?
+  position    Int
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
 

@@ -1,9 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsInt, IsNumber, IsOptional, Max, Min } from 'class-validator';
 
 const MAX_PRESSURE = 400;
 const MAX_HEART_RATE = 400;
 const MAX_WEIGHT_GRAMS = 500_000;
+const MIN_TEMP = 30;
+const MAX_TEMP = 45;
 
 /**
  * A set of vital signs recorded during a visit. Every measure is optional, but at
@@ -49,4 +51,16 @@ export class RecordVitalsRequestDto {
   @Min(0)
   @Max(MAX_WEIGHT_GRAMS)
   weightGrams?: number | null;
+
+  @ApiPropertyOptional({
+    minimum: MIN_TEMP,
+    maximum: MAX_TEMP,
+    example: 36.8,
+    description: 'Body temperature in degrees Celsius (one decimal)',
+  })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 1 })
+  @Min(MIN_TEMP)
+  @Max(MAX_TEMP)
+  temperatureCelsius?: number | null;
 }

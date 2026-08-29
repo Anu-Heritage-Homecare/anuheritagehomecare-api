@@ -15,6 +15,7 @@ import { Visit } from '../domain/visit.entity';
 import { VisitRepository } from '../domain/visit.repository';
 import { MedicationAdministration } from '../domain/value-objects/medication-administration.vo';
 import { VisitBreak } from '../domain/value-objects/visit-break.vo';
+import { VisitObservation } from '../domain/value-objects/visit-observation.vo';
 import { VisitTask } from '../domain/value-objects/visit-task.vo';
 import { VisitWindow } from '../domain/value-objects/visit-window.vo';
 import { VitalsReading } from '../domain/value-objects/vitals-reading.vo';
@@ -43,6 +44,7 @@ interface BuildVisitOptions {
   visitNote?: string | null;
   familyNote?: string | null;
   photoKeys?: string[];
+  observation?: VisitObservation;
   clockInAt?: Date | null;
   clockOutAt?: Date | null;
 }
@@ -86,6 +88,7 @@ export function buildVisit(options: BuildVisitOptions = {}): Visit {
     visitNote: options.visitNote ?? null,
     familyNote: options.familyNote ?? null,
     photoKeys: options.photoKeys ?? [],
+    observation: options.observation ?? VisitObservation.empty(),
     clockInAt: options.clockInAt ?? null,
     clockOutAt: options.clockOutAt ?? null,
     arrivalLocation: null,
@@ -134,6 +137,22 @@ export class InMemoryVisitRepository implements VisitRepository {
       .filter(
         (visit) =>
           visit.caregiverId === caregiverId &&
+          visit.scheduledDate.getTime() >= from.getTime() &&
+          visit.scheduledDate.getTime() <= to.getTime(),
+      )
+      .sort((a, b) => {
+        const byDate = a.scheduledDate.getTime() - b.scheduledDate.getTime();
+        return byDate !== 0 ? byDate : a.window.startMinute - b.window.startMinute;
+      });
+    return Promise.resolve(matches);
+  }
+
+  listForCareRecipientsInRange(careRecipientIds: string[], from: Date, to: Date): Promise<Visit[]> {
+    const ids = new Set(careRecipientIds);
+    const matches = [...this.store.values()]
+      .filter(
+        (visit) =>
+          ids.has(visit.careRecipientId) &&
           visit.scheduledDate.getTime() >= from.getTime() &&
           visit.scheduledDate.getTime() <= to.getTime(),
       )

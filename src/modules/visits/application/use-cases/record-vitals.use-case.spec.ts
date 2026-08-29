@@ -30,6 +30,18 @@ describe('RecordVitalsUseCase', () => {
     expect((await visits.findById('v1'))?.vitals).toHaveLength(1);
   });
 
+  it('records a temperature in Celsius, stored to one decimal', async () => {
+    await visits.save(buildVisit({ id: 'v1', status: VisitStatus.InProgress }));
+
+    const result = await useCase.execute({
+      caregiverId: 'caregiver-1',
+      visitId: 'v1',
+      temperatureCelsius: 36.8,
+    });
+
+    expect(result.temperatureCelsius).toBe(36.8);
+  });
+
   it('rejects a reading with no measures', async () => {
     await visits.save(buildVisit({ id: 'v1', status: VisitStatus.InProgress }));
 

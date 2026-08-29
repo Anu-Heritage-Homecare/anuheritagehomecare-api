@@ -13,6 +13,7 @@ export interface RecordVitalsCommand {
   heartRate?: number | null;
   oxygenSaturation?: number | null;
   weightGrams?: number | null;
+  temperatureCelsius?: number | null;
 }
 
 /**
@@ -36,6 +37,7 @@ export class RecordVitalsUseCase {
       heartRate: command.heartRate,
       oxygenSaturation: command.oxygenSaturation,
       weightGrams: command.weightGrams,
+      temperatureCelsius: command.temperatureCelsius,
       recordedAt: now,
     });
     visit.recordVitals(reading, now);
@@ -47,6 +49,7 @@ export class RecordVitalsUseCase {
       heartRate: reading.heartRate,
       oxygenSaturation: reading.oxygenSaturation,
       weightGrams: reading.weightGrams,
+      temperatureCelsius: reading.temperatureCelsius,
       recordedAt: reading.recordedAt.toISOString(),
     };
   }

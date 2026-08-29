@@ -81,6 +81,7 @@ export class GetVisitDetailUseCase {
       heartRate: reading.heartRate,
       oxygenSaturation: reading.oxygenSaturation,
       weightGrams: reading.weightGrams,
+      temperatureCelsius: reading.temperatureCelsius,
       recordedAt: reading.recordedAt.toISOString(),
     }));
 
@@ -110,6 +111,12 @@ export class GetVisitDetailUseCase {
       },
       medications,
       vitals,
+      observation: {
+        mood: visit.observation.mood,
+        appetite: visit.observation.appetite,
+        mobility: visit.observation.mobility,
+        medicationStatus: visit.observation.medicationStatus,
+      },
       notes: {
         visitNote: visit.visitNote,
         familyNote: visit.familyNote,

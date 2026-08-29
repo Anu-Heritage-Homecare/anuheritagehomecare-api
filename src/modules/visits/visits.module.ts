@@ -13,6 +13,7 @@ import { GetVisitDetailUseCase } from './application/use-cases/get-visit-detail.
 import { GetVisitReviewUseCase } from './application/use-cases/get-visit-review.use-case';
 import { RaiseSosUseCase } from './application/use-cases/raise-sos.use-case';
 import { RecordMedicationAdministrationUseCase } from './application/use-cases/record-medication-administration.use-case';
+import { RecordObservationsUseCase } from './application/use-cases/record-observations.use-case';
 import { RecordVitalsUseCase } from './application/use-cases/record-vitals.use-case';
 import { SaveVisitNotesUseCase } from './application/use-cases/save-visit-notes.use-case';
 import { SetTaskCompletionUseCase } from './application/use-cases/set-task-completion.use-case';
@@ -52,6 +53,7 @@ import { CaregiverVisitCareController } from './presentation/caregiver-visit-car
     EndBreakUseCase,
     RecordMedicationAdministrationUseCase,
     RecordVitalsUseCase,
+    RecordObservationsUseCase,
     SaveVisitNotesUseCase,
     SetTaskCompletionUseCase,
     RaiseSosUseCase,

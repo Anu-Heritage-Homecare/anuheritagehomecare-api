@@ -88,8 +88,25 @@ class VisitVitalsDto {
   @ApiProperty({ nullable: true, example: 98000, description: 'Weight in whole grams' })
   weightGrams!: number | null;
 
+  @ApiProperty({ nullable: true, example: 36.8 })
+  temperatureCelsius!: number | null;
+
   @ApiProperty()
   recordedAt!: string;
+}
+
+class VisitObservationDto {
+  @ApiProperty({ nullable: true, example: 'Good' })
+  mood!: string | null;
+
+  @ApiProperty({ nullable: true, example: 'Ate well' })
+  appetite!: string | null;
+
+  @ApiProperty({ nullable: true, example: 'Walked with walker' })
+  mobility!: string | null;
+
+  @ApiProperty({ nullable: true, example: 'All taken' })
+  medicationStatus!: string | null;
 }
 
 class VisitNotesDto {
@@ -165,6 +182,9 @@ export class VisitDetailResponseDto {
   @ApiProperty({ type: [VisitVitalsDto], description: 'Recorded vitals, oldest first' })
   vitals!: VisitVitalsDto[];
 
+  @ApiProperty({ type: VisitObservationDto })
+  observation!: VisitObservationDto;
+
   @ApiProperty({ type: VisitNotesDto })
   notes!: VisitNotesDto;
 
@@ -192,6 +212,7 @@ export class VisitDetailResponseDto {
       administration: medication.administration === null ? null : { ...medication.administration },
     }));
     dto.vitals = result.vitals.map((reading) => ({ ...reading }));
+    dto.observation = { ...result.observation };
     dto.notes = { ...result.notes };
     dto.emergencyContact = result.emergencyContact === null ? null : { ...result.emergencyContact };
     return dto;

@@ -21,6 +21,7 @@ export interface VisitVitalsResult {
   heartRate: number | null;
   oxygenSaturation: number | null;
   weightGrams: number | null;
+  temperatureCelsius: number | null;
   recordedAt: string;
 }
 
@@ -51,6 +52,12 @@ export interface VisitDetailResult {
   };
   medications: VisitMedicationResult[];
   vitals: VisitVitalsResult[];
+  observation: {
+    mood: string | null;
+    appetite: string | null;
+    mobility: string | null;
+    medicationStatus: string | null;
+  };
   notes: {
     visitNote: string | null;
     familyNote: string | null;

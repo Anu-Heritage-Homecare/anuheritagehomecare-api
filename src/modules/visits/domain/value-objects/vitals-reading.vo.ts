@@ -7,6 +7,7 @@ interface VitalsReadingProps {
   heartRate: number | null;
   oxygenSaturation: number | null;
   weightGrams: number | null;
+  temperatureTenths: number | null;
   recordedAt: Date;
 }
 
@@ -14,6 +15,9 @@ interface VitalsReadingProps {
 const MAX_PRESSURE = 400;
 const MAX_HEART_RATE = 400;
 const MAX_WEIGHT_GRAMS = 500_000;
+// Body temperature in tenths of a degree Celsius (30.0 to 45.0 C).
+const MIN_TEMP_TENTHS = 300;
+const MAX_TEMP_TENTHS = 450;
 
 /**
  * A set of vital signs a caregiver recorded during a visit (blood pressure, heart
@@ -33,6 +37,7 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
     heartRate?: number | null;
     oxygenSaturation?: number | null;
     weightGrams?: number | null;
+    temperatureCelsius?: number | null;
     recordedAt: Date;
   }): VitalsReading {
     const systolic = VitalsReading.cleanMeasure(params.systolic, 'Systolic', MAX_PRESSURE);
@@ -44,13 +49,15 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
       100,
     );
     const weightGrams = VitalsReading.cleanMeasure(params.weightGrams, 'Weight', MAX_WEIGHT_GRAMS);
+    const temperatureTenths = VitalsReading.cleanTemperature(params.temperatureCelsius);
 
     if (
       systolic === null &&
       diastolic === null &&
       heartRate === null &&
       oxygenSaturation === null &&
-      weightGrams === null
+      weightGrams === null &&
+      temperatureTenths === null
     ) {
       throw new ValidationException('At least one vital sign must be recorded');
     }
@@ -67,8 +74,24 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
       heartRate,
       oxygenSaturation,
       weightGrams,
+      temperatureTenths,
       recordedAt: params.recordedAt,
     });
+  }
+
+  /** Accept a Celsius reading with one decimal and store it as whole tenths. */
+  private static cleanTemperature(value: number | null | undefined): number | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    if (!Number.isFinite(value)) {
+      throw new ValidationException('Temperature is out of the accepted range');
+    }
+    const tenths = Math.round(value * 10);
+    if (tenths < MIN_TEMP_TENTHS || tenths > MAX_TEMP_TENTHS) {
+      throw new ValidationException('Temperature is out of the accepted range');
+    }
+    return tenths;
   }
 
   private static cleanMeasure(
@@ -103,6 +126,16 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
 
   public get weightGrams(): number | null {
     return this.props.weightGrams;
+  }
+
+  /** Temperature in whole tenths of a degree Celsius, or null. */
+  public get temperatureTenths(): number | null {
+    return this.props.temperatureTenths;
+  }
+
+  /** Temperature in degrees Celsius (one decimal), or null. */
+  public get temperatureCelsius(): number | null {
+    return this.props.temperatureTenths === null ? null : this.props.temperatureTenths / 10;
   }
 
   public get recordedAt(): Date {
