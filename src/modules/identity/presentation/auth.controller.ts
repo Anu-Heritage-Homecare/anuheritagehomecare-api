@@ -10,8 +10,12 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-principal';
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { ChangePasswordUseCase } from '../application/use-cases/change-password.use-case';
+import { DisableTwoFactorUseCase } from '../application/use-cases/disable-two-factor.use-case';
+import { EnableTwoFactorUseCase } from '../application/use-cases/enable-two-factor.use-case';
 import { GetMyProfileUseCase } from '../application/use-cases/get-my-profile.use-case';
 import { LoginUseCase } from '../application/use-cases/login.use-case';
+import { SetupTwoFactorUseCase } from '../application/use-cases/setup-two-factor.use-case';
+import { VerifyTwoFactorLoginUseCase } from '../application/use-cases/verify-two-factor-login.use-case';
 import { LogoutUseCase } from '../application/use-cases/logout.use-case';
 import { RefreshTokenUseCase } from '../application/use-cases/refresh-token.use-case';
 import { RegisterFamilyOwnerUseCase } from '../application/use-cases/register-family-owner.use-case';
@@ -35,6 +39,14 @@ import { ResetTokenResponseDto } from './dto/reset-token-response.dto';
 import { UserProfileResponseDto } from './dto/user-profile-response.dto';
 import { VerifyEmailRequestDto } from './dto/verify-email-request.dto';
 import { VerifyPasswordResetOtpRequestDto } from './dto/verify-password-reset-otp-request.dto';
+import { DisableTwoFactorRequestDto } from './dto/disable-two-factor-request.dto';
+import { EnableTwoFactorRequestDto } from './dto/enable-two-factor-request.dto';
+import { LoginResponseDto } from './dto/login-response.dto';
+import {
+  TwoFactorRecoveryCodesResponseDto,
+  TwoFactorSetupResponseDto,
+} from './dto/two-factor-response.dto';
+import { VerifyTwoFactorLoginRequestDto } from './dto/verify-two-factor-login-request.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 // Tight per client limits on sensitive endpoints, layered on top of the global
@@ -61,6 +73,10 @@ export class AuthController {
     private readonly resetPassword: ResetPasswordUseCase,
     private readonly changePassword: ChangePasswordUseCase,
     private readonly getMyProfile: GetMyProfileUseCase,
+    private readonly setupTwoFactor: SetupTwoFactorUseCase,
+    private readonly enableTwoFactor: EnableTwoFactorUseCase,
+    private readonly disableTwoFactor: DisableTwoFactorUseCase,
+    private readonly verifyTwoFactorLogin: VerifyTwoFactorLoginUseCase,
   ) {}
 
   @Get('me')
@@ -87,10 +103,27 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle(SENSITIVE_THROTTLE)
-  @ApiOperation({ summary: 'Log in with email and password' })
-  @ApiOkResponse({ type: AuthTokensResponseDto })
-  async logIn(@Body() body: LoginRequestDto): Promise<AuthTokensResponseDto> {
+  @ApiOperation({ summary: 'Log in with email and password (may require a second factor)' })
+  @ApiOkResponse({ type: LoginResponseDto })
+  async logIn(@Body() body: LoginRequestDto): Promise<LoginResponseDto> {
     const result = await this.login.execute(body);
+    return LoginResponseDto.fromResult(result);
+  }
+
+  @Post('2fa/login')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({
+    summary: 'Complete a login challenged for two factor with a code or recovery code',
+  })
+  @ApiOkResponse({ type: AuthTokensResponseDto })
+  async twoFactorLogin(
+    @Body() body: VerifyTwoFactorLoginRequestDto,
+  ): Promise<AuthTokensResponseDto> {
+    const result = await this.verifyTwoFactorLogin.execute({
+      challengeToken: body.challengeToken,
+      code: body.code,
+    });
     return AuthTokensResponseDto.fromResult(result);
   }
 
@@ -188,5 +221,54 @@ export class AuthController {
       newPassword: body.newPassword,
     });
     return AuthTokensResponseDto.fromResult(result);
+  }
+
+  @Post('2fa/setup')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Begin two factor setup and return the secret and QR provisioning URI' })
+  @ApiOkResponse({ type: TwoFactorSetupResponseDto })
+  async beginTwoFactorSetup(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): Promise<TwoFactorSetupResponseDto> {
+    const result = await this.setupTwoFactor.execute({ userId: principal.userId });
+    return TwoFactorSetupResponseDto.fromResult(result);
+  }
+
+  @Post('2fa/enable')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({ summary: 'Enable two factor by proving a code; returns one time recovery codes' })
+  @ApiOkResponse({ type: TwoFactorRecoveryCodesResponseDto })
+  async activateTwoFactor(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: EnableTwoFactorRequestDto,
+  ): Promise<TwoFactorRecoveryCodesResponseDto> {
+    const result = await this.enableTwoFactor.execute({
+      userId: principal.userId,
+      code: body.code,
+    });
+    return TwoFactorRecoveryCodesResponseDto.fromResult(result);
+  }
+
+  @Post('2fa/disable')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({ summary: 'Disable two factor authentication (requires the current password)' })
+  @ApiOkResponse({ type: MessageResponseDto })
+  async deactivateTwoFactor(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: DisableTwoFactorRequestDto,
+  ): Promise<MessageResponseDto> {
+    const result = await this.disableTwoFactor.execute({
+      userId: principal.userId,
+      password: body.password,
+    });
+    return MessageResponseDto.fromResult(result);
   }
 }

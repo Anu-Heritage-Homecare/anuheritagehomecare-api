@@ -28,7 +28,12 @@ describe('LoginUseCase', () => {
       fixedClock,
       sequentialIds('rt'),
     );
-    useCase = new LoginUseCase(users, new FakePasswordHasher(), tokenIssuer);
+    useCase = new LoginUseCase(
+      users,
+      new FakePasswordHasher(),
+      new FakeTokenService(),
+      tokenIssuer,
+    );
   });
 
   it('issues tokens for a verified user with the correct password', async () => {
@@ -39,10 +44,13 @@ describe('LoginUseCase', () => {
       password: 'S3curePass',
     });
 
-    expect(result.tokenType).toBe('Bearer');
-    expect(result.accessToken).toBe('access:user-1');
-    expect(result.refreshToken).toContain('refresh:user-1');
-    expect(result.user.email).toBe('ada.obi@example.com');
+    if (result.status !== 'AUTHENTICATED') {
+      throw new Error('expected the user to be authenticated');
+    }
+    expect(result.tokens.tokenType).toBe('Bearer');
+    expect(result.tokens.accessToken).toBe('access:user-1');
+    expect(result.tokens.refreshToken).toContain('refresh:user-1');
+    expect(result.tokens.user.email).toBe('ada.obi@example.com');
     expect(refreshTokens.store.size).toBe(1);
   });
 
@@ -54,7 +62,27 @@ describe('LoginUseCase', () => {
       password: 'S3curePass',
     });
 
-    expect(result.user.mustChangePassword).toBe(true);
+    if (result.status !== 'AUTHENTICATED') {
+      throw new Error('expected the user to be authenticated');
+    }
+    expect(result.tokens.user.mustChangePassword).toBe(true);
+  });
+
+  it('returns a two factor challenge instead of tokens when two factor is enabled', async () => {
+    await users.save(buildUser({ verified: true, twoFactorEnabled: true, twoFactorSecret: 'enc' }));
+
+    const result = await useCase.execute({
+      email: 'ada.obi@example.com',
+      password: 'S3curePass',
+    });
+
+    expect(result.status).toBe('TWO_FACTOR_REQUIRED');
+    if (result.status !== 'TWO_FACTOR_REQUIRED') {
+      throw new Error('expected a two factor challenge');
+    }
+    expect(result.challengeToken).toBe('mfa:user-1');
+    // No session is created until the second factor is proven.
+    expect(refreshTokens.store.size).toBe(0);
   });
 
   it('blocks login until the email is verified', async () => {

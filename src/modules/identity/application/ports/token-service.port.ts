@@ -19,6 +19,11 @@ export interface ResetTokenClaims {
   typ: 'reset';
 }
 
+export interface MfaTokenClaims {
+  sub: string;
+  typ: 'mfa';
+}
+
 /** A freshly signed refresh token plus the derived hash to persist and its expiry. */
 export interface IssuedRefreshToken {
   token: string;
@@ -39,6 +44,8 @@ export interface TokenService {
   hashToken(token: string): string;
   signResetToken(claims: Omit<ResetTokenClaims, 'typ'>): Promise<string>;
   verifyResetToken(token: string): Promise<ResetTokenClaims>;
+  signMfaToken(claims: Omit<MfaTokenClaims, 'typ'>): Promise<string>;
+  verifyMfaToken(token: string): Promise<MfaTokenClaims>;
 }
 
 export const TOKEN_SERVICE = Symbol('TOKEN_SERVICE');

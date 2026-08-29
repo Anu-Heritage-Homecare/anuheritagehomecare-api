@@ -15,6 +15,8 @@ interface BuildUserOptions {
   verified?: boolean;
   /** Simulate an account provisioned with a temporary password. */
   mustChangePassword?: boolean;
+  twoFactorEnabled?: boolean;
+  twoFactorSecret?: string | null;
 }
 
 /** Build a User aggregate for specs, optionally already email verified. */
@@ -48,12 +50,16 @@ export function buildUser(options: BuildUserOptions = {}): User {
   }
   user.clearDomainEvents();
 
-  if (!options.mustChangePassword) {
+  const mustChangePassword = options.mustChangePassword ?? false;
+  const twoFactorEnabled = options.twoFactorEnabled ?? false;
+  const twoFactorSecret = options.twoFactorSecret ?? null;
+
+  if (!mustChangePassword && !twoFactorEnabled && twoFactorSecret === null) {
     return user;
   }
 
-  // Rehydrate the persisted state of an account still holding a temporary
-  // password, exactly as it would load from the database.
+  // Rehydrate persisted state (a temporary password, or two factor enabled)
+  // exactly as it would load from the database.
   return User.rehydrate(id, {
     userType,
     name,
@@ -64,7 +70,9 @@ export function buildUser(options: BuildUserOptions = {}): User {
     emailVerified: user.emailVerified,
     phoneVerified: user.phoneVerified,
     isFamilyOwner: user.isFamilyOwner,
-    mustChangePassword: true,
+    mustChangePassword,
+    twoFactorEnabled,
+    twoFactorSecret,
     status: user.status,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

@@ -8,6 +8,7 @@ import { User } from './user.entity';
 export interface UserRepository {
   save(user: User): Promise<void>;
   findById(id: string): Promise<User | null>;
+  findByIds(ids: string[]): Promise<User[]>;
   findByEmail(email: string): Promise<User | null>;
   existsByEmail(email: string): Promise<boolean>;
   existsByPhone(phone: string): Promise<boolean>;

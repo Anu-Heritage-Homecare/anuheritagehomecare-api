@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import {
   AccessTokenClaims,
   IssuedRefreshToken,
+  MfaTokenClaims,
   RefreshTokenClaims,
   ResetTokenClaims,
   TokenService,
@@ -69,6 +70,22 @@ export class JwtTokenService implements TokenService {
   async verifyResetToken(token: string): Promise<ResetTokenClaims> {
     const claims = await this.verify<ResetTokenClaims>(token, this.auth.resetSecret);
     if (claims.typ !== 'reset') {
+      throw new UnauthorizedDomainException('Invalid or expired token');
+    }
+    return claims;
+  }
+
+  signMfaToken(claims: Omit<MfaTokenClaims, 'typ'>): Promise<string> {
+    const payload: MfaTokenClaims = { ...claims, typ: 'mfa' };
+    return this.jwt.signAsync(payload, {
+      secret: this.auth.mfaSecret,
+      expiresIn: durationToSeconds(this.auth.mfaTtl),
+    });
+  }
+
+  async verifyMfaToken(token: string): Promise<MfaTokenClaims> {
+    const claims = await this.verify<MfaTokenClaims>(token, this.auth.mfaSecret);
+    if (claims.typ !== 'mfa') {
       throw new UnauthorizedDomainException('Invalid or expired token');
     }
     return claims;

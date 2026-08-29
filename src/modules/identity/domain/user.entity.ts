@@ -1,4 +1,5 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root.base';
+import { ValidationException } from '@shared/domain/domain-exception';
 import { UserEmailVerifiedEvent } from './events/user-email-verified.event';
 import { UserRegisteredEvent } from './events/user-registered.event';
 import { UserStatus } from './user-status.enum';
@@ -19,6 +20,8 @@ interface UserProps {
   phoneVerified: boolean;
   isFamilyOwner: boolean;
   mustChangePassword: boolean;
+  twoFactorEnabled: boolean;
+  twoFactorSecret: string | null;
   status: UserStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -63,6 +66,8 @@ export class User extends AggregateRoot<string> {
       phoneVerified: false,
       isFamilyOwner: params.isFamilyOwner,
       mustChangePassword: false,
+      twoFactorEnabled: false,
+      twoFactorSecret: null,
       status: UserStatus.PendingVerification,
       createdAt: params.now,
       updatedAt: params.now,
@@ -108,6 +113,38 @@ export class User extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
+  /**
+   * Begin two factor setup by storing an (already encrypted) TOTP secret. The
+   * factor is not active yet: the user must prove they can generate a valid code
+   * before it is enabled. Cannot restart while two factor is already enabled.
+   */
+  public beginTwoFactorSetup(encryptedSecret: string, now: Date): void {
+    if (this.props.twoFactorEnabled) {
+      throw new ValidationException('Two factor authentication is already enabled');
+    }
+    this.props.twoFactorSecret = encryptedSecret;
+    this.props.updatedAt = now;
+  }
+
+  /**
+   * Activate two factor authentication once the pending secret has been proven.
+   * A setup must be in progress (a secret stored) for this to be valid.
+   */
+  public enableTwoFactor(now: Date): void {
+    if (this.props.twoFactorSecret === null) {
+      throw new ValidationException('Start two factor setup before enabling it');
+    }
+    this.props.twoFactorEnabled = true;
+    this.props.updatedAt = now;
+  }
+
+  /** Turn two factor authentication off and forget the stored secret. */
+  public disableTwoFactor(now: Date): void {
+    this.props.twoFactorEnabled = false;
+    this.props.twoFactorSecret = null;
+    this.props.updatedAt = now;
+  }
+
   public get userType(): UserType {
     return this.props.userType;
   }
@@ -147,6 +184,16 @@ export class User extends AggregateRoot<string> {
   /** Whether the client must force a password change before normal use. */
   public get mustChangePassword(): boolean {
     return this.props.mustChangePassword;
+  }
+
+  /** Whether login requires a second factor after the password. */
+  public get twoFactorEnabled(): boolean {
+    return this.props.twoFactorEnabled;
+  }
+
+  /** The encrypted TOTP secret, or null when no setup is in progress. */
+  public get twoFactorSecret(): string | null {
+    return this.props.twoFactorSecret;
   }
 
   public get status(): UserStatus {

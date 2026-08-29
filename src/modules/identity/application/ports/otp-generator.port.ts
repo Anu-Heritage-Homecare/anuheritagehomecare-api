@@ -5,6 +5,11 @@
  */
 export interface OtpGenerator {
   generateNumeric(length: number): string;
+  /**
+   * A high entropy alphanumeric secret (for example a two factor recovery code),
+   * drawn from an unambiguous alphabet so it is easy to read and type.
+   */
+  generateAlphanumeric(length: number): string;
 }
 
 export const OTP_GENERATOR = Symbol('OTP_GENERATOR');

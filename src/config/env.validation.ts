@@ -31,7 +31,18 @@ export const envSchema = z.object({
   JWT_REFRESH_TTL: z.string().min(1).default('30d'),
   JWT_RESET_SECRET: z.string().min(32, 'JWT_RESET_SECRET must be at least 32 characters'),
   JWT_RESET_TTL: z.string().min(1).default('10m'),
+  // Short lived token issued after a correct password when two factor is on; it
+  // only authorises the second factor step, not the API.
+  JWT_MFA_SECRET: z.string().min(32, 'JWT_MFA_SECRET must be at least 32 characters'),
+  JWT_MFA_TTL: z.string().min(1).default('5m'),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
+
+  // Two factor authentication (TOTP). The encryption key protects the stored TOTP
+  // secret at rest; the issuer is the label shown in the authenticator app.
+  TWO_FACTOR_ENCRYPTION_KEY: z
+    .string()
+    .min(32, 'TWO_FACTOR_ENCRYPTION_KEY must be at least 32 characters'),
+  TWO_FACTOR_ISSUER: z.string().min(1).default('Anu Heritage Homecare'),
 
   // One time passcodes for email verification and password reset.
   OTP_LENGTH: z.coerce.number().int().min(4).max(10).default(6),

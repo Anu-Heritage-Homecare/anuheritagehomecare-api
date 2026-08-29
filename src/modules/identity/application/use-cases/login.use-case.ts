@@ -8,8 +8,9 @@ import { UserStatus } from '../../domain/user-status.enum';
 import { USER_REPOSITORY, UserRepository } from '../../domain/user.repository';
 import { EmailAddress } from '../../domain/value-objects/email-address.vo';
 import { LoginCommand } from '../commands/login.command';
-import { AuthTokensResult } from '../dto/auth-tokens.result';
+import { LoginResult } from '../dto/login.result';
 import { PASSWORD_HASHER, PasswordHasher } from '../ports/password-hasher.port';
+import { TOKEN_SERVICE, TokenService } from '../ports/token-service.port';
 import { TokenIssuerService } from '../services/token-issuer.service';
 
 /**
@@ -18,17 +19,20 @@ import { TokenIssuerService } from '../services/token-issuer.service';
  * Wrong email and wrong password are reported identically so the endpoint never
  * reveals whether an account exists. An unverified email is only surfaced after
  * the password is proven correct, and carries a distinct error code so the
- * client can send the user to the verification screen.
+ * client can send the user to the verification screen. When two factor is enabled
+ * the password alone does not issue tokens: a short lived challenge token is
+ * returned and the second factor step must complete the login.
  */
 @Injectable()
 export class LoginUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
+    @Inject(TOKEN_SERVICE) private readonly tokens: TokenService,
     private readonly tokenIssuer: TokenIssuerService,
   ) {}
 
-  async execute(command: LoginCommand): Promise<AuthTokensResult> {
+  async execute(command: LoginCommand): Promise<LoginResult> {
     const email = EmailAddress.create(command.email);
     const user = await this.users.findByEmail(email.value);
 
@@ -48,6 +52,12 @@ export class LoginUseCase {
       throw new ForbiddenDomainException('This account is suspended');
     }
 
-    return this.tokenIssuer.issueFor(user);
+    if (user.twoFactorEnabled) {
+      const challengeToken = await this.tokens.signMfaToken({ sub: user.id });
+      return { status: 'TWO_FACTOR_REQUIRED', challengeToken };
+    }
+
+    const tokens = await this.tokenIssuer.issueFor(user);
+    return { status: 'AUTHENTICATED', tokens };
   }
 }

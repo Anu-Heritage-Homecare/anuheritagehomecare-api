@@ -64,15 +64,39 @@ model User {
   // caregiver onboarded by an admin). Login still succeeds but signals the client
   // to force a password change; any password change clears the flag.
   mustChangePassword Boolean @default(false)
+  // Two factor authentication (TOTP). When enabled, login requires a valid
+  // authenticator code after the password. The secret is stored encrypted at
+  // rest (AES 256 GCM) and never leaves the application in the clear.
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String? @db.VarChar(255)
   status        UserStatus @default(PENDING_VERIFICATION)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  verificationCodes VerificationCode[]
-  refreshTokens     RefreshToken[]
+  verificationCodes  VerificationCode[]
+  refreshTokens      RefreshToken[]
+  twoFactorRecoveryCodes TwoFactorRecoveryCode[]
 
   @@index([status])
   @@map("users")
+}
+
+// A single use backup code for two factor authentication. Only the hash is
+// stored (the codes are high entropy, so a fast deterministic hash is used for
+// indexed lookup). A code is consumed exactly once; a fresh set replaces the old
+// one when two factor is re enabled.
+model TwoFactorRecoveryCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  codeHash  String    @db.VarChar(255)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([codeHash])
+  @@map("two_factor_recovery_codes")
 }
 
 // One time passcode issued for email verification or password reset. The code

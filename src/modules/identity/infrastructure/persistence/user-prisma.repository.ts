@@ -33,6 +33,9 @@ export class UserPrismaRepository implements UserRepository {
         emailVerified: row.emailVerified,
         phoneVerified: row.phoneVerified,
         isFamilyOwner: row.isFamilyOwner,
+        mustChangePassword: row.mustChangePassword,
+        twoFactorEnabled: row.twoFactorEnabled,
+        twoFactorSecret: row.twoFactorSecret,
         status: row.status,
         updatedAt: row.updatedAt,
       },
@@ -42,6 +45,14 @@ export class UserPrismaRepository implements UserRepository {
   async findById(id: string): Promise<User | null> {
     const row = await this.prisma.user.findUnique({ where: { id } });
     return row ? UserMapper.toDomain(row) : null;
+  }
+
+  async findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.user.findMany({ where: { id: { in: ids } } });
+    return rows.map((row) => UserMapper.toDomain(row));
   }
 
   async findByEmail(email: string): Promise<User | null> {

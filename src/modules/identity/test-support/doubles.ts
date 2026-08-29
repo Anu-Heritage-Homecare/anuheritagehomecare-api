@@ -5,9 +5,14 @@ import { UnauthorizedDomainException } from '@shared/domain/domain-exception';
 import { EmailMessage, EmailSender } from '../application/ports/email-sender.port';
 import { OtpGenerator } from '../application/ports/otp-generator.port';
 import { PasswordHasher } from '../application/ports/password-hasher.port';
+import { SecretCipher } from '../application/ports/secret-cipher.port';
+import { TwoFactorAuthenticator } from '../application/ports/two-factor-authenticator.port';
+import { TwoFactorRecoveryCode } from '../domain/two-factor-recovery-code.entity';
+import { TwoFactorRecoveryCodeRepository } from '../domain/two-factor-recovery-code.repository';
 import {
   AccessTokenClaims,
   IssuedRefreshToken,
+  MfaTokenClaims,
   RefreshTokenClaims,
   ResetTokenClaims,
   TokenService,
@@ -59,10 +64,17 @@ export class FakePasswordHasher implements PasswordHasher {
 }
 
 export class FixedOtpGenerator implements OtpGenerator {
+  private alphanumericCounter = 0;
+
   constructor(private readonly code = '123456') {}
 
   generateNumeric(): string {
     return this.code;
+  }
+
+  generateAlphanumeric(length: number): string {
+    this.alphanumericCounter += 1;
+    return `RECOVERY${this.alphanumericCounter}`.padEnd(length, 'X').slice(0, length);
   }
 }
 
@@ -71,6 +83,69 @@ export class RecordingEmailSender implements EmailSender {
 
   send(message: EmailMessage): Promise<void> {
     this.sent.push(message);
+    return Promise.resolve();
+  }
+}
+
+/** Reversible, non secret cipher so specs can assert what was stored. */
+export class FakeSecretCipher implements SecretCipher {
+  encrypt(plaintext: string): string {
+    return `enc:${plaintext}`;
+  }
+
+  decrypt(ciphertext: string): string {
+    if (!ciphertext.startsWith('enc:')) {
+      throw new Error('Cannot decrypt value');
+    }
+    return ciphertext.slice('enc:'.length);
+  }
+}
+
+/** A TOTP authenticator whose only valid code is a fixed value. */
+export class FakeTwoFactorAuthenticator implements TwoFactorAuthenticator {
+  constructor(
+    private readonly validCode = '123456',
+    private readonly secret = 'JBSWY3DPEHPK3PXP',
+  ) {}
+
+  generateSecret(): string {
+    return this.secret;
+  }
+
+  keyUri(secret: string, accountName: string): string {
+    return `otpauth://totp/${accountName}?secret=${secret}`;
+  }
+
+  verify(params: { secret: string; code: string; now: Date }): boolean {
+    return params.code === this.validCode;
+  }
+}
+
+export class InMemoryTwoFactorRecoveryCodeRepository implements TwoFactorRecoveryCodeRepository {
+  public store: TwoFactorRecoveryCode[] = [];
+
+  replaceForUser(userId: string, codes: TwoFactorRecoveryCode[]): Promise<void> {
+    this.store = this.store.filter((code) => code.userId !== userId).concat(codes);
+    return Promise.resolve();
+  }
+
+  findActive(userId: string, codeHash: string): Promise<TwoFactorRecoveryCode | null> {
+    const match = this.store.find(
+      (code) => code.userId === userId && code.codeHash === codeHash && !code.isUsed,
+    );
+    return Promise.resolve(match ?? null);
+  }
+
+  save(code: TwoFactorRecoveryCode): Promise<void> {
+    const index = this.store.findIndex((existing) => existing.id === code.id);
+    if (index >= 0) {
+      this.store[index] = code;
+    }
+    return Promise.resolve();
+  }
+
+  deleteForUser(userId: string): Promise<void> {
+    this.store = this.store.filter((code) => code.userId !== userId);
     return Promise.resolve();
   }
 }
@@ -114,6 +189,17 @@ export class FakeTokenService implements TokenService {
     }
     return Promise.resolve({ sub: token.slice('reset:'.length), typ: 'reset' });
   }
+
+  signMfaToken(claims: Omit<MfaTokenClaims, 'typ'>): Promise<string> {
+    return Promise.resolve(`mfa:${claims.sub}`);
+  }
+
+  verifyMfaToken(token: string): Promise<MfaTokenClaims> {
+    if (!token.startsWith('mfa:')) {
+      return Promise.reject(new UnauthorizedDomainException('Invalid or expired token'));
+    }
+    return Promise.resolve({ sub: token.slice('mfa:'.length), typ: 'mfa' });
+  }
 }
 
 export class InMemoryUserRepository implements UserRepository {
@@ -126,6 +212,11 @@ export class InMemoryUserRepository implements UserRepository {
 
   findById(id: string): Promise<User | null> {
     return Promise.resolve(this.store.get(id) ?? null);
+  }
+
+  findByIds(ids: string[]): Promise<User[]> {
+    const wanted = new Set(ids);
+    return Promise.resolve([...this.store.values()].filter((user) => wanted.has(user.id)));
   }
 
   findByEmail(email: string): Promise<User | null> {

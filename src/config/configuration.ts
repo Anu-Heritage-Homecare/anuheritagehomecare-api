@@ -24,7 +24,14 @@ export interface AuthConfig {
   readonly refreshTtl: string;
   readonly resetSecret: string;
   readonly resetTtl: string;
+  readonly mfaSecret: string;
+  readonly mfaTtl: string;
   readonly bcryptSaltRounds: number;
+}
+
+export interface TwoFactorConfig {
+  readonly encryptionKey: string;
+  readonly issuer: string;
 }
 
 export interface OtpConfig {
@@ -75,6 +82,7 @@ export interface KycConfig {
 export function buildConfig(env: Env): {
   app: AppConfig;
   auth: AuthConfig;
+  twoFactor: TwoFactorConfig;
   otp: OtpConfig;
   mail: MailConfig;
   booking: BookingConfig;
@@ -105,7 +113,13 @@ export function buildConfig(env: Env): {
       refreshTtl: env.JWT_REFRESH_TTL,
       resetSecret: env.JWT_RESET_SECRET,
       resetTtl: env.JWT_RESET_TTL,
+      mfaSecret: env.JWT_MFA_SECRET,
+      mfaTtl: env.JWT_MFA_TTL,
       bcryptSaltRounds: env.BCRYPT_SALT_ROUNDS,
+    },
+    twoFactor: {
+      encryptionKey: env.TWO_FACTOR_ENCRYPTION_KEY,
+      issuer: env.TWO_FACTOR_ISSUER,
     },
     otp: {
       length: env.OTP_LENGTH,
