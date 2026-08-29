@@ -21,6 +21,7 @@ const clock: Clock = { now: () => NOW };
 const photoStorage: PhotoStorage = {
   createUploadTicket: () => ({ uploadUrl: 'https://upload', fields: {}, key: 'k' }),
   urlFor: (key: string) => `https://cdn.test/${key}`,
+  download: (key: string) => Promise.resolve(Buffer.from(key)),
 };
 
 function recipient(overrides: Record<string, unknown> = {}): unknown {

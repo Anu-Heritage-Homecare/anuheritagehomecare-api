@@ -28,6 +28,13 @@ export interface PhotoStorage {
    * empty string when the store is not configured.
    */
   urlFor(key: string): string;
+
+  /**
+   * Fetch the raw bytes of a stored key, for a server side download (for example
+   * bundling a visit's photos into a single archive). Fails closed if the store
+   * is not configured or the object cannot be retrieved.
+   */
+  download(key: string): Promise<Buffer>;
 }
 
 export const PHOTO_STORAGE = Symbol('PHOTO_STORAGE');

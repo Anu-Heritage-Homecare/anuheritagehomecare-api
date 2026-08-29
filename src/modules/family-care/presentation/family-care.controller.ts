@@ -1,8 +1,10 @@
-import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param, ParseUUIDPipe, StreamableFile, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-principal';
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
+import { buildZip } from '@shared/infrastructure/storage/zip-archive';
+import { DownloadVisitPhotosUseCase } from '../application/use-cases/download-visit-photos.use-case';
 import { GetCareOverviewUseCase } from '../application/use-cases/get-care-overview.use-case';
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetFamilyVisitDetailUseCase } from '../application/use-cases/get-family-visit-detail.use-case';
@@ -33,6 +35,7 @@ export class FamilyCareController {
     private readonly getCarePlan: GetCarePlanUseCase,
     private readonly getVisits: GetRecipientVisitsUseCase,
     private readonly getVisitDetail: GetFamilyVisitDetailUseCase,
+    private readonly downloadPhotos: DownloadVisitPhotosUseCase,
   ) {}
 
   @Get('care-recipients/:id/overview')
@@ -94,5 +97,21 @@ export class FamilyCareController {
   ): Promise<FamilyVisitDetailResponseDto> {
     const result = await this.getVisitDetail.execute({ ownerId: principal.userId, visitId: id });
     return FamilyVisitDetailResponseDto.fromResult(result);
+  }
+
+  @Get('visits/:id/photos/download')
+  @ApiOperation({ summary: "Download all of a visit's photos as a single zip archive" })
+  @ApiProduces('application/zip')
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  async downloadVisitPhotos(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<StreamableFile> {
+    const result = await this.downloadPhotos.execute({ ownerId: principal.userId, visitId: id });
+    const zip = buildZip(result.files);
+    return new StreamableFile(zip, {
+      type: 'application/zip',
+      disposition: `attachment; filename="${result.filename}"`,
+    });
   }
 }

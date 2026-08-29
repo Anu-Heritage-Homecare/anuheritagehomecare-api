@@ -5,6 +5,7 @@ import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.m
 import { IdentityModule } from '@modules/identity/identity.module';
 import { VisitsModule } from '@modules/visits/visits.module';
 import { FAMILY_PLAN_DIRECTORY } from './application/ports/family-plan-directory.port';
+import { DownloadVisitPhotosUseCase } from './application/use-cases/download-visit-photos.use-case';
 import { GetCareOverviewUseCase } from './application/use-cases/get-care-overview.use-case';
 import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-case';
 import { GetFamilyVisitDetailUseCase } from './application/use-cases/get-family-visit-detail.use-case';
@@ -28,6 +29,7 @@ import { FamilyCareController } from './presentation/family-care.controller';
     GetCarePlanUseCase,
     GetRecipientVisitsUseCase,
     GetFamilyVisitDetailUseCase,
+    DownloadVisitPhotosUseCase,
     { provide: FAMILY_PLAN_DIRECTORY, useClass: BookingsFamilyPlanDirectory },
   ],
 })

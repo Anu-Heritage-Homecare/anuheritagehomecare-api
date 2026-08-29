@@ -49,4 +49,26 @@ describe('CloudinaryPhotoStorage', () => {
     expect(storage({ cloudName: '' }).urlFor('anu/visits/v1/abc')).toBe('');
     expect(storage().urlFor('')).toBe('');
   });
+
+  it('downloads the bytes of a stored key from its signed URL', async () => {
+    const bytes = Uint8Array.from([1, 2, 3, 4]);
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValue({ ok: true, arrayBuffer: () => Promise.resolve(bytes.buffer) });
+    const original = global.fetch;
+    global.fetch = fetchMock;
+    try {
+      const data = await storage().download('anu/visits/v1/abc');
+      expect(fetchMock).toHaveBeenCalledWith(storage().urlFor('anu/visits/v1/abc'));
+      expect([...data]).toEqual([1, 2, 3, 4]);
+    } finally {
+      global.fetch = original;
+    }
+  });
+
+  it('fails closed on download when the store is not configured', async () => {
+    await expect(storage({ cloudName: '' }).download('anu/visits/v1/abc')).rejects.toThrow(
+      /not configured/,
+    );
+  });
 });

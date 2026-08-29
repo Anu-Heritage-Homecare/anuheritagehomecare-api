@@ -57,6 +57,18 @@ export class CloudinaryPhotoStorage implements PhotoStorage {
     return `${DELIVERY_HOST}/${this.config.cloudName}/image/upload/s--${signature}--/${key}`;
   }
 
+  async download(key: string): Promise<Buffer> {
+    const url = this.urlFor(key);
+    if (url.length === 0) {
+      throw new Error('Cloudinary is not configured (CLOUDINARY_CLOUD_NAME is empty)');
+    }
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to download photo ${key} (status ${response.status})`);
+    }
+    return Buffer.from(await response.arrayBuffer());
+  }
+
   private keyFor(reference: string): string {
     const folder = this.config.folder.replace(/\/+$/, '');
     return folder.length === 0 ? reference : `${folder}/${reference}`;
