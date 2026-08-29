@@ -1,11 +1,14 @@
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
 import { CareRecipientRepository } from '@modules/care-recipients/domain/care-recipient.repository';
 import { UserRepository } from '@modules/identity/domain/user.repository';
+import { UserType } from '@modules/identity/domain/user-type.enum';
 import { VisitRepository } from '@modules/visits/domain/visit.repository';
 import { Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
+import { NoteAudience } from '@modules/visits/domain/note-audience.enum';
 import { VisitStatus } from '@modules/visits/domain/visit-status.enum';
 import { VisitBreak } from '@modules/visits/domain/value-objects/visit-break.vo';
+import { VisitNote } from '@modules/visits/domain/value-objects/visit-note.vo';
 import { VitalsReading } from '@modules/visits/domain/value-objects/vitals-reading.vo';
 import { buildVisit } from '@modules/visits/test-support/doubles';
 import { GetFamilyVisitDetailUseCase } from './get-family-visit-detail.use-case';
@@ -39,6 +42,7 @@ function usersRepo(): UserRepository {
   const user = {
     id: 'cg1',
     name: { firstName: 'Sarah Adams', lastName: 'John' },
+    userType: UserType.Caregiver,
     photoKey: 'caregivers/cg1.jpg',
   };
   return {
@@ -65,7 +69,14 @@ describe('family Care reads', () => {
         recordedAt: new Date('2026-11-12T09:50:00.000Z'),
       }),
     ],
-    visitNote: 'Mary was cheerful today.',
+    notes: [
+      VisitNote.create({
+        authorId: 'cg1',
+        audience: NoteAudience.CareTeam,
+        text: 'Mary was cheerful today.',
+        createdAt: new Date('2026-11-12T11:00:00.000Z'),
+      }),
+    ],
   });
 
   describe('GetFamilyVisitDetailUseCase', () => {
@@ -94,7 +105,12 @@ describe('family Care reads', () => {
       expect(result.timeline[0]).toMatchObject({ kind: 'ARRIVED', label: 'Arrives at home' });
       expect(result.timeline.at(-1)).toMatchObject({ kind: 'DEPARTED' });
       expect(result.timeline.some((event) => event.kind === 'VITALS')).toBe(true);
-      expect(result.notes[0]).toMatchObject({
+      expect(result.notes[0]).toEqual({
+        authorId: 'cg1',
+        authorName: 'Sarah Adams John',
+        authorRole: 'CAREGIVER',
+        authorPhotoKey: 'caregivers/cg1.jpg',
+        at: '2026-11-12T11:00:00.000Z',
         audience: 'CARE_TEAM',
         text: 'Mary was cheerful today.',
       });

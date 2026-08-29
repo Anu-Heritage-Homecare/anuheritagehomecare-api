@@ -2,9 +2,11 @@ import { AggregateRoot } from '@shared/domain/aggregate-root.base';
 import { Coordinates } from '@shared/domain/coordinates.vo';
 import { OutsideGeofenceException, ValidationException } from '@shared/domain/domain-exception';
 import { MedicationAdministrationOutcome } from './medication-administration-outcome.enum';
+import { NoteAudience } from './note-audience.enum';
 import { VisitStatus } from './visit-status.enum';
 import { MedicationAdministration } from './value-objects/medication-administration.vo';
 import { VisitBreak } from './value-objects/visit-break.vo';
+import { VisitNote } from './value-objects/visit-note.vo';
 import { VisitTask } from './value-objects/visit-task.vo';
 import { VisitWindow } from './value-objects/visit-window.vo';
 import { VisitObservation } from './value-objects/visit-observation.vo';
@@ -21,8 +23,7 @@ interface VisitProps {
   medicationAdministrations: MedicationAdministration[];
   vitals: VitalsReading[];
   breaks: VisitBreak[];
-  visitNote: string | null;
-  familyNote: string | null;
+  notes: VisitNote[];
   photoKeys: string[];
   observation: VisitObservation;
   clockInAt: Date | null;
@@ -48,9 +49,16 @@ export interface VisitCompletionChecklist {
   photosUploaded: boolean;
 }
 
+/** Text of a note plus who it is for, as the caregiver adds it to the feed. */
+export interface AddNoteInput {
+  authorId: string;
+  audience: NoteAudience;
+  text: string;
+  now: Date;
+}
+
 const MAX_INSTRUCTION_LENGTH = 300;
 const MAX_INSTRUCTIONS = 50;
-const MAX_NOTE_LENGTH = 4000;
 const MAX_PHOTOS = 20;
 const MAX_PHOTO_KEY_LENGTH = 500;
 
@@ -95,8 +103,7 @@ export class Visit extends AggregateRoot<string> {
       medicationAdministrations: [],
       vitals: [],
       breaks: [],
-      visitNote: null,
-      familyNote: null,
+      notes: [],
       photoKeys: [],
       observation: VisitObservation.empty(),
       clockInAt: null,
@@ -234,16 +241,23 @@ export class Visit extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
-  /** Save the visit and family notes and any attached photo keys (replaces all). */
-  public saveNotes(params: {
-    visitNote?: string | null;
-    familyNote?: string | null;
-    photoKeys?: string[];
-    now: Date;
-  }): void {
-    this.assertInProgress('saving notes');
-    this.props.visitNote = Visit.cleanNote(params.visitNote);
-    this.props.familyNote = Visit.cleanNote(params.familyNote);
+  /** Append a note to the visit's notes feed and return it. */
+  public addNote(params: AddNoteInput): VisitNote {
+    this.assertInProgress('adding a note');
+    const note = VisitNote.create({
+      authorId: params.authorId,
+      audience: params.audience,
+      text: params.text,
+      createdAt: params.now,
+    });
+    this.props.notes = [...this.props.notes, note];
+    this.props.updatedAt = params.now;
+    return note;
+  }
+
+  /** Replace the visit's attached photo keys. */
+  public savePhotos(params: { photoKeys?: string[]; now: Date }): void {
+    this.assertInProgress('saving photos');
     this.props.photoKeys = Visit.cleanPhotoKeys(params.photoKeys);
     this.props.updatedAt = params.now;
   }
@@ -259,20 +273,6 @@ export class Visit extends AggregateRoot<string> {
     if (this.props.status !== VisitStatus.InProgress) {
       throw new ValidationException(`The visit must be in progress before ${action}`);
     }
-  }
-
-  private static cleanNote(raw: string | null | undefined): string | null {
-    if (raw === null || raw === undefined) {
-      return null;
-    }
-    const note = raw.trim();
-    if (note.length === 0) {
-      return null;
-    }
-    if (note.length > MAX_NOTE_LENGTH) {
-      throw new ValidationException('A note exceeds the maximum length');
-    }
-    return note;
   }
 
   private static cleanPhotoKeys(raw: string[] | undefined): string[] {
@@ -350,12 +350,8 @@ export class Visit extends AggregateRoot<string> {
     return this.props.observation;
   }
 
-  public get visitNote(): string | null {
-    return this.props.visitNote;
-  }
-
-  public get familyNote(): string | null {
-    return this.props.familyNote;
+  public get notes(): VisitNote[] {
+    return [...this.props.notes];
   }
 
   public get photoKeys(): string[] {
@@ -396,8 +392,8 @@ export class Visit extends AggregateRoot<string> {
       allTasksCompleted: tasksTotal > 0 && tasksCompleted === tasksTotal,
       medicationGiven: this.props.medicationAdministrations.length > 0,
       vitalsRecorded: this.props.vitals.length > 0,
-      notesAdded: this.props.visitNote !== null,
-      familyNoteAdded: this.props.familyNote !== null,
+      notesAdded: this.props.notes.length > 0,
+      familyNoteAdded: this.props.notes.some((note) => note.audience === NoteAudience.Family),
       photosUploaded: this.props.photoKeys.length > 0,
     };
   }

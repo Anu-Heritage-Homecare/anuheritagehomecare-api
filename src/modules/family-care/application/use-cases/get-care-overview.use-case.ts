@@ -100,7 +100,7 @@ export class GetCareOverviewUseCase {
     const medicationsGiven = visit.medicationAdministrations.filter(
       (administration) => String(administration.outcome) === 'ADMINISTERED',
     ).length;
-    const notesCount = (visit.visitNote === null ? 0 : 1) + (visit.familyNote === null ? 0 : 1);
+    const notesCount = visit.notes.length;
     return {
       tasks: {
         completed: visit.tasks.filter((task) => task.completed).length,

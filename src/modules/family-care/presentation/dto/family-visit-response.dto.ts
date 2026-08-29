@@ -113,10 +113,19 @@ class VisitHealthDto {
 }
 
 class VisitNoteDto {
-  @ApiProperty({ nullable: true })
-  author!: string | null;
+  @ApiProperty({ format: 'uuid' })
+  authorId!: string;
 
-  @ApiProperty()
+  @ApiProperty({ nullable: true, example: 'Sarah Adams' })
+  authorName!: string | null;
+
+  @ApiProperty({ nullable: true, example: 'CAREGIVER', description: "The author's user type" })
+  authorRole!: string | null;
+
+  @ApiProperty({ nullable: true, description: 'Opaque profile photo key (upload deferred)' })
+  authorPhotoKey!: string | null;
+
+  @ApiProperty({ description: 'When the note was written (ISO 8601)' })
   at!: string;
 
   @ApiProperty({ enum: ['CARE_TEAM', 'FAMILY'] })

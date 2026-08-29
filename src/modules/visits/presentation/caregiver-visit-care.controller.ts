@@ -1,32 +1,45 @@
 import {
   Body,
   Controller,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Post,
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ForbiddenDomainException } from '@shared/domain/domain-exception';
 import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-principal';
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
 import { UserType } from '@modules/identity/domain/user-type.enum';
+import { NoteAudience } from '../domain/note-audience.enum';
+import { AddVisitNoteUseCase } from '../application/use-cases/add-visit-note.use-case';
 import { RecordMedicationAdministrationUseCase } from '../application/use-cases/record-medication-administration.use-case';
 import { RecordObservationsUseCase } from '../application/use-cases/record-observations.use-case';
 import { RecordVitalsUseCase } from '../application/use-cases/record-vitals.use-case';
-import { SaveVisitNotesUseCase } from '../application/use-cases/save-visit-notes.use-case';
+import { SaveVisitPhotosUseCase } from '../application/use-cases/save-visit-photos.use-case';
 import { SetTaskCompletionUseCase } from '../application/use-cases/set-task-completion.use-case';
+import { AddVisitNoteRequestDto } from './dto/add-visit-note-request.dto';
 import { RecordMedicationRequestDto } from './dto/record-medication-request.dto';
 import { RecordObservationsRequestDto } from './dto/record-observations-request.dto';
 import { RecordVitalsRequestDto } from './dto/record-vitals-request.dto';
-import { SaveVisitNotesRequestDto } from './dto/save-visit-notes-request.dto';
+import { SaveVisitPhotosRequestDto } from './dto/save-visit-photos-request.dto';
 import { SetTaskCompletionRequestDto } from './dto/set-task-completion-request.dto';
 import {
   MedicationAdministrationResponseDto,
   VisitNotesResponseDto,
   VisitObservationsResponseDto,
+  VisitPhotosResponseDto,
   VisitTasksResponseDto,
   VitalsResponseDto,
 } from './dto/visit-care-response.dto';
@@ -47,7 +60,8 @@ export class CaregiverVisitCareController {
     private readonly recordMedication: RecordMedicationAdministrationUseCase,
     private readonly recordVitals: RecordVitalsUseCase,
     private readonly recordObservations: RecordObservationsUseCase,
-    private readonly saveNotes: SaveVisitNotesUseCase,
+    private readonly addNote: AddVisitNoteUseCase,
+    private readonly savePhotos: SaveVisitPhotosUseCase,
     private readonly setTaskCompletion: SetTaskCompletionUseCase,
   ) {}
 
@@ -115,23 +129,40 @@ export class CaregiverVisitCareController {
     return VisitObservationsResponseDto.fromResult(result);
   }
 
-  @Put(':id/notes')
-  @ApiOperation({ summary: 'Save the visit and family notes and photo keys' })
-  @ApiOkResponse({ type: VisitNotesResponseDto })
-  async notes(
+  @Post(':id/notes')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add a note to the visit notes feed' })
+  @ApiCreatedResponse({ type: VisitNotesResponseDto })
+  async addVisitNote(
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: SaveVisitNotesRequestDto,
+    @Body() body: AddVisitNoteRequestDto,
   ): Promise<VisitNotesResponseDto> {
     this.assertCaregiver(principal);
-    const result = await this.saveNotes.execute({
+    const result = await this.addNote.execute({
       caregiverId: principal.userId,
       visitId: id,
-      visitNote: body.visitNote,
-      familyNote: body.familyNote,
-      photoKeys: body.photoKeys,
+      audience: body.audience ?? NoteAudience.Family,
+      text: body.text,
     });
     return VisitNotesResponseDto.fromResult(result);
+  }
+
+  @Put(':id/photos')
+  @ApiOperation({ summary: 'Set the photo keys attached to the visit' })
+  @ApiOkResponse({ type: VisitPhotosResponseDto })
+  async photos(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SaveVisitPhotosRequestDto,
+  ): Promise<VisitPhotosResponseDto> {
+    this.assertCaregiver(principal);
+    const result = await this.savePhotos.execute({
+      caregiverId: principal.userId,
+      visitId: id,
+      photoKeys: body.photoKeys,
+    });
+    return VisitPhotosResponseDto.fromResult(result);
   }
 
   @Put(':id/tasks/:index')

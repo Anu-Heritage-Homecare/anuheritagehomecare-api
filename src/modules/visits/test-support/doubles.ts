@@ -15,6 +15,7 @@ import { Visit } from '../domain/visit.entity';
 import { VisitRepository } from '../domain/visit.repository';
 import { MedicationAdministration } from '../domain/value-objects/medication-administration.vo';
 import { VisitBreak } from '../domain/value-objects/visit-break.vo';
+import { VisitNote } from '../domain/value-objects/visit-note.vo';
 import { VisitObservation } from '../domain/value-objects/visit-observation.vo';
 import { VisitTask } from '../domain/value-objects/visit-task.vo';
 import { VisitWindow } from '../domain/value-objects/visit-window.vo';
@@ -46,8 +47,7 @@ interface BuildVisitOptions {
   medicationAdministrations?: MedicationAdministration[];
   vitals?: VitalsReading[];
   breaks?: VisitBreak[];
-  visitNote?: string | null;
-  familyNote?: string | null;
+  notes?: VisitNote[];
   photoKeys?: string[];
   observation?: VisitObservation;
   clockInAt?: Date | null;
@@ -97,8 +97,7 @@ export function buildVisit(options: BuildVisitOptions = {}): Visit {
     medicationAdministrations: options.medicationAdministrations ?? [],
     vitals: options.vitals ?? [],
     breaks: options.breaks ?? [],
-    visitNote: options.visitNote ?? null,
-    familyNote: options.familyNote ?? null,
+    notes: options.notes ?? [],
     photoKeys: options.photoKeys ?? [],
     observation: options.observation ?? VisitObservation.empty(),
     clockInAt: options.clockInAt ?? null,

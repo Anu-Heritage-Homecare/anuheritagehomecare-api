@@ -72,7 +72,8 @@ describe('GetVisitDetailUseCase', () => {
       { id: 'med-2', name: 'Amlodipine', dose: '5 mg', scheduleMinute: 540, administration: null },
     ]);
     expect(detail.vitals).toEqual([]);
-    expect(detail.notes).toEqual({ visitNote: null, familyNote: null, photoKeys: [] });
+    expect(detail.notes).toEqual([]);
+    expect(detail.photoKeys).toEqual([]);
   });
 
   it('returns a null emergency contact when the owner has no account on file', async () => {

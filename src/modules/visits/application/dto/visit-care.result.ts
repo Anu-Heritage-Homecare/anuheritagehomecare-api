@@ -28,10 +28,21 @@ export interface VisitObservationsResult {
   medicationStatus: string | null;
 }
 
-/** The notes and attached photo keys saved on a visit. */
+/** One note on a visit's feed, as written by a caregiver. */
+export interface VisitNoteResult {
+  authorId: string;
+  audience: string;
+  text: string;
+  createdAt: string;
+}
+
+/** The notes feed on a visit, oldest first. */
 export interface VisitNotesResult {
-  visitNote: string | null;
-  familyNote: string | null;
+  notes: VisitNoteResult[];
+}
+
+/** The attached photo keys on a visit. */
+export interface VisitPhotosResult {
   photoKeys: string[];
 }
 
@@ -51,10 +62,17 @@ export interface VisitTasksResult {
 
 export function toVisitNotesResult(visit: Visit): VisitNotesResult {
   return {
-    visitNote: visit.visitNote,
-    familyNote: visit.familyNote,
-    photoKeys: visit.photoKeys,
+    notes: visit.notes.map((note) => ({
+      authorId: note.authorId,
+      audience: String(note.audience),
+      text: note.text,
+      createdAt: note.createdAt.toISOString(),
+    })),
   };
+}
+
+export function toVisitPhotosResult(visit: Visit): VisitPhotosResult {
+  return { photoKeys: visit.photoKeys };
 }
 
 export function toVisitTasksResult(visit: Visit): VisitTasksResult {

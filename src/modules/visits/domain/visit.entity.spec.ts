@@ -1,6 +1,7 @@
 import { Coordinates } from '@shared/domain/coordinates.vo';
 import { OutsideGeofenceException, ValidationException } from '@shared/domain/domain-exception';
 import { MedicationAdministrationOutcome } from './medication-administration-outcome.enum';
+import { NoteAudience } from './note-audience.enum';
 import { VisitStatus } from './visit-status.enum';
 import { Visit } from './visit.entity';
 import { VisitTask } from './value-objects/visit-task.vo';
@@ -139,16 +140,41 @@ describe('Visit care actions', () => {
     expect(() => visit.setTaskCompletion(5, true, NOW)).toThrow(ValidationException);
   });
 
-  it('saves visit and family notes with photo keys', () => {
+  it('appends notes to the feed and trims the text', () => {
     const visit = started();
-    visit.saveNotes({
-      visitNote: '  Patient in good spirits  ',
-      familyNote: '',
-      photoKeys: ['key-1', '  ', 'key-2'],
+    visit.addNote({
+      authorId: 'caregiver-1',
+      audience: NoteAudience.Family,
+      text: '  Patient in good spirits  ',
       now: NOW,
     });
-    expect(visit.visitNote).toBe('Patient in good spirits');
-    expect(visit.familyNote).toBeNull();
+    visit.addNote({
+      authorId: 'caregiver-1',
+      audience: NoteAudience.CareTeam,
+      text: 'Follow up on medication.',
+      now: NOW,
+    });
+    expect(visit.notes).toHaveLength(2);
+    expect(visit.notes[0].text).toBe('Patient in good spirits');
+    expect(visit.notes[0].audience).toBe(NoteAudience.Family);
+    expect(visit.notes[1].audience).toBe(NoteAudience.CareTeam);
+  });
+
+  it('rejects an empty note', () => {
+    const visit = started();
+    expect(() =>
+      visit.addNote({
+        authorId: 'caregiver-1',
+        audience: NoteAudience.Family,
+        text: '   ',
+        now: NOW,
+      }),
+    ).toThrow(ValidationException);
+  });
+
+  it('replaces the attached photo keys', () => {
+    const visit = started();
+    visit.savePhotos({ photoKeys: ['key-1', '  ', 'key-2'], now: NOW });
     expect(visit.photoKeys).toEqual(['key-1', 'key-2']);
   });
 });

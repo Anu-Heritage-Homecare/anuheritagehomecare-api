@@ -1,18 +1,22 @@
 import {
   MedicationAdministration as PrismaMedicationAdministration,
   MedicationAdministrationOutcome as PrismaOutcome,
+  NoteAudience as PrismaNoteAudience,
   Visit as PrismaVisit,
   VisitBreak as PrismaVisitBreak,
+  VisitNote as PrismaVisitNote,
   VisitStatus as PrismaVisitStatus,
   VisitTask as PrismaVisitTask,
   VisitVitals as PrismaVisitVitals,
 } from '@prisma/client';
 import { Coordinates } from '@shared/domain/coordinates.vo';
 import { MedicationAdministrationOutcome } from '../../domain/medication-administration-outcome.enum';
+import { NoteAudience } from '../../domain/note-audience.enum';
 import { Visit } from '../../domain/visit.entity';
 import { VisitStatus } from '../../domain/visit-status.enum';
 import { MedicationAdministration } from '../../domain/value-objects/medication-administration.vo';
 import { VisitBreak } from '../../domain/value-objects/visit-break.vo';
+import { VisitNote } from '../../domain/value-objects/visit-note.vo';
 import { VisitObservation } from '../../domain/value-objects/visit-observation.vo';
 import { VisitTask } from '../../domain/value-objects/visit-task.vo';
 import { VisitWindow } from '../../domain/value-objects/visit-window.vo';
@@ -23,6 +27,7 @@ type VisitRow = PrismaVisit & {
   medicationAdministrations: PrismaMedicationAdministration[];
   vitals: PrismaVisitVitals[];
   breaks: PrismaVisitBreak[];
+  notes: PrismaVisitNote[];
 };
 
 /** Persisted shape of a single task, ready to write under its parent visit. */
@@ -57,6 +62,14 @@ export interface VisitVitalsRow {
 export interface VisitBreakRow {
   startedAt: Date;
   endedAt: Date | null;
+}
+
+/** Persisted shape of one note under its parent visit. */
+export interface VisitNoteRow {
+  authorId: string;
+  audience: PrismaNoteAudience;
+  text: string;
+  createdAt: Date;
 }
 
 /**
@@ -103,6 +116,17 @@ export class VisitMapper {
       .sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime())
       .map((entry) => VisitBreak.rehydrate(entry.startedAt, entry.endedAt));
 
+    const notes = [...row.notes]
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .map((note) =>
+        VisitNote.create({
+          authorId: note.authorId,
+          audience: VisitMapper.TO_DOMAIN_AUDIENCE[note.audience],
+          text: note.text,
+          createdAt: note.createdAt,
+        }),
+      );
+
     const arrivalLocation =
       row.arrivalLatitude === null || row.arrivalLongitude === null
         ? null
@@ -119,8 +143,7 @@ export class VisitMapper {
       medicationAdministrations,
       vitals,
       breaks,
-      visitNote: row.visitNote,
-      familyNote: row.familyNote,
+      notes,
       photoKeys: row.photoKeys,
       observation: VisitObservation.create({
         mood: row.observationMood,
@@ -146,8 +169,6 @@ export class VisitMapper {
       endMinute: visit.window.endMinute,
       status: VisitMapper.TO_PERSISTENCE_STATUS[visit.status],
       specialInstructions: visit.specialInstructions,
-      visitNote: visit.visitNote,
-      familyNote: visit.familyNote,
       photoKeys: visit.photoKeys,
       observationMood: visit.observation.mood,
       observationAppetite: visit.observation.appetite,
@@ -200,6 +221,15 @@ export class VisitMapper {
     }));
   }
 
+  static toNoteRows(visit: Visit): VisitNoteRow[] {
+    return visit.notes.map((note) => ({
+      authorId: note.authorId,
+      audience: VisitMapper.TO_PERSISTENCE_AUDIENCE[note.audience],
+      text: note.text,
+      createdAt: note.createdAt,
+    }));
+  }
+
   private static readonly TO_DOMAIN_STATUS: Record<PrismaVisitStatus, VisitStatus> = {
     SCHEDULED: VisitStatus.Scheduled,
     IN_PROGRESS: VisitStatus.InProgress,
@@ -236,5 +266,15 @@ export class VisitMapper {
     [MedicationAdministrationOutcome.Refused]: 'REFUSED',
     [MedicationAdministrationOutcome.OutOfStock]: 'OUT_OF_STOCK',
     [MedicationAdministrationOutcome.PatientAsleep]: 'PATIENT_ASLEEP',
+  };
+
+  private static readonly TO_DOMAIN_AUDIENCE: Record<PrismaNoteAudience, NoteAudience> = {
+    CARE_TEAM: NoteAudience.CareTeam,
+    FAMILY: NoteAudience.Family,
+  };
+
+  private static readonly TO_PERSISTENCE_AUDIENCE: Record<NoteAudience, PrismaNoteAudience> = {
+    [NoteAudience.CareTeam]: 'CARE_TEAM',
+    [NoteAudience.Family]: 'FAMILY',
   };
 }

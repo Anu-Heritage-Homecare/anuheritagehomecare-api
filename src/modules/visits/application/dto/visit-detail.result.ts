@@ -59,10 +59,12 @@ export interface VisitDetailResult {
     medicationStatus: string | null;
   };
   notes: {
-    visitNote: string | null;
-    familyNote: string | null;
-    photoKeys: string[];
-  };
+    authorId: string;
+    audience: string;
+    text: string;
+    createdAt: string;
+  }[];
+  photoKeys: string[];
   emergencyContact: {
     name: string;
     phone: string;

@@ -3,10 +3,12 @@ import {
   MedicationAdministrationResult,
   VisitNotesResult,
   VisitObservationsResult,
+  VisitPhotosResult,
   VisitTasksResult,
   VitalsReadingResult,
 } from '../../application/dto/visit-care.result';
 import { MedicationAdministrationOutcome } from '../../domain/medication-administration-outcome.enum';
+import { NoteAudience } from '../../domain/note-audience.enum';
 
 /** The recorded outcome for one medication on a visit. */
 export class MedicationAdministrationResponseDto {
@@ -95,21 +97,39 @@ export class VisitObservationsResponseDto {
   }
 }
 
-/** The notes and photo keys saved on a visit. */
+class VisitNoteStateDto {
+  @ApiProperty({ format: 'uuid', description: 'The caregiver who wrote the note' })
+  authorId!: string;
+
+  @ApiProperty({ enum: NoteAudience, enumName: 'NoteAudience' })
+  audience!: string;
+
+  @ApiProperty({ example: 'Mary was cheerful today.' })
+  text!: string;
+
+  @ApiProperty({ description: 'When the note was written (ISO 8601)' })
+  createdAt!: string;
+}
+
+/** The notes feed on a visit, oldest first. */
 export class VisitNotesResponseDto {
-  @ApiProperty({ nullable: true })
-  visitNote!: string | null;
-
-  @ApiProperty({ nullable: true })
-  familyNote!: string | null;
-
-  @ApiProperty({ type: [String] })
-  photoKeys!: string[];
+  @ApiProperty({ type: [VisitNoteStateDto] })
+  notes!: VisitNoteStateDto[];
 
   static fromResult(result: VisitNotesResult): VisitNotesResponseDto {
     const dto = new VisitNotesResponseDto();
-    dto.visitNote = result.visitNote;
-    dto.familyNote = result.familyNote;
+    dto.notes = result.notes.map((note) => ({ ...note }));
+    return dto;
+  }
+}
+
+/** The photo keys attached to a visit. */
+export class VisitPhotosResponseDto {
+  @ApiProperty({ type: [String] })
+  photoKeys!: string[];
+
+  static fromResult(result: VisitPhotosResult): VisitPhotosResponseDto {
+    const dto = new VisitPhotosResponseDto();
     dto.photoKeys = result.photoKeys;
     return dto;
   }

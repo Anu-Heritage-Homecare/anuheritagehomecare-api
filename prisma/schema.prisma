@@ -378,11 +378,8 @@ model Visit {
   clockOutAt        DateTime?
   arrivalLatitude   Float?
   arrivalLongitude  Float?
-  // Notes captured by the caregiver during the visit, for the doctor and the
-  // family. Free text about the recipient, so treated as sensitive and kept out
-  // of logs. `photoKeys` are opaque storage references (upload endpoint deferred).
-  visitNote  String? @db.VarChar(4000)
-  familyNote String? @db.VarChar(4000)
+  // Photos the caregiver attached during the visit. Opaque storage references
+  // (the upload endpoint is deferred). The notes feed lives in the VisitNote model.
   photoKeys  String[] @default([])
   // The caregiver's qualitative observations for the visit (mood, appetite,
   // mobility, whether medication was taken). Short free text, health related.
@@ -397,10 +394,36 @@ model Visit {
   medicationAdministrations MedicationAdministration[]
   vitals                   VisitVitals[]
   breaks                   VisitBreak[]
+  notes                    VisitNote[]
 
   @@index([caregiverId, scheduledDate])
   @@index([careRecipientId])
   @@map("visits")
+}
+
+// Who a visit note is written for: the internal care team, or the family.
+enum NoteAudience {
+  CARE_TEAM
+  FAMILY
+
+  @@map("note_audience")
+}
+
+// A single note a caregiver writes on a visit, part of an append only feed. The
+// author is a user id (resolved to a name and role by the reading side); the text
+// is sensitive free text about the recipient and is kept out of logs.
+model VisitNote {
+  id        String       @id @default(uuid()) @db.Uuid
+  visitId   String       @db.Uuid
+  authorId  String       @db.Uuid
+  audience  NoteAudience @default(FAMILY)
+  text      String       @db.VarChar(4000)
+  createdAt DateTime     @default(now())
+
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([visitId, createdAt])
+  @@map("visit_notes")
 }
 
 // A break a caregiver takes during a visit. Append only interval: `startedAt` is

@@ -8,6 +8,7 @@ import { VISIT_REPOSITORY, VisitRepository } from '@modules/visits/domain/visit.
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
+import { User } from '@modules/identity/domain/user.entity';
 import { Visit } from '@modules/visits/domain/visit.entity';
 import { ageInYears } from '../family-care-date.util';
 import {
@@ -54,7 +55,9 @@ export class GetFamilyVisitDetailUseCase {
       throw new NotFoundDomainException('Visit not found');
     }
 
-    const caregiver = await this.users.findById(visit.caregiverId);
+    const userIds = [...new Set([visit.caregiverId, ...visit.notes.map((note) => note.authorId)])];
+    const usersById = new Map((await this.users.findByIds(userIds)).map((user) => [user.id, user]));
+    const caregiver = usersById.get(visit.caregiverId) ?? null;
     const caregiverName =
       caregiver === null ? null : `${caregiver.name.firstName} ${caregiver.name.lastName}`.trim();
 
@@ -80,7 +83,7 @@ export class GetFamilyVisitDetailUseCase {
       timeline: this.buildTimeline(visit, recipient),
       tasks: visit.tasks.map((task) => ({ label: task.label, completed: task.completed })),
       health: this.buildHealth(visit),
-      notes: this.buildNotes(visit, caregiverName),
+      notes: this.buildNotes(visit, usersById),
       photoKeys: visit.photoKeys,
     };
   }
@@ -177,15 +180,21 @@ export class GetFamilyVisitDetailUseCase {
     };
   }
 
-  private buildNotes(visit: Visit, caregiverName: string | null): FamilyVisitNoteResult[] {
-    const at = visit.updatedAt.toISOString();
-    const notes: FamilyVisitNoteResult[] = [];
-    if (visit.visitNote !== null) {
-      notes.push({ author: caregiverName, at, audience: 'CARE_TEAM', text: visit.visitNote });
-    }
-    if (visit.familyNote !== null) {
-      notes.push({ author: caregiverName, at, audience: 'FAMILY', text: visit.familyNote });
-    }
-    return notes;
+  private buildNotes(visit: Visit, usersById: Map<string, User>): FamilyVisitNoteResult[] {
+    return [...visit.notes]
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .map((note) => {
+        const author = usersById.get(note.authorId) ?? null;
+        return {
+          authorId: note.authorId,
+          authorName:
+            author === null ? null : `${author.name.firstName} ${author.name.lastName}`.trim(),
+          authorRole: author === null ? null : String(author.userType),
+          authorPhotoKey: author?.photoKey ?? null,
+          at: note.createdAt.toISOString(),
+          audience: String(note.audience) as 'CARE_TEAM' | 'FAMILY',
+          text: note.text,
+        };
+      });
   }
 }

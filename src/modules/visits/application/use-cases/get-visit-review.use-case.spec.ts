@@ -1,7 +1,9 @@
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { MedicationAdministrationOutcome } from '../../domain/medication-administration-outcome.enum';
+import { NoteAudience } from '../../domain/note-audience.enum';
 import { VisitStatus } from '../../domain/visit-status.enum';
 import { MedicationAdministration } from '../../domain/value-objects/medication-administration.vo';
+import { VisitNote } from '../../domain/value-objects/visit-note.vo';
 import { VitalsReading } from '../../domain/value-objects/vitals-reading.vo';
 import { FIXED_NOW, InMemoryVisitRepository, buildVisit } from '../../test-support/doubles';
 import { GetVisitReviewUseCase } from './get-visit-review.use-case';
@@ -32,8 +34,14 @@ describe('GetVisitReviewUseCase', () => {
           }),
         ],
         vitals: [],
-        visitNote: 'Client in good spirits.',
-        familyNote: null,
+        notes: [
+          VisitNote.create({
+            authorId: 'caregiver-1',
+            audience: NoteAudience.CareTeam,
+            text: 'Client in good spirits.',
+            createdAt: FIXED_NOW,
+          }),
+        ],
         photoKeys: ['photo-1'],
       }),
     );

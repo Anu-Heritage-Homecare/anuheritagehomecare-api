@@ -15,7 +15,8 @@ import { RaiseSosUseCase } from './application/use-cases/raise-sos.use-case';
 import { RecordMedicationAdministrationUseCase } from './application/use-cases/record-medication-administration.use-case';
 import { RecordObservationsUseCase } from './application/use-cases/record-observations.use-case';
 import { RecordVitalsUseCase } from './application/use-cases/record-vitals.use-case';
-import { SaveVisitNotesUseCase } from './application/use-cases/save-visit-notes.use-case';
+import { AddVisitNoteUseCase } from './application/use-cases/add-visit-note.use-case';
+import { SaveVisitPhotosUseCase } from './application/use-cases/save-visit-photos.use-case';
 import { SetTaskCompletionUseCase } from './application/use-cases/set-task-completion.use-case';
 import { StartBreakUseCase } from './application/use-cases/start-break.use-case';
 import { SOS_ALERT_REPOSITORY } from './domain/sos-alert.repository';
@@ -54,7 +55,8 @@ import { CaregiverVisitCareController } from './presentation/caregiver-visit-car
     RecordMedicationAdministrationUseCase,
     RecordVitalsUseCase,
     RecordObservationsUseCase,
-    SaveVisitNotesUseCase,
+    AddVisitNoteUseCase,
+    SaveVisitPhotosUseCase,
     SetTaskCompletionUseCase,
     RaiseSosUseCase,
     CancelSosUseCase,

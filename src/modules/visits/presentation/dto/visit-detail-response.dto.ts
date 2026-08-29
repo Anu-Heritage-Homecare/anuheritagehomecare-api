@@ -109,15 +109,18 @@ class VisitObservationDto {
   medicationStatus!: string | null;
 }
 
-class VisitNotesDto {
-  @ApiProperty({ nullable: true })
-  visitNote!: string | null;
+class VisitNoteDto {
+  @ApiProperty({ format: 'uuid' })
+  authorId!: string;
 
-  @ApiProperty({ nullable: true })
-  familyNote!: string | null;
+  @ApiProperty({ example: 'FAMILY' })
+  audience!: string;
 
-  @ApiProperty({ type: [String] })
-  photoKeys!: string[];
+  @ApiProperty({ example: 'Mary was cheerful today.' })
+  text!: string;
+
+  @ApiProperty()
+  createdAt!: string;
 }
 
 class EmergencyContactDto {
@@ -185,8 +188,11 @@ export class VisitDetailResponseDto {
   @ApiProperty({ type: VisitObservationDto })
   observation!: VisitObservationDto;
 
-  @ApiProperty({ type: VisitNotesDto })
-  notes!: VisitNotesDto;
+  @ApiProperty({ type: [VisitNoteDto], description: 'The notes feed, oldest first' })
+  notes!: VisitNoteDto[];
+
+  @ApiProperty({ type: [String] })
+  photoKeys!: string[];
 
   @ApiProperty({ type: EmergencyContactDto, nullable: true })
   emergencyContact!: EmergencyContactDto | null;
@@ -213,7 +219,8 @@ export class VisitDetailResponseDto {
     }));
     dto.vitals = result.vitals.map((reading) => ({ ...reading }));
     dto.observation = { ...result.observation };
-    dto.notes = { ...result.notes };
+    dto.notes = result.notes.map((note) => ({ ...note }));
+    dto.photoKeys = result.photoKeys;
     dto.emergencyContact = result.emergencyContact === null ? null : { ...result.emergencyContact };
     return dto;
   }

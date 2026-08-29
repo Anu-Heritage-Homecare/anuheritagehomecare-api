@@ -46,7 +46,10 @@ export interface FamilyVisitHealthResult {
 }
 
 export interface FamilyVisitNoteResult {
-  author: string | null;
+  authorId: string;
+  authorName: string | null;
+  authorRole: string | null;
+  authorPhotoKey: string | null;
   at: string;
   audience: 'CARE_TEAM' | 'FAMILY';
   text: string;

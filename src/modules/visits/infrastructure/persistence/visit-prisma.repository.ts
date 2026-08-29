@@ -10,6 +10,7 @@ const VISIT_INCLUDE = {
   medicationAdministrations: true,
   vitals: true,
   breaks: true,
+  notes: true,
 } as const;
 
 /**
@@ -29,6 +30,7 @@ export class VisitPrismaRepository implements VisitRepository {
     const administrations = VisitMapper.toAdministrationRows(visit);
     const vitals = VisitMapper.toVitalsRows(visit);
     const breaks = VisitMapper.toBreakRows(visit);
+    const notes = VisitMapper.toNoteRows(visit);
 
     await this.prisma.$transaction([
       this.prisma.visit.upsert({
@@ -42,8 +44,6 @@ export class VisitPrismaRepository implements VisitRepository {
           endMinute: row.endMinute,
           status: row.status,
           specialInstructions: row.specialInstructions,
-          visitNote: row.visitNote,
-          familyNote: row.familyNote,
           photoKeys: row.photoKeys,
           clockInAt: row.clockInAt,
           clockOutAt: row.clockOutAt,
@@ -67,6 +67,10 @@ export class VisitPrismaRepository implements VisitRepository {
       this.prisma.visitBreak.deleteMany({ where: { visitId: row.id } }),
       this.prisma.visitBreak.createMany({
         data: breaks.map((entry) => ({ ...entry, visitId: row.id })),
+      }),
+      this.prisma.visitNote.deleteMany({ where: { visitId: row.id } }),
+      this.prisma.visitNote.createMany({
+        data: notes.map((note) => ({ ...note, visitId: row.id })),
       }),
     ]);
   }

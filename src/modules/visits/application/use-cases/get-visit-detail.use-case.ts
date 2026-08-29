@@ -117,11 +117,13 @@ export class GetVisitDetailUseCase {
         mobility: visit.observation.mobility,
         medicationStatus: visit.observation.medicationStatus,
       },
-      notes: {
-        visitNote: visit.visitNote,
-        familyNote: visit.familyNote,
-        photoKeys: visit.photoKeys,
-      },
+      notes: visit.notes.map((note) => ({
+        authorId: note.authorId,
+        audience: String(note.audience),
+        text: note.text,
+        createdAt: note.createdAt.toISOString(),
+      })),
+      photoKeys: visit.photoKeys,
       emergencyContact: contact === null ? null : { name: contact.name, phone: contact.phone },
     };
   }
