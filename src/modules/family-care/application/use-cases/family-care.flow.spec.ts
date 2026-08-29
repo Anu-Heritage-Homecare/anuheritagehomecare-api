@@ -109,7 +109,12 @@ describe('family Care reads', () => {
         date: '2026-11-12',
         clockInAt: new Date('2026-11-12T09:05:00.000Z'),
         tasks: [
-          { label: 'Breakfast', completed: true },
+          {
+            label: 'Breakfast',
+            completed: true,
+            completedAt: new Date('2026-11-12T09:30:00.000Z'),
+            durationMinutes: 20,
+          },
           { label: 'Walk', completed: false },
         ],
         breaks: [
@@ -133,6 +138,10 @@ describe('family Care reads', () => {
 
       const breaks = result.timeline.filter((event) => event.kind === 'BREAK');
       expect(breaks.map((event) => event.label)).toEqual(['Break started', 'Break ended']);
+
+      // A completed task with a recorded duration shows it as the event detail.
+      const breakfast = result.timeline.find((event) => event.label === 'Breakfast completed');
+      expect(breakfast?.detail).toBe('20 Minutes');
 
       const upcoming = result.timeline.filter((event) => event.status === 'UPCOMING');
       expect(upcoming).toEqual([

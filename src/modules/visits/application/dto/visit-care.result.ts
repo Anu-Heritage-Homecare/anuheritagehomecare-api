@@ -46,7 +46,7 @@ export function toVisitObservationsResult(visit: Visit): VisitObservationsResult
 
 /** The checklist state after a task completion change. */
 export interface VisitTasksResult {
-  tasks: { label: string; completed: boolean }[];
+  tasks: { label: string; completed: boolean; durationMinutes: number | null }[];
 }
 
 export function toVisitNotesResult(visit: Visit): VisitNotesResult {
@@ -59,6 +59,10 @@ export function toVisitNotesResult(visit: Visit): VisitNotesResult {
 
 export function toVisitTasksResult(visit: Visit): VisitTasksResult {
   return {
-    tasks: visit.tasks.map((task) => ({ label: task.label, completed: task.completed })),
+    tasks: visit.tasks.map((task) => ({
+      label: task.label,
+      completed: task.completed,
+      durationMinutes: task.durationMinutes,
+    })),
   };
 }

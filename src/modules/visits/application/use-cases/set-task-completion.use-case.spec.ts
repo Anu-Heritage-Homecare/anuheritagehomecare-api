@@ -32,9 +32,48 @@ describe('SetTaskCompletionUseCase', () => {
     });
 
     expect(result.tasks).toEqual([
-      { label: 'Assist with morning', completed: false },
-      { label: 'Bathing', completed: true },
+      { label: 'Assist with morning', completed: false, durationMinutes: null },
+      { label: 'Bathing', completed: true, durationMinutes: null },
     ]);
+  });
+
+  it('records how long a task took when completing it', async () => {
+    await visits.save(
+      buildVisit({
+        id: 'v1',
+        status: VisitStatus.InProgress,
+        tasks: [{ label: 'Walk', completed: false }],
+      }),
+    );
+
+    const result = await useCase.execute({
+      caregiverId: 'caregiver-1',
+      visitId: 'v1',
+      taskIndex: 0,
+      completed: true,
+      durationMinutes: 15,
+    });
+
+    expect(result.tasks).toEqual([{ label: 'Walk', completed: true, durationMinutes: 15 }]);
+  });
+
+  it('drops a recorded duration when a task is cleared', async () => {
+    await visits.save(
+      buildVisit({
+        id: 'v1',
+        status: VisitStatus.InProgress,
+        tasks: [{ label: 'Walk', completed: true, completedAt: new Date(), durationMinutes: 15 }],
+      }),
+    );
+
+    const result = await useCase.execute({
+      caregiverId: 'caregiver-1',
+      visitId: 'v1',
+      taskIndex: 0,
+      completed: false,
+    });
+
+    expect(result.tasks).toEqual([{ label: 'Walk', completed: false, durationMinutes: null }]);
   });
 
   it('rejects a task position that does not exist', async () => {

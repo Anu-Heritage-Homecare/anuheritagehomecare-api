@@ -513,6 +513,8 @@ model VisitTask {
   // When the task was ticked off, so the activity feed can place it on a
   // timeline. Null while the task is not complete.
   completedAt DateTime?
+  // How long the task took, in whole minutes. Optional, only set when completed.
+  durationMinutes Int?
   position    Int
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)

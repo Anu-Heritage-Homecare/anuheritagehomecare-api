@@ -149,6 +149,7 @@ export class CaregiverVisitCareController {
       visitId: id,
       taskIndex: index,
       completed: body.completed,
+      durationMinutes: body.durationMinutes,
     });
     return VisitTasksResponseDto.fromResult(result);
   }

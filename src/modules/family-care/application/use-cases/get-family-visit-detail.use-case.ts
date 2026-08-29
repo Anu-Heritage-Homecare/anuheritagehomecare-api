@@ -103,7 +103,8 @@ export class GetFamilyVisitDetailUseCase {
     }
     for (const task of visit.tasks) {
       if (task.completedAt !== null) {
-        record(task.completedAt, 'TASK', `${task.label} completed`);
+        const detail = task.durationMinutes === null ? null : `${task.durationMinutes} Minutes`;
+        record(task.completedAt, 'TASK', `${task.label} completed`, detail);
       }
     }
     for (const administration of visit.medicationAdministrations) {

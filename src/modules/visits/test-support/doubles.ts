@@ -36,7 +36,12 @@ interface BuildVisitOptions {
   startMinute?: number;
   endMinute?: number;
   status?: VisitStatus;
-  tasks?: { label: string; completed: boolean }[];
+  tasks?: {
+    label: string;
+    completed: boolean;
+    completedAt?: Date | null;
+    durationMinutes?: number | null;
+  }[];
   specialInstructions?: string[];
   medicationAdministrations?: MedicationAdministration[];
   vitals?: VitalsReading[];
@@ -56,7 +61,14 @@ export function buildVisit(options: BuildVisitOptions = {}): Visit {
   const careRecipientId = options.careRecipientId ?? 'recipient-1';
   const scheduledDate = new Date(`${options.date ?? '2026-07-12'}T00:00:00.000Z`);
   const window = VisitWindow.create(options.startMinute ?? 9 * 60, options.endMinute ?? 10 * 60);
-  const tasks = (options.tasks ?? []).map((task) => VisitTask.create(task.label, task.completed));
+  const tasks = (options.tasks ?? []).map((task) =>
+    VisitTask.create(
+      task.label,
+      task.completed,
+      task.completedAt ?? null,
+      task.durationMinutes ?? null,
+    ),
+  );
 
   const visit = Visit.schedule({
     id,

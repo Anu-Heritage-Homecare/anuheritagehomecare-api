@@ -205,8 +205,17 @@ export class Visit extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
-  /** Mark a checklist task, identified by its position, complete or not. */
-  public setTaskCompletion(index: number, completed: boolean, now: Date): void {
+  /**
+   * Mark a checklist task, identified by its position, complete or not. When
+   * completing a task the caregiver may record how long it took in minutes;
+   * clearing a task drops any recorded time and duration.
+   */
+  public setTaskCompletion(
+    index: number,
+    completed: boolean,
+    now: Date,
+    durationMinutes: number | null = null,
+  ): void {
     this.assertInProgress('updating a task');
     if (!Number.isInteger(index) || index < 0 || index >= this.props.tasks.length) {
       throw new ValidationException('That task does not exist on this visit');
@@ -214,7 +223,12 @@ export class Visit extends AggregateRoot<string> {
     const current = this.props.tasks[index];
     this.props.tasks = this.props.tasks.map((task, position) =>
       position === index
-        ? VisitTask.create(current.label, completed, completed ? now : null)
+        ? VisitTask.create(
+            current.label,
+            completed,
+            completed ? now : null,
+            completed ? durationMinutes : null,
+          )
         : task,
     );
     this.props.updatedAt = now;

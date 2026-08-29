@@ -9,6 +9,7 @@ export interface SetTaskCompletionCommand {
   visitId: string;
   taskIndex: number;
   completed: boolean;
+  durationMinutes?: number | null;
 }
 
 /**
@@ -25,7 +26,12 @@ export class SetTaskCompletionUseCase {
   async execute(command: SetTaskCompletionCommand): Promise<VisitTasksResult> {
     const visit = await loadOwnedVisit(this.visits, command.visitId, command.caregiverId);
 
-    visit.setTaskCompletion(command.taskIndex, command.completed, this.clock.now());
+    visit.setTaskCompletion(
+      command.taskIndex,
+      command.completed,
+      this.clock.now(),
+      command.durationMinutes ?? null,
+    );
     await this.visits.save(visit);
 
     return toVisitTasksResult(visit);

@@ -30,6 +30,7 @@ export interface VisitTaskRow {
   label: string;
   completed: boolean;
   completedAt: Date | null;
+  durationMinutes: number | null;
   position: number;
 }
 
@@ -68,7 +69,9 @@ export class VisitMapper {
   static toDomain(row: VisitRow): Visit {
     const tasks = [...row.tasks]
       .sort((a, b) => a.position - b.position)
-      .map((task) => VisitTask.create(task.label, task.completed, task.completedAt));
+      .map((task) =>
+        VisitTask.create(task.label, task.completed, task.completedAt, task.durationMinutes),
+      );
 
     const medicationAdministrations = [...row.medicationAdministrations]
       .sort((a, b) => a.recordedAt.getTime() - b.recordedAt.getTime())
@@ -164,6 +167,7 @@ export class VisitMapper {
       label: task.label,
       completed: task.completed,
       completedAt: task.completedAt,
+      durationMinutes: task.durationMinutes,
       position: index,
     }));
   }

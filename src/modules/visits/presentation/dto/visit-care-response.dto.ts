@@ -121,6 +121,9 @@ class VisitTaskStateDto {
 
   @ApiProperty()
   completed!: boolean;
+
+  @ApiProperty({ nullable: true, example: 15, description: 'How long the task took, in minutes' })
+  durationMinutes!: number | null;
 }
 
 /** The checklist after a task completion change. */
