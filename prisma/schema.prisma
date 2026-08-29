@@ -738,6 +738,34 @@ model CaregiverPayRate {
   @@map("caregiver_pay_rates")
 }
 
+// A finalized payslip: an immutable snapshot of a caregiver's pay for one closed
+// pay period, written by the payroll run. Money is in integer minor units and
+// time in whole minutes, matching the earnings calculator. One per caregiver per
+// period.
+model Payslip {
+  id                String   @id @default(uuid()) @db.Uuid
+  caregiverId       String   @db.Uuid
+  currency          Currency
+  periodStart       DateTime @db.Date
+  periodEnd         DateTime @db.Date
+  payDay            DateTime @db.Date
+  workedMinutes     Int
+  regularMinutes    Int
+  regularPayMinor   Int
+  overtimeMinutes   Int
+  overtimePayMinor  Int
+  weekendVisits     Int
+  weekendBonusMinor Int
+  grossMinor        Int
+  deductionsMinor   Int
+  netMinor          Int
+  createdAt         DateTime @default(now())
+
+  @@unique([caregiverId, periodStart])
+  @@index([caregiverId, periodStart])
+  @@map("payslips")
+}
+
 // Bounded context: availability (the time windows a caregiver declares they are
 // open to work, one record per caregiver per day).
 model CaregiverAvailability {
