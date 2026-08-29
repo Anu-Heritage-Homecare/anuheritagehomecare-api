@@ -9,8 +9,11 @@ import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { CarePlansModule } from './modules/care-plans/care-plans.module';
 import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
+import { CareRequestsModule } from './modules/care-requests/care-requests.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { EarningsModule } from './modules/earnings/earnings.module';
+import { FamilyCareModule } from './modules/family-care/family-care.module';
+import { FamilyDashboardModule } from './modules/family-dashboard/family-dashboard.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { VisitsModule } from './modules/visits/visits.module';
@@ -51,6 +54,7 @@ import { SharedModule } from './shared/shared.module';
                 'req.body.otp',
                 'req.body.refreshToken',
                 'req.body.resetToken',
+                'req.body.challengeToken',
                 // Care recipient health and medication data is sensitive personal
                 // data and must never reach the logs.
                 'req.body.medicalConditions',
@@ -71,6 +75,13 @@ import { SharedModule } from './shared/shared.module';
                 'req.body.visitNote',
                 'req.body.familyNote',
                 'req.body.note',
+                // Caregiver observations are health related free text.
+                'req.body.mood',
+                'req.body.appetite',
+                'req.body.mobility',
+                'req.body.medicationStatus',
+                // An additional care request reason may mention the recipient's health.
+                'req.body.reason',
               ],
               remove: true,
             },
@@ -109,6 +120,9 @@ import { SharedModule } from './shared/shared.module';
     TrackingModule,
     EarningsModule,
     AvailabilityModule,
+    FamilyDashboardModule,
+    FamilyCareModule,
+    CareRequestsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

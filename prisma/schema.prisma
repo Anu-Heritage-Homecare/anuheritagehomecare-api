@@ -740,6 +740,35 @@ model CaregiverAvailabilitySlot {
   @@map("caregiver_availability_slots")
 }
 
+// Bounded context: care requests (a family owner asks for an extra care session).
+enum CareRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+
+  @@map("care_request_status")
+}
+
+model AdditionalCareRequest {
+  id              String            @id @default(uuid()) @db.Uuid
+  ownerId         String            @db.Uuid
+  careRecipientId String            @db.Uuid
+  careType        String            @db.VarChar(100)
+  requestedDate   DateTime          @db.Date
+  // Requested start time as minutes from midnight (timezone free), and duration.
+  startMinute     Int
+  durationMinutes Int
+  reason          String?           @db.VarChar(1000)
+  status          CareRequestStatus @default(PENDING)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([careRecipientId, createdAt])
+  @@index([ownerId])
+  @@map("additional_care_requests")
+}
+
 // Bounded context: KYC (identity verification of the family owner).
 //
 // US owners verify the last four of their SSN through Stripe; Nigeria owners
