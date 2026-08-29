@@ -9,6 +9,7 @@ import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { CarePlansModule } from './modules/care-plans/care-plans.module';
 import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
+import { BillingModule } from './modules/billing/billing.module';
 import { CareRequestsModule } from './modules/care-requests/care-requests.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { EarningsModule } from './modules/earnings/earnings.module';
@@ -122,6 +123,7 @@ import { SharedModule } from './shared/shared.module';
     FamilyDashboardModule,
     FamilyCareModule,
     CareRequestsModule,
+    BillingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

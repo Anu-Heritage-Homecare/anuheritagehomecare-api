@@ -40,5 +40,6 @@ import { PaymentsController } from './presentation/payments.controller';
     { provide: PAYMENT_REPOSITORY, useClass: PaymentPrismaRepository },
     { provide: PAYMENT_METHOD_REPOSITORY, useClass: PaymentMethodPrismaRepository },
   ],
+  exports: [PAYMENT_REPOSITORY],
 })
 export class PaymentsModule {}

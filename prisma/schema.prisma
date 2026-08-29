@@ -571,6 +571,36 @@ enum Currency {
   @@map("currency")
 }
 
+enum InvoiceStatus {
+  ISSUED
+  PAID
+  VOID
+
+  @@map("invoice_status")
+}
+
+// A bill issued to a family owner for one monthly subscription period. Written by
+// the billing run; money is in integer minor units. One per subscription period.
+model Invoice {
+  id              String        @id @default(uuid()) @db.Uuid
+  ownerId         String        @db.Uuid
+  careRecipientId String        @db.Uuid
+  subscriptionId  String        @db.Uuid
+  number          String        @unique @db.VarChar(40)
+  currency        Currency
+  amountMinor     Int
+  periodStart     DateTime      @db.Date
+  periodEnd       DateTime      @db.Date
+  dueDate         DateTime      @db.Date
+  status          InvoiceStatus @default(ISSUED)
+  issuedAt        DateTime      @default(now())
+  paidAt          DateTime?
+
+  @@unique([subscriptionId, periodStart])
+  @@index([ownerId, periodStart])
+  @@map("invoices")
+}
+
 enum BillingModel {
   HOURLY
   MONTHLY
