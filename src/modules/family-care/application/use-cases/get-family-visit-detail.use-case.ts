@@ -12,6 +12,7 @@ import { Visit } from '@modules/visits/domain/visit.entity';
 import { ageInYears } from '../family-care-date.util';
 import {
   FamilyTimelineEventResult,
+  FamilyTimelineKind,
   FamilyVisitDetailResult,
   FamilyVisitNoteResult,
 } from '../dto/family-visit.result';
@@ -86,54 +87,67 @@ export class GetFamilyVisitDetailUseCase {
 
   private buildTimeline(visit: Visit, recipient: CareRecipient): FamilyTimelineEventResult[] {
     const medicationNames = new Map(recipient.medications.map((med) => [med.id, med.name]));
-    const events: FamilyTimelineEventResult[] = [];
+    const done: (FamilyTimelineEventResult & { at: string })[] = [];
+
+    const record = (
+      at: Date,
+      kind: FamilyTimelineKind,
+      label: string,
+      detail: string | null = null,
+    ): void => {
+      done.push({ at: at.toISOString(), kind, status: 'DONE', label, detail });
+    };
 
     if (visit.clockInAt !== null) {
-      events.push({
-        at: visit.clockInAt.toISOString(),
-        kind: 'ARRIVED',
-        label: 'Arrives at home',
-        detail: null,
-      });
+      record(visit.clockInAt, 'ARRIVED', 'Arrives at home');
     }
     for (const task of visit.tasks) {
       if (task.completedAt !== null) {
-        events.push({
-          at: task.completedAt.toISOString(),
-          kind: 'TASK',
-          label: `${task.label} completed`,
-          detail: null,
-        });
+        record(task.completedAt, 'TASK', `${task.label} completed`);
       }
     }
     for (const administration of visit.medicationAdministrations) {
       const name = medicationNames.get(administration.medicationId) ?? 'Medication';
-      events.push({
-        at: administration.recordedAt.toISOString(),
-        kind: 'MEDICATION',
-        label: `${name} ${MEDICATION_LABEL[String(administration.outcome)] ?? 'recorded'}`,
-        detail: null,
-      });
+      record(
+        administration.recordedAt,
+        'MEDICATION',
+        `${name} ${MEDICATION_LABEL[String(administration.outcome)] ?? 'recorded'}`,
+      );
     }
     for (const reading of visit.vitals) {
       const hasBp = reading.systolic !== null || reading.diastolic !== null;
-      events.push({
-        at: reading.recordedAt.toISOString(),
-        kind: 'VITALS',
-        label: hasBp ? 'Blood pressure recorded' : 'Vitals recorded',
-        detail: hasBp ? `${reading.systolic ?? '-'}/${reading.diastolic ?? '-'} mmHg` : null,
-      });
+      record(
+        reading.recordedAt,
+        'VITALS',
+        hasBp ? 'Blood pressure recorded' : 'Vitals recorded',
+        hasBp ? `${reading.systolic ?? '-'}/${reading.diastolic ?? '-'} mmHg` : null,
+      );
+    }
+    for (const entry of visit.breaks) {
+      record(entry.startedAt, 'BREAK', 'Break started');
+      if (entry.endedAt !== null) {
+        record(entry.endedAt, 'BREAK', 'Break ended');
+      }
     }
     if (visit.clockOutAt !== null) {
-      events.push({
-        at: visit.clockOutAt.toISOString(),
-        kind: 'DEPARTED',
-        label: 'Visit completed',
-        detail: null,
-      });
+      record(visit.clockOutAt, 'DEPARTED', 'Visit completed');
     }
 
-    return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+    done.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+    // Tasks not yet ticked off are shown after the recorded events as upcoming,
+    // greyed steps the caregiver still has to do.
+    const upcoming: FamilyTimelineEventResult[] = visit.tasks
+      .filter((task) => !task.completed)
+      .map((task) => ({
+        at: null,
+        kind: 'TASK',
+        status: 'UPCOMING',
+        label: task.label,
+        detail: null,
+      }));
+
+    return [...done, ...upcoming];
   }
 
   private buildHealth(visit: Visit): FamilyVisitDetailResult['health'] {

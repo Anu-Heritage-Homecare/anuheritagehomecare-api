@@ -5,6 +5,7 @@ import { VisitRepository } from '@modules/visits/domain/visit.repository';
 import { Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { VisitStatus } from '@modules/visits/domain/visit-status.enum';
+import { VisitBreak } from '@modules/visits/domain/value-objects/visit-break.vo';
 import { VitalsReading } from '@modules/visits/domain/value-objects/vitals-reading.vo';
 import { buildVisit } from '@modules/visits/test-support/doubles';
 import { GetFamilyVisitDetailUseCase } from './get-family-visit-detail.use-case';
@@ -97,6 +98,48 @@ describe('family Care reads', () => {
         audience: 'CARE_TEAM',
         text: 'Mary was cheerful today.',
       });
+    });
+
+    it('adds break events and shows unfinished tasks as upcoming steps', async () => {
+      const inProgress = buildVisit({
+        id: 'v3',
+        careRecipientId: 'r1',
+        caregiverId: 'cg1',
+        status: VisitStatus.InProgress,
+        date: '2026-11-12',
+        clockInAt: new Date('2026-11-12T09:05:00.000Z'),
+        tasks: [
+          { label: 'Breakfast', completed: true },
+          { label: 'Walk', completed: false },
+        ],
+        breaks: [
+          VisitBreak.rehydrate(
+            new Date('2026-11-12T10:00:00.000Z'),
+            new Date('2026-11-12T10:15:00.000Z'),
+          ),
+        ],
+      });
+      const visits = {
+        findById: (id: string) => Promise.resolve(id === 'v3' ? inProgress : null),
+      } as unknown as VisitRepository;
+      const useCase = new GetFamilyVisitDetailUseCase(
+        visits,
+        recipientsRepo({ r1: recipient() }),
+        usersRepo(),
+        clock,
+      );
+
+      const result = await useCase.execute({ ownerId: 'owner-1', visitId: 'v3' });
+
+      const breaks = result.timeline.filter((event) => event.kind === 'BREAK');
+      expect(breaks.map((event) => event.label)).toEqual(['Break started', 'Break ended']);
+
+      const upcoming = result.timeline.filter((event) => event.status === 'UPCOMING');
+      expect(upcoming).toEqual([
+        { at: null, kind: 'TASK', status: 'UPCOMING', label: 'Walk', detail: null },
+      ]);
+      // Upcoming steps always sort after the recorded events.
+      expect(result.timeline.at(-1)?.status).toBe('UPCOMING');
     });
 
     it('hides a visit whose recipient the owner does not own', async () => {

@@ -19,8 +19,11 @@ export type FamilyTimelineKind =
   'ARRIVED' | 'DEPARTED' | 'TASK' | 'MEDICATION' | 'VITALS' | 'BREAK';
 
 export interface FamilyTimelineEventResult {
-  at: string;
+  /** When the event happened, or null for an upcoming (not yet done) step. */
+  at: string | null;
   kind: FamilyTimelineKind;
+  /** Whether the step has happened or is still upcoming (drives the greyed row). */
+  status: 'DONE' | 'UPCOMING';
   label: string;
   detail: string | null;
 }

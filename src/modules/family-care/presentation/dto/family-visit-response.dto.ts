@@ -63,11 +63,14 @@ export class FamilyVisitsResponseDto {
 }
 
 class TimelineEventDto {
-  @ApiProperty()
-  at!: string;
+  @ApiProperty({ nullable: true, description: 'When it happened, or null for an upcoming step' })
+  at!: string | null;
 
   @ApiProperty({ enum: ['ARRIVED', 'DEPARTED', 'TASK', 'MEDICATION', 'VITALS', 'BREAK'] })
   kind!: string;
+
+  @ApiProperty({ enum: ['DONE', 'UPCOMING'] })
+  status!: string;
 
   @ApiProperty({ example: 'Blood pressure recorded' })
   label!: string;
