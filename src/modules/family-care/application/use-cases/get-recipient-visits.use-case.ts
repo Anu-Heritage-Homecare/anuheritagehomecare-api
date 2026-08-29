@@ -46,11 +46,14 @@ export class GetRecipientVisitsUseCase {
 
     const caregiverIds = [...new Set(visits.map((visit) => visit.caregiverId))];
     const caregivers = await this.users.findByIds(caregiverIds);
-    const nameById = new Map(
-      caregivers.map((user) => [user.id, `${user.name.firstName} ${user.name.lastName}`.trim()]),
+    const caregiverById = new Map(
+      caregivers.map((user) => [
+        user.id,
+        { name: `${user.name.firstName} ${user.name.lastName}`.trim(), photoKey: user.photoKey },
+      ]),
     );
 
-    const summaries = visits.map((visit) => this.toSummary(visit, nameById));
+    const summaries = visits.map((visit) => this.toSummary(visit, caregiverById));
     const current =
       summaries.find((visit) => ACTIVE.has(visit.status)) ??
       summaries.find((visit) => visit.status === 'SCHEDULED') ??
@@ -62,8 +65,11 @@ export class GetRecipientVisitsUseCase {
     return { currentVisit: current, pastVisits };
   }
 
-  private toSummary(visit: Visit, nameById: Map<string, string>): FamilyVisitSummaryResult {
-    const name = nameById.get(visit.caregiverId);
+  private toSummary(
+    visit: Visit,
+    caregiverById: Map<string, { name: string; photoKey: string | null }>,
+  ): FamilyVisitSummaryResult {
+    const caregiver = caregiverById.get(visit.caregiverId);
     return {
       id: visit.id,
       status: String(visit.status),
@@ -72,7 +78,10 @@ export class GetRecipientVisitsUseCase {
       endMinute: visit.window.endMinute,
       clockInAt: visit.clockInAt === null ? null : visit.clockInAt.toISOString(),
       clockOutAt: visit.clockOutAt === null ? null : visit.clockOutAt.toISOString(),
-      caregiver: name === undefined ? null : { id: visit.caregiverId, name },
+      caregiver:
+        caregiver === undefined
+          ? null
+          : { id: visit.caregiverId, name: caregiver.name, photoKey: caregiver.photoKey },
     };
   }
 

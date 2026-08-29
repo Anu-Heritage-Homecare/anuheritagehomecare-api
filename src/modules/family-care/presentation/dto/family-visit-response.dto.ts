@@ -11,6 +11,9 @@ class CaregiverRefDto {
 
   @ApiProperty({ example: 'Sarah Adams John' })
   name!: string;
+
+  @ApiProperty({ nullable: true, description: 'Opaque profile photo key (upload deferred)' })
+  photoKey!: string | null;
 }
 
 export class FamilyVisitSummaryDto {

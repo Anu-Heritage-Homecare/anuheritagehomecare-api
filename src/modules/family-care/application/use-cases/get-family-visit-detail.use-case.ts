@@ -65,7 +65,10 @@ export class GetFamilyVisitDetailUseCase {
       endMinute: visit.window.endMinute,
       clockInAt: visit.clockInAt === null ? null : visit.clockInAt.toISOString(),
       clockOutAt: visit.clockOutAt === null ? null : visit.clockOutAt.toISOString(),
-      caregiver: caregiverName === null ? null : { id: visit.caregiverId, name: caregiverName },
+      caregiver:
+        caregiver === null || caregiverName === null
+          ? null
+          : { id: visit.caregiverId, name: caregiverName, photoKey: caregiver.photoKey },
       recipient: {
         id: recipient.id,
         name: recipient.profile.name,

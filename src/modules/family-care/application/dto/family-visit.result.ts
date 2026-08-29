@@ -7,7 +7,7 @@ export interface FamilyVisitSummaryResult {
   endMinute: number;
   clockInAt: string | null;
   clockOutAt: string | null;
-  caregiver: { id: string; name: string } | null;
+  caregiver: { id: string; name: string; photoKey: string | null } | null;
 }
 
 export interface FamilyVisitsResult {
@@ -58,7 +58,7 @@ export interface FamilyVisitDetailResult {
   endMinute: number;
   clockInAt: string | null;
   clockOutAt: string | null;
-  caregiver: { id: string; name: string } | null;
+  caregiver: { id: string; name: string; photoKey: string | null } | null;
   recipient: { id: string; name: string; gender: string; age: number; photoKey: string | null };
   timeline: FamilyTimelineEventResult[];
   tasks: { label: string; completed: boolean }[];

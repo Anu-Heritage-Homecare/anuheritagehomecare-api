@@ -38,6 +38,7 @@ function usersRepo(): UserRepository {
   const user = {
     id: 'cg1',
     name: { firstName: 'Sarah Adams', lastName: 'John' },
+    photoKey: 'caregivers/cg1.jpg',
   };
   return {
     findById: (id: string) => Promise.resolve(id === 'cg1' ? user : null),
@@ -81,7 +82,11 @@ describe('family Care reads', () => {
       const result = await useCase.execute({ ownerId: 'owner-1', visitId: 'v1' });
 
       expect(result.recipient.name).toBe('Mrs Moses Rose');
-      expect(result.caregiver).toEqual({ id: 'cg1', name: 'Sarah Adams John' });
+      expect(result.caregiver).toEqual({
+        id: 'cg1',
+        name: 'Sarah Adams John',
+        photoKey: 'caregivers/cg1.jpg',
+      });
       expect(result.health.vitals?.temperatureCelsius).toBe(36.8);
       expect(result.health.vitals?.systolic).toBe(120);
       // Timeline is chronological: arrival first, departure last.
@@ -134,6 +139,7 @@ describe('family Care reads', () => {
       expect(result.currentVisit?.id).toBe('v2');
       expect(result.pastVisits.map((visit) => visit.id)).toEqual(['v1']);
       expect(result.pastVisits[0].caregiver?.name).toBe('Sarah Adams John');
+      expect(result.currentVisit?.caregiver?.photoKey).toBe('caregivers/cg1.jpg');
     });
 
     it('hides a recipient the owner does not own', async () => {
