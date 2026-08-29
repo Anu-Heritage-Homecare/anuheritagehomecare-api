@@ -127,6 +127,68 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
   onboarding, optional there but required before a caregiver can clock in), stored
   through a shared kernel `Coordinates` value object (validates lat/lng, haversine
   distance and the geofence check).
+- **Caregiver active shift (visits context, added later).** During a shift a
+  caregiver records: medication administration per scheduled dose
+  (`PUT /api/v1/caregiver/visits/:id/medications/:medicationId`), vital signs
+  including temperature (`PUT .../vitals`, temperature stored as integer tenths of
+  a degree Celsius), qualitative observations of mood, appetite, mobility and
+  medication taken (`PUT .../observations`), visit and family notes with photo
+  keys (`PUT .../notes`), and ticks checklist tasks (`PUT .../tasks/:index`, which
+  stamps a `completedAt` so an activity feed can place it on a timeline). Breaks:
+  `POST .../break/start` and `.../break/end` with a distinct `ON_BREAK` status;
+  clock out is blocked while a break is open. The pre completion review
+  (`GET .../review`) reports which parts of the record are filled in, and clock
+  out (`POST .../clock-out`, the Submit) returns the recipient and the time
+  breakdown (active time excluding breaks, and break time). An SOS alert
+  (`POST .../sos`, cancel `POST .../sos/:alertId/cancel`) is raised from a shift,
+  capturing the caregiver position (best effort) and a recipient snapshot;
+  coordinates, recipient name and address are kept out of the logs. Medication is
+  now a structured child collection on the care recipient (name, dose, time),
+  replacing the free text list. Tracking gained an `EMERGENCY` location mode tagged
+  to an SOS alert for high frequency streaming.
+- **Identity: two factor authentication (TOTP) and the profile endpoint.** Any
+  account type can enable TOTP: `POST /api/v1/auth/2fa/setup` returns a base32
+  secret and otpauth URI, `POST /auth/2fa/enable` proves a code and returns single
+  use recovery codes, `POST /auth/2fa/disable` needs the current password. Login
+  returns `{ twoFactorRequired, challengeToken }` when it is on; `POST /auth/2fa/login`
+  completes with a code or a recovery code. TOTP is RFC 6238 via Node crypto (no
+  dependency); the secret is encrypted at rest (AES 256 GCM, key from
+  `TWO_FACTOR_ENCRYPTION_KEY`); recovery codes are SHA 256 hashed; the challenge is
+  a short lived purpose scoped JWT (`JWT_MFA_SECRET`). `GET /api/v1/auth/me` returns
+  the authenticated user's personal information (now including the postal address,
+  which login and refresh also carry). New env: `JWT_MFA_SECRET`, `JWT_MFA_TTL`,
+  `TWO_FACTOR_ENCRYPTION_KEY`, `TWO_FACTOR_ISSUER`.
+- **Earnings context.** `GET /api/v1/caregiver/earnings/current` returns the
+  current pay period wallet summary: period dates and progress, approved versus
+  pending hours, a priced breakdown (regular, overtime, weekend bonus, gross,
+  deductions, net) and estimated pay and projected earnings. Hours come from the
+  caregiver's visits (completed count as approved), priced through a per caregiver
+  `CaregiverPayRate` with rules in basis points and money in integer minor units.
+  The pay rule figures are placeholders pending real numbers; there is no capture
+  path yet (admin deferred).
+- **Availability context.** `GET /api/v1/caregiver/availability` fetches a day or
+  a range; `PUT /api/v1/caregiver/availability` sets (replaces) the windows for a
+  day. Slots are minutes from midnight, ordered and non overlapping.
+- **Family owner home dashboard (family-dashboard context).**
+  `GET /api/v1/family/dashboard` aggregates, for the owner's recipients, today's
+  visit and its care: recipient card, today's progress, the recent activity feed
+  and the assigned caregiver. Read only; composes the care recipients, visits and
+  identity contexts through local directory ports.
+- **Family owner Care section (family-care context).** Owner scoped reads:
+  `GET /api/v1/family/care-recipients/:id/overview` (Care Overview: card, plan
+  name from the recipient's booking, caregiver, summary counts),
+  `.../health` (today's vitals classified NORMAL or ATTENTION, plus observations),
+  `.../care-plan` (plan name, services from care needs, schedule from the care
+  schedule; goals, primary/backup/coordinator roles and instructions are office
+  set and returned empty until an admin surface exists), `.../visits` (current and
+  past visits), and `GET /api/v1/family/visits/:id` (full Visit Detail: Timeline,
+  Task, Health, Notes, Photos). Notes surface the visit's single care team and
+  family note (a multi note feed with unread counts is not modeled); Photos return
+  keys only (storage deferred).
+- **Care requests context.** `POST /api/v1/family/care-recipients/:id/care-requests`
+  submits a family owner's request for additional care (type, date, start time,
+  duration, reason) as a `PENDING` `AdditionalCareRequest` for the office to
+  action; the office surface is deferred.
 - Shared kernel (base `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`,
   `Money`, `Currency`,
   transport agnostic `DomainException`), Prisma service and module, global
@@ -138,12 +200,24 @@ This repository was bootstrapped as an enterprise NestJS service. What exists:
 - Prisma schema for a `Client` model, seed script, health probes, Dockerfile,
   `docker-compose.yml`, CI ready scripts.
 
-Status: build, lint (zero warnings) and unit tests pass; `npm audit` is at zero
-vulnerabilities. There is a single commit on `main` (the bootstrap); nothing has
-been pushed. The repository currently lives at
-`Documents/Others/anuheritagehomecare-api`. Git remote is
-`github.com/Anu-Heritage-Homecare/anuheritagehomecare-api` (token was scrubbed
-from the remote URL; rotate any token that was shared in chat).
+Status: build, lint (zero warnings) and unit tests pass (260 unit tests at the
+time of writing); `npm audit` is at zero runtime vulnerabilities (3 high severity
+in `deepmerge-ts` via the Prisma CLI dev dependency only, not in the runtime
+bundle). The repository lives at `Documents/Others/anuheritagehomecare-api`. Git
+remote is `github.com/Anu-Heritage-Homecare/anuheritagehomecare-api` (token was
+scrubbed from the remote URL; rotate any token that was shared in chat).
+
+**Uncommitted work (important for anyone resuming).** Commits through
+`4a38a44` (KYC face match) are the last committed state on branch
+`feat/care-recipient-onboarding`. Everything in the "added later" bullets above is
+present on disk but NOT yet committed: the caregiver active shift (SOS, breaks,
+care logging, observations, temperature, review and submit), structured
+medications, tracking `EMERGENCY` mode, identity two factor and the `GET /auth/me`
+profile, and the earnings, availability, family-dashboard, family-care and
+care-requests contexts. It all builds, lints clean and tests green. When asked to
+commit, split into logical per feature commits; per the owner's global rules use
+`--no-verify`, never add a Claude/Anthropic co author, and push only when
+explicitly asked (to `origin-mattie HEAD:dev`).
 
 ## Prime directive: enterprise grade, always
 
@@ -269,8 +343,22 @@ persist it in the repo.
 
 ## Open items / next
 
+- **Resume checklist (read first when continuing in a new conversation).** The
+  four Care section slices, the family dashboard, identity two factor, the
+  `GET /auth/me` profile, earnings and availability are all built, tested and on
+  disk but uncommitted (see the Status note above). Immediate open decisions the
+  owner has not yet resolved: (1) commit the uncommitted work as per feature
+  commits; (2) confirm the real earnings pay rule figures and the pay period
+  anchor (currently placeholders); (3) whether the family Care plan tab needs the
+  office set data (care goals, primary/backup/coordinator caregiver roles, care
+  instructions) modelled now, which needs the admin module; (4) a real care notes
+  feed (a visit holds one care team note and one family note today, no unread
+  count) and real photo storage with signed URLs for "Download All".
 - The `clients` context is a reference pattern; real bounded contexts (for
-  example care workers, visits, scheduling) are not built yet.
+  example care workers, scheduling) beyond what exists are not built yet. How
+  visits are created and assigned to caregivers (from bookings and subscriptions,
+  or by an admin) is still deferred; the schedule and the family reads read
+  whatever visits exist.
 - The mobile `identity` context covers signup, login, email verification,
   password reset, and the forced first login password change for provisioned
   caregivers (the `mustChangePassword` flag plus `POST /auth/password/change`).
@@ -311,7 +399,15 @@ persist it in the repo.
   new `FaceMatchOutcome` enum, the `REJECTED` status and `DRIVERS_LICENSE`
   document type, and the `claimedFirstName`/`claimedLastName`/`claimedDateOfBirth`/
   `faceMatch`/`mismatches` columns on `KycVerification`, with `documentType` and
-  `maskedReference` now nullable and `SSN_LAST4` removed) are authored in
-  `prisma/schema.prisma` but not applied. Run `npm run prisma:migrate` once a database is provisioned,
-  then `npm run prisma:seed` to populate the catalog. Beyond that there are no
-  real domain migrations past the sample `Client` model.
+  `maskedReference` now nullable and `SSN_LAST4` removed), and the later additions
+  from this session (the `Medication`, `VisitBreak`, `MedicationAdministration`,
+  `VisitVitals`, `SosAlert` models and their enums, `ON_BREAK`, the visit note,
+  observation and vitals `temperatureTenths` columns, the `VisitTask.completedAt`
+  column, `LocationPing.sosAlertId` and `EMERGENCY`, the `CaregiverPayRate`,
+  `CaregiverAvailability`/`CaregiverAvailabilitySlot`, `AdditionalCareRequest` plus
+  `CareRequestStatus` models, the `TwoFactorRecoveryCode` model and the
+  `twoFactorEnabled`/`twoFactorSecret` columns on `User`) are all authored in
+  `prisma/schema.prisma` but NOT applied. Run `npm run prisma:migrate` once a
+  database is provisioned, then `npm run prisma:seed` to populate the catalog.
+  There is no database yet, so the Prisma client is generated but no migration has
+  ever run. Run `npm run prisma:generate` after any schema edit.
