@@ -42,7 +42,8 @@ export class InitiatePaymentUseCase {
       throw new KycRequiredException('Identity verification is required before payment');
     }
 
-    const payable = await this.payables.load(command.payableType, command.payableId);
+    const payable =
+      command.resolvedPayable ?? (await this.payables.load(command.payableType, command.payableId));
     if (payable === null || payable.ownerId !== command.ownerId) {
       throw new NotFoundDomainException('Nothing to pay for was found');
     }

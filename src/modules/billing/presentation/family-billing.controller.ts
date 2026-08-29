@@ -1,5 +1,20 @@
-import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-principal';
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
@@ -8,10 +23,12 @@ import { GetInvoiceUseCase } from '../application/use-cases/get-invoice.use-case
 import { GetReceiptUseCase } from '../application/use-cases/get-receipt.use-case';
 import { ListInvoicesUseCase } from '../application/use-cases/list-invoices.use-case';
 import { ListReceiptsUseCase } from '../application/use-cases/list-receipts.use-case';
+import { PayInvoiceUseCase } from '../application/use-cases/pay-invoice.use-case';
 import {
   BillingDashboardResponseDto,
   InvoiceDetailResponseDto,
   InvoiceSummaryResponseDto,
+  PayInvoiceResponseDto,
   ReceiptResponseDto,
 } from './dto/billing-response.dto';
 
@@ -31,6 +48,7 @@ export class FamilyBillingController {
     private readonly getInvoice: GetInvoiceUseCase,
     private readonly listReceipts: ListReceiptsUseCase,
     private readonly getReceipt: GetReceiptUseCase,
+    private readonly payInvoiceUseCase: PayInvoiceUseCase,
   ) {}
 
   @Get()
@@ -62,6 +80,22 @@ export class FamilyBillingController {
   ): Promise<InvoiceDetailResponseDto> {
     const result = await this.getInvoice.execute({ ownerId: principal.userId, invoiceId: id });
     return InvoiceDetailResponseDto.fromDetail(result);
+  }
+
+  @Post('invoices/:id/pay')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Start paying an invoice' })
+  @ApiCreatedResponse({ type: PayInvoiceResponseDto })
+  async payInvoice(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PayInvoiceResponseDto> {
+    const result = await this.payInvoiceUseCase.execute({
+      ownerId: principal.userId,
+      ownerEmail: principal.email,
+      invoiceId: id,
+    });
+    return PayInvoiceResponseDto.fromResult(result);
   }
 
   @Get('receipts')

@@ -8,9 +8,7 @@ import { INVOICE_REPOSITORY, InvoiceRepository } from '../../domain/invoice.repo
 import { InvoiceDetailResult, toInvoiceDetail } from '../dto/billing.result';
 import { monthlyPeriodContaining } from '../billing-date.util';
 import {
-  BILLING_PAYMENT_DIRECTORY,
   BILLING_SUBSCRIPTION_DIRECTORY,
-  BillingPaymentDirectory,
   BillingSubscriptionDirectory,
 } from '../ports/billing-directories.port';
 
@@ -22,9 +20,9 @@ export interface IssueInvoiceCommand {
 
 /**
  * Use case: issue an invoice for one monthly subscription period. It bills the
- * subscription's monthly price for the period containing the reference day, and
- * marks the invoice paid if a settled payment for that subscription already
- * covers it. Idempotent per subscription and period.
+ * subscription's monthly price for the period containing the reference day.
+ * Idempotent per subscription and period. The invoice is paid once its charge
+ * settles, which the reads reflect from the settling payment.
  *
  * This is the capture path for billing history; it is triggered by the office
  * (an admin action or a scheduled job when a period closes), not by a family
@@ -35,7 +33,6 @@ export class IssueInvoiceUseCase {
   constructor(
     @Inject(BILLING_SUBSCRIPTION_DIRECTORY)
     private readonly subscriptions: BillingSubscriptionDirectory,
-    @Inject(BILLING_PAYMENT_DIRECTORY) private readonly payments: BillingPaymentDirectory,
     @Inject(INVOICE_REPOSITORY) private readonly invoices: InvoiceRepository,
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
     @Inject(CLOCK) private readonly clock: Clock,
@@ -66,17 +63,6 @@ export class IssueInvoiceUseCase {
       dueDate: periodStart,
       issuedAt: now,
     });
-
-    const settledPayment = (await this.payments.listForOwner(subscription.ownerId)).find(
-      (payment) =>
-        payment.succeeded &&
-        payment.payableType === 'SUBSCRIPTION' &&
-        payment.payableId === subscription.id &&
-        payment.createdAt.getTime() >= periodStart.getTime(),
-    );
-    if (settledPayment !== undefined) {
-      invoice.markPaid(settledPayment.createdAt);
-    }
 
     await this.invoices.save(invoice);
     return toInvoiceDetail(invoice);

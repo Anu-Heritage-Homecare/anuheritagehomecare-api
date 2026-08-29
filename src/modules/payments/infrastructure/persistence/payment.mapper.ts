@@ -80,10 +80,12 @@ export class PaymentMapper {
   private static readonly TO_DOMAIN_PAYABLE: Record<PrismaPayableType, PayableType> = {
     BOOKING: PayableType.Booking,
     SUBSCRIPTION: PayableType.Subscription,
+    INVOICE: PayableType.Invoice,
   };
 
   private static readonly TO_PERSISTENCE_PAYABLE: Record<PayableType, PrismaPayableType> = {
     [PayableType.Booking]: 'BOOKING',
     [PayableType.Subscription]: 'SUBSCRIPTION',
+    [PayableType.Invoice]: 'INVOICE',
   };
 }

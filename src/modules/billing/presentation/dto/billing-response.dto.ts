@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { PaymentInitiationResult } from '@modules/payments/application/dto/payment.result';
 import {
   BillingDashboardResult,
   InvoiceDetailResult,
@@ -103,6 +104,42 @@ export class InvoiceDetailResponseDto extends InvoiceSummaryResponseDto {
 
   static fromDetail(result: InvoiceDetailResult): InvoiceDetailResponseDto {
     return Object.assign(new InvoiceDetailResponseDto(), result);
+  }
+}
+
+/** What the client needs to complete an invoice payment. */
+export class PayInvoiceResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  paymentId!: string;
+
+  @ApiProperty({ example: 'PAYSTACK' })
+  provider!: string;
+
+  @ApiProperty({ example: 'PENDING' })
+  status!: string;
+
+  @ApiProperty({ example: 'NGN' })
+  currency!: string;
+
+  @ApiProperty({ example: 18900000 })
+  amountMinor!: number;
+
+  @ApiProperty({ nullable: true, description: 'Stripe: confirm the intent with this secret' })
+  clientSecret!: string | null;
+
+  @ApiProperty({ nullable: true, description: 'Paystack: redirect to this checkout URL' })
+  authorizationUrl!: string | null;
+
+  static fromResult(result: PaymentInitiationResult): PayInvoiceResponseDto {
+    const dto = new PayInvoiceResponseDto();
+    dto.paymentId = result.paymentId;
+    dto.provider = String(result.provider);
+    dto.status = String(result.status);
+    dto.currency = String(result.currency);
+    dto.amountMinor = result.amountMinor;
+    dto.clientSecret = result.clientSecret;
+    dto.authorizationUrl = result.authorizationUrl;
+    return dto;
   }
 }
 

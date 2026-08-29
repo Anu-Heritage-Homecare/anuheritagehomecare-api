@@ -43,6 +43,12 @@ export class BookingsPayableService implements PayableService {
       };
     }
 
+    if (payableType !== PayableType.Subscription) {
+      // Other payables (for example invoices) are resolved by their own context
+      // and passed in pre-resolved, so there is nothing to load here.
+      return null;
+    }
+
     const subscription = await this.subscriptions.findById(payableId);
     if (subscription === null) {
       return null;
@@ -69,6 +75,12 @@ export class BookingsPayableService implements PayableService {
       }
       booking.confirm(this.clock.now());
       await this.bookings.save(booking);
+      return;
+    }
+
+    if (payableType !== PayableType.Subscription) {
+      // Invoices reflect payment on read from the settling charge, so there is
+      // nothing to mark here.
       return;
     }
 

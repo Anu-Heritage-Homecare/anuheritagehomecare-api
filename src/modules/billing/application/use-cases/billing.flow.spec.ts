@@ -1,6 +1,7 @@
 import { Clock } from '@shared/application/ports/clock.port';
 import { IdGenerator } from '@shared/application/ports/id-generator.port';
-import { NotFoundDomainException } from '@shared/domain/domain-exception';
+import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
+import { InitiatePaymentUseCase } from '@modules/payments/application/use-cases/initiate-payment.use-case';
 import { Invoice } from '../../domain/invoice.entity';
 import { InvoiceRepository } from '../../domain/invoice.repository';
 import {
@@ -16,6 +17,7 @@ import { GetReceiptUseCase } from './get-receipt.use-case';
 import { IssueInvoiceUseCase } from './issue-invoice.use-case';
 import { ListInvoicesUseCase } from './list-invoices.use-case';
 import { ListReceiptsUseCase } from './list-receipts.use-case';
+import { PayInvoiceUseCase } from './pay-invoice.use-case';
 
 const NOW = new Date('2026-08-10T12:00:00.000Z');
 const clock: Clock = { now: () => NOW };
@@ -176,10 +178,9 @@ describe('receipts', () => {
 describe('invoices', () => {
   let invoices: InMemoryInvoiceRepository;
 
-  function issuer(payments: BillingPaymentView[]): IssueInvoiceUseCase {
+  function issuer(): IssueInvoiceUseCase {
     return new IssueInvoiceUseCase(
       subscriptionDirectory([SUB]),
-      paymentDirectory(payments),
       invoices,
       incrementingIds(),
       clock,
@@ -190,11 +191,8 @@ describe('invoices', () => {
     invoices = new InMemoryInvoiceRepository();
   });
 
-  it('issues an invoice for the period, marked paid when a payment covers it', async () => {
-    const detail = await issuer([payment({ createdAt: new Date('2026-08-05') })]).execute({
-      subscriptionId: 'sub-1',
-      reference: NOW,
-    });
+  it('issues an invoice for the period as ISSUED', async () => {
+    const detail = await issuer().execute({ subscriptionId: 'sub-1', reference: NOW });
 
     expect(detail).toMatchObject({
       number: 'INV-202607-sub-1',
@@ -203,30 +201,115 @@ describe('invoices', () => {
       periodStart: '2026-07-15',
       periodEnd: '2026-08-14',
       dueDate: '2026-07-15',
-      status: 'PAID',
+      status: 'ISSUED',
     });
-    expect(detail.paidAt).not.toBeNull();
-  });
-
-  it('issues as ISSUED when no payment covers the period', async () => {
-    const detail = await issuer([]).execute({ subscriptionId: 'sub-1', reference: NOW });
-    expect(detail.status).toBe('ISSUED');
     expect(detail.paidAt).toBeNull();
   });
 
-  it('is idempotent per subscription period, and lists and fetches owner scoped', async () => {
-    await issuer([]).execute({ subscriptionId: 'sub-1', reference: NOW });
-    await issuer([]).execute({ subscriptionId: 'sub-1', reference: NOW });
+  it('reflects an invoice as paid on read once its charge settles', async () => {
+    const issued = await issuer().execute({ subscriptionId: 'sub-1', reference: NOW });
+    const invoicePayment = payment({
+      id: 'pay-inv',
+      payableType: 'INVOICE',
+      payableId: issued.id,
+      createdAt: new Date('2026-08-09'),
+    });
 
-    const list = await new ListInvoicesUseCase(invoices).execute({ ownerId: 'owner-1' });
+    const get = new GetInvoiceUseCase(invoices, paymentDirectory([invoicePayment]));
+    const detail = await get.execute({ ownerId: 'owner-1', invoiceId: issued.id });
+    expect(detail.status).toBe('PAID');
+    expect(detail.paidAt).not.toBeNull();
+
+    const list = await new ListInvoicesUseCase(
+      invoices,
+      paymentDirectory([invoicePayment]),
+    ).execute({ ownerId: 'owner-1' });
+    expect(list[0].status).toBe('PAID');
+  });
+
+  it('is idempotent per subscription period, and fetches owner scoped', async () => {
+    await issuer().execute({ subscriptionId: 'sub-1', reference: NOW });
+    await issuer().execute({ subscriptionId: 'sub-1', reference: NOW });
+
+    const list = await new ListInvoicesUseCase(invoices, paymentDirectory([])).execute({
+      ownerId: 'owner-1',
+    });
     expect(list).toHaveLength(1);
 
-    const get = new GetInvoiceUseCase(invoices);
-    const detail = await get.execute({ ownerId: 'owner-1', invoiceId: list[0].id });
-    expect(detail.number).toBe('INV-202607-sub-1');
-
+    const get = new GetInvoiceUseCase(invoices, paymentDirectory([]));
     await expect(
       get.execute({ ownerId: 'someone-else', invoiceId: list[0].id }),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+  });
+});
+
+describe('pay invoice', () => {
+  let invoices: InMemoryInvoiceRepository;
+
+  async function anInvoice(): Promise<string> {
+    const detail = await new IssueInvoiceUseCase(
+      subscriptionDirectory([SUB]),
+      invoices,
+      incrementingIds(),
+      clock,
+    ).execute({ subscriptionId: 'sub-1', reference: NOW });
+    return detail.id;
+  }
+
+  beforeEach(() => {
+    invoices = new InMemoryInvoiceRepository();
+  });
+
+  it('initiates a charge for the invoice amount, resolved server side', async () => {
+    const invoiceId = await anInvoice();
+    const initiate = { execute: jest.fn().mockResolvedValue({ paymentId: 'p1' }) };
+    const useCase = new PayInvoiceUseCase(
+      invoices,
+      paymentDirectory([]),
+      initiate as unknown as InitiatePaymentUseCase,
+    );
+
+    await useCase.execute({ ownerId: 'owner-1', ownerEmail: 'a@b.com', invoiceId });
+
+    expect(initiate.execute).toHaveBeenCalledWith({
+      ownerId: 'owner-1',
+      ownerEmail: 'a@b.com',
+      payableType: 'INVOICE',
+      payableId: invoiceId,
+      resolvedPayable: {
+        ownerId: 'owner-1',
+        currency: 'NGN',
+        amountMinor: 18_900_000,
+        alreadyPaid: false,
+        recurring: null,
+      },
+    });
+  });
+
+  it('refuses to pay an invoice already settled', async () => {
+    const invoiceId = await anInvoice();
+    const settled = payment({ id: 'pay-inv', payableType: 'INVOICE', payableId: invoiceId });
+    const initiate = { execute: jest.fn() };
+    const useCase = new PayInvoiceUseCase(
+      invoices,
+      paymentDirectory([settled]),
+      initiate as unknown as InitiatePaymentUseCase,
+    );
+
+    await expect(
+      useCase.execute({ ownerId: 'owner-1', ownerEmail: 'a@b.com', invoiceId }),
+    ).rejects.toBeInstanceOf(ValidationException);
+    expect(initiate.execute).not.toHaveBeenCalled();
+  });
+
+  it('404s an invoice the owner does not own', async () => {
+    const invoiceId = await anInvoice();
+    const useCase = new PayInvoiceUseCase(invoices, paymentDirectory([]), {
+      execute: jest.fn(),
+    } as unknown as InitiatePaymentUseCase);
+
+    await expect(
+      useCase.execute({ ownerId: 'someone-else', ownerEmail: 'a@b.com', invoiceId }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 });

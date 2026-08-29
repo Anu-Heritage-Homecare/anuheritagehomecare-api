@@ -2,4 +2,5 @@
 export enum PayableType {
   Booking = 'BOOKING',
   Subscription = 'SUBSCRIPTION',
+  Invoice = 'INVOICE',
 }
