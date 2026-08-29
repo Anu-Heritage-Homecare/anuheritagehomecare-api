@@ -4,6 +4,7 @@ import { UserRepository } from '@modules/identity/domain/user.repository';
 import { UserType } from '@modules/identity/domain/user-type.enum';
 import { VisitRepository } from '@modules/visits/domain/visit.repository';
 import { Clock } from '@shared/application/ports/clock.port';
+import { PhotoStorage } from '@shared/application/ports/photo-storage.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { NoteAudience } from '@modules/visits/domain/note-audience.enum';
 import { VisitStatus } from '@modules/visits/domain/visit-status.enum';
@@ -16,6 +17,11 @@ import { GetRecipientVisitsUseCase } from './get-recipient-visits.use-case';
 
 const NOW = new Date('2026-11-12T13:00:00.000Z');
 const clock: Clock = { now: () => NOW };
+
+const photoStorage: PhotoStorage = {
+  createUploadTicket: () => ({ uploadUrl: 'https://upload', fields: {}, key: 'k' }),
+  urlFor: (key: string) => `https://cdn.test/${key}`,
+};
 
 function recipient(overrides: Record<string, unknown> = {}): unknown {
   return {
@@ -77,6 +83,7 @@ describe('family Care reads', () => {
         createdAt: new Date('2026-11-12T11:00:00.000Z'),
       }),
     ],
+    photoKeys: ['anu/visits/v1/p1.jpg'],
   });
 
   describe('GetFamilyVisitDetailUseCase', () => {
@@ -88,6 +95,7 @@ describe('family Care reads', () => {
         visits,
         recipientsRepo({ r1: recipient() }),
         usersRepo(),
+        photoStorage,
         clock,
       );
 
@@ -114,6 +122,9 @@ describe('family Care reads', () => {
         audience: 'CARE_TEAM',
         text: 'Mary was cheerful today.',
       });
+      expect(result.photos).toEqual([
+        { key: 'anu/visits/v1/p1.jpg', url: 'https://cdn.test/anu/visits/v1/p1.jpg' },
+      ]);
     });
 
     it('adds break events and shows unfinished tasks as upcoming steps', async () => {
@@ -147,6 +158,7 @@ describe('family Care reads', () => {
         visits,
         recipientsRepo({ r1: recipient() }),
         usersRepo(),
+        photoStorage,
         clock,
       );
 
@@ -175,6 +187,7 @@ describe('family Care reads', () => {
         visits,
         recipientsRepo({ r1: recipient({ ownerId: 'someone-else' }) }),
         usersRepo(),
+        photoStorage,
         clock,
       );
 

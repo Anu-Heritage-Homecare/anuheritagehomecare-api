@@ -94,6 +94,15 @@ export const envSchema = z.object({
   // Signing secret for the Stripe Identity webhook endpoint (distinct from the
   // payments webhook endpoint secret).
   STRIPE_IDENTITY_WEBHOOK_SECRET: z.string().default(''),
+
+  // Cloudinary photo storage for visit photos. Optional so the service boots
+  // without them; the adapter fails closed for uploads if the secret is empty.
+  // Signed upload happens client side with a server issued signature, so the api
+  // secret never leaves the server.
+  CLOUDINARY_CLOUD_NAME: z.string().default(''),
+  CLOUDINARY_API_KEY: z.string().default(''),
+  CLOUDINARY_API_SECRET: z.string().default(''),
+  CLOUDINARY_FOLDER: z.string().default('anu/visits'),
 });
 
 export type Env = z.infer<typeof envSchema>;

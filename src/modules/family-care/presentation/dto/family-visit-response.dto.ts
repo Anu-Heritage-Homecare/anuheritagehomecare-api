@@ -104,6 +104,14 @@ class VisitTaskDto {
   completed!: boolean;
 }
 
+class VisitPhotoDto {
+  @ApiProperty({ description: 'Opaque storage key' })
+  key!: string;
+
+  @ApiProperty({ description: 'Signed delivery URL to render or download the photo' })
+  url!: string;
+}
+
 class VisitHealthDto {
   @ApiProperty({ nullable: true })
   vitals!: FamilyVisitDetailResult['health']['vitals'];
@@ -175,8 +183,8 @@ export class FamilyVisitDetailResponseDto {
   @ApiProperty({ type: [VisitNoteDto] })
   notes!: VisitNoteDto[];
 
-  @ApiProperty({ type: [String] })
-  photoKeys!: string[];
+  @ApiProperty({ type: [VisitPhotoDto], description: 'Attached photos with a signed delivery URL' })
+  photos!: VisitPhotoDto[];
 
   static fromResult(result: FamilyVisitDetailResult): FamilyVisitDetailResponseDto {
     return Object.assign(new FamilyVisitDetailResponseDto(), result);

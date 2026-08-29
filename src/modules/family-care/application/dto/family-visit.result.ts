@@ -70,5 +70,5 @@ export interface FamilyVisitDetailResult {
   tasks: { label: string; completed: boolean }[];
   health: FamilyVisitHealthResult;
   notes: FamilyVisitNoteResult[];
-  photoKeys: string[];
+  photos: { key: string; url: string }[];
 }

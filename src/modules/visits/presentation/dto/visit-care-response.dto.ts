@@ -135,6 +135,30 @@ export class VisitPhotosResponseDto {
   }
 }
 
+/** A signed ticket for a direct client upload of one visit photo. */
+export class PhotoUploadTicketResponseDto {
+  @ApiProperty({ description: 'Where the client POSTs the multipart form' })
+  uploadUrl!: string;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: { type: 'string' },
+    description: 'Form fields to send with the file (signature, api key, timestamp, public id)',
+  })
+  fields!: Record<string, string>;
+
+  @ApiProperty({ description: 'The key to persist on the visit once the upload succeeds' })
+  key!: string;
+
+  static fromTicket(ticket: PhotoUploadTicketResponseDto): PhotoUploadTicketResponseDto {
+    const dto = new PhotoUploadTicketResponseDto();
+    dto.uploadUrl = ticket.uploadUrl;
+    dto.fields = ticket.fields;
+    dto.key = ticket.key;
+    return dto;
+  }
+}
+
 class VisitTaskStateDto {
   @ApiProperty()
   label!: string;

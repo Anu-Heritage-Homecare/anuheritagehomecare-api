@@ -6,6 +6,7 @@ import {
 import { USER_REPOSITORY, UserRepository } from '@modules/identity/domain/user.repository';
 import { VISIT_REPOSITORY, VisitRepository } from '@modules/visits/domain/visit.repository';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
+import { PHOTO_STORAGE, PhotoStorage } from '@shared/application/ports/photo-storage.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
 import { User } from '@modules/identity/domain/user.entity';
@@ -42,6 +43,7 @@ export class GetFamilyVisitDetailUseCase {
     @Inject(VISIT_REPOSITORY) private readonly visits: VisitRepository,
     @Inject(CARE_RECIPIENT_REPOSITORY) private readonly recipients: CareRecipientRepository,
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
+    @Inject(PHOTO_STORAGE) private readonly photoStorage: PhotoStorage,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -84,7 +86,7 @@ export class GetFamilyVisitDetailUseCase {
       tasks: visit.tasks.map((task) => ({ label: task.label, completed: task.completed })),
       health: this.buildHealth(visit),
       notes: this.buildNotes(visit, usersById),
-      photoKeys: visit.photoKeys,
+      photos: visit.photoKeys.map((key) => ({ key, url: this.photoStorage.urlFor(key) })),
     };
   }
 

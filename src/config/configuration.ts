@@ -79,6 +79,13 @@ export interface KycConfig {
   readonly stripeIdentityWebhookSecret: string;
 }
 
+export interface PhotoStorageConfig {
+  readonly cloudName: string;
+  readonly apiKey: string;
+  readonly apiSecret: string;
+  readonly folder: string;
+}
+
 export function buildConfig(env: Env): {
   app: AppConfig;
   auth: AuthConfig;
@@ -90,6 +97,7 @@ export function buildConfig(env: Env): {
   earnings: EarningsConfig;
   payment: PaymentConfig;
   kyc: KycConfig;
+  photoStorage: PhotoStorageConfig;
 } {
   return {
     app: {
@@ -158,6 +166,12 @@ export function buildConfig(env: Env): {
       qoreIdSecret: env.QOREID_SECRET,
       qoreIdBaseUrl: env.QOREID_BASE_URL,
       stripeIdentityWebhookSecret: env.STRIPE_IDENTITY_WEBHOOK_SECRET,
+    },
+    photoStorage: {
+      cloudName: env.CLOUDINARY_CLOUD_NAME,
+      apiKey: env.CLOUDINARY_API_KEY,
+      apiSecret: env.CLOUDINARY_API_SECRET,
+      folder: env.CLOUDINARY_FOLDER,
     },
   };
 }

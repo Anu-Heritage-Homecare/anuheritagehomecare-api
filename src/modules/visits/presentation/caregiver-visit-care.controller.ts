@@ -24,6 +24,7 @@ import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
 import { UserType } from '@modules/identity/domain/user-type.enum';
 import { NoteAudience } from '../domain/note-audience.enum';
 import { AddVisitNoteUseCase } from '../application/use-cases/add-visit-note.use-case';
+import { CreatePhotoUploadTicketUseCase } from '../application/use-cases/create-photo-upload-ticket.use-case';
 import { RecordMedicationAdministrationUseCase } from '../application/use-cases/record-medication-administration.use-case';
 import { RecordObservationsUseCase } from '../application/use-cases/record-observations.use-case';
 import { RecordVitalsUseCase } from '../application/use-cases/record-vitals.use-case';
@@ -37,6 +38,7 @@ import { SaveVisitPhotosRequestDto } from './dto/save-visit-photos-request.dto';
 import { SetTaskCompletionRequestDto } from './dto/set-task-completion-request.dto';
 import {
   MedicationAdministrationResponseDto,
+  PhotoUploadTicketResponseDto,
   VisitNotesResponseDto,
   VisitObservationsResponseDto,
   VisitPhotosResponseDto,
@@ -62,6 +64,7 @@ export class CaregiverVisitCareController {
     private readonly recordObservations: RecordObservationsUseCase,
     private readonly addNote: AddVisitNoteUseCase,
     private readonly savePhotos: SaveVisitPhotosUseCase,
+    private readonly createPhotoUploadTicket: CreatePhotoUploadTicketUseCase,
     private readonly setTaskCompletion: SetTaskCompletionUseCase,
   ) {}
 
@@ -146,6 +149,22 @@ export class CaregiverVisitCareController {
       text: body.text,
     });
     return VisitNotesResponseDto.fromResult(result);
+  }
+
+  @Post(':id/photos/upload-ticket')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Issue a signed ticket to upload a visit photo to the store' })
+  @ApiCreatedResponse({ type: PhotoUploadTicketResponseDto })
+  async photoUploadTicket(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<PhotoUploadTicketResponseDto> {
+    this.assertCaregiver(principal);
+    const ticket = await this.createPhotoUploadTicket.execute({
+      caregiverId: principal.userId,
+      visitId: id,
+    });
+    return PhotoUploadTicketResponseDto.fromTicket(ticket);
   }
 
   @Put(':id/photos')

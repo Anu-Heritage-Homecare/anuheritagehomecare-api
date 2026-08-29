@@ -16,6 +16,7 @@ import { RecordMedicationAdministrationUseCase } from './application/use-cases/r
 import { RecordObservationsUseCase } from './application/use-cases/record-observations.use-case';
 import { RecordVitalsUseCase } from './application/use-cases/record-vitals.use-case';
 import { AddVisitNoteUseCase } from './application/use-cases/add-visit-note.use-case';
+import { CreatePhotoUploadTicketUseCase } from './application/use-cases/create-photo-upload-ticket.use-case';
 import { SaveVisitPhotosUseCase } from './application/use-cases/save-visit-photos.use-case';
 import { SetTaskCompletionUseCase } from './application/use-cases/set-task-completion.use-case';
 import { StartBreakUseCase } from './application/use-cases/start-break.use-case';
@@ -57,6 +58,7 @@ import { CaregiverVisitCareController } from './presentation/caregiver-visit-car
     RecordObservationsUseCase,
     AddVisitNoteUseCase,
     SaveVisitPhotosUseCase,
+    CreatePhotoUploadTicketUseCase,
     SetTaskCompletionUseCase,
     RaiseSosUseCase,
     CancelSosUseCase,
