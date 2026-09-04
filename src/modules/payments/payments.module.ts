@@ -6,6 +6,7 @@ import { KycModule } from '@modules/kyc/kyc.module';
 import { PAYABLE_SERVICE } from './application/ports/payable-service.port';
 import { PAYMENT_GATEWAY } from './application/ports/payment-gateway.port';
 import { AddPaymentMethodUseCase } from './application/use-cases/add-payment-method.use-case';
+import { ChangeProviderSubscriptionPlanUseCase } from './application/use-cases/change-subscription-plan.use-case';
 import { HandlePaymentWebhookUseCase } from './application/use-cases/handle-payment-webhook.use-case';
 import { InitiatePaymentUseCase } from './application/use-cases/initiate-payment.use-case';
 import { ListPaymentMethodsUseCase } from './application/use-cases/list-payment-methods.use-case';
@@ -40,6 +41,7 @@ import { PaymentsController } from './presentation/payments.controller';
     AddPaymentMethodUseCase,
     SetDefaultPaymentMethodUseCase,
     RemovePaymentMethodUseCase,
+    ChangeProviderSubscriptionPlanUseCase,
     HandlePaymentWebhookUseCase,
     StripePaymentGateway,
     PaystackPaymentGateway,
@@ -48,6 +50,6 @@ import { PaymentsController } from './presentation/payments.controller';
     { provide: PAYMENT_REPOSITORY, useClass: PaymentPrismaRepository },
     { provide: PAYMENT_METHOD_REPOSITORY, useClass: PaymentMethodPrismaRepository },
   ],
-  exports: [PAYMENT_REPOSITORY, InitiatePaymentUseCase],
+  exports: [PAYMENT_REPOSITORY, InitiatePaymentUseCase, ChangeProviderSubscriptionPlanUseCase],
 })
 export class PaymentsModule {}

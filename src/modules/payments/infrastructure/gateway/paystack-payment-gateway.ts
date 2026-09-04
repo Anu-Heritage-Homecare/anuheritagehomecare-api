@@ -11,6 +11,7 @@ import {
   WebhookPaymentEvent,
 } from '../../application/ports/payment-gateway.port';
 import {
+  ProviderChangeSubscriptionPlanParams,
   ProviderGateway,
   ProviderInitializeParams,
   ProviderInitializeSubscriptionParams,
@@ -164,6 +165,16 @@ export class PaystackPaymentGateway implements ProviderGateway {
       expMonth: Number(authorization.exp_month),
       expYear: Number(authorization.exp_year),
     };
+  }
+
+  changeSubscriptionPlan(_params: ProviderChangeSubscriptionPlanParams): Promise<void> {
+    // Paystack subscriptions are bound to a plan and cannot be moved onto another
+    // in place; a change means disabling the current subscription and creating a
+    // new one, which is not modelled yet. The billing use case guards this market
+    // out before reaching here, so this is a defensive failure only.
+    return Promise.reject(
+      new Error('Paystack does not support changing a subscription plan in place'),
+    );
   }
 
   async verify(providerReference: string): Promise<PaymentVerification> {

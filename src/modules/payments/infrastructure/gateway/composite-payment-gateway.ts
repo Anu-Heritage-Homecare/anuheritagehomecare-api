@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   CardSetupInitialization,
+  ChangeSubscriptionPlanParams,
   InitializePaymentParams,
   InitializeSubscriptionParams,
   PaymentGateway,
@@ -61,6 +62,13 @@ export class CompositePaymentGateway implements PaymentGateway {
 
   retrieveSavedCard(provider: PaymentProvider, providerReference: string): Promise<SavedCard> {
     return this.providers[provider].retrieveSavedCard(providerReference);
+  }
+
+  changeSubscriptionPlan(params: ChangeSubscriptionPlanParams): Promise<void> {
+    return this.providers[params.provider].changeSubscriptionPlan({
+      providerSubscriptionRef: params.providerSubscriptionRef,
+      newPlanReference: params.newPlanReference,
+    });
   }
 
   verify(provider: PaymentProvider, providerReference: string): Promise<PaymentVerification> {

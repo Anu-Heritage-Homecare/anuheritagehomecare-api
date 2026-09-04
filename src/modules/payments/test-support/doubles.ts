@@ -2,6 +2,7 @@ import { Clock } from '@shared/application/ports/clock.port';
 import { IdGenerator } from '@shared/application/ports/id-generator.port';
 import {
   CardSetupInitialization,
+  ChangeSubscriptionPlanParams,
   InitializePaymentParams,
   InitializeSubscriptionParams,
   PaymentGateway,
@@ -93,6 +94,13 @@ export class FakePaymentGateway implements PaymentGateway {
       expMonth: 12,
       expYear: 2030,
     });
+  }
+
+  public readonly planChanges: ChangeSubscriptionPlanParams[] = [];
+
+  changeSubscriptionPlan(params: ChangeSubscriptionPlanParams): Promise<void> {
+    this.planChanges.push(params);
+    return Promise.resolve();
   }
 
   verify(): Promise<PaymentVerification> {

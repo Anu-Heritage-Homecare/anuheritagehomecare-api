@@ -59,6 +59,26 @@ export class Subscription extends AggregateRoot<string> {
     return new Subscription(id, props);
   }
 
+  /**
+   * Change the plan tier of the subscription (an upgrade or downgrade). The new
+   * monthly price is snapshotted. A cancelled subscription cannot change plan, and
+   * the Flexible plan is hourly rather than a subscription tier.
+   */
+  public changePlan(planType: CarePlanType, monthlyPrice: Money, now: Date): void {
+    if (this.props.status === SubscriptionStatus.Cancelled) {
+      throw new ValidationException('A cancelled subscription cannot change plan');
+    }
+    if (planType === CarePlanType.Flexible) {
+      throw new ValidationException('The Flexible plan is booked by the hour, not subscribed to');
+    }
+    if (monthlyPrice.currency !== this.props.monthlyPrice.currency) {
+      throw new ValidationException('The new plan price must be in the same currency');
+    }
+    this.props.planType = planType;
+    this.props.monthlyPrice = monthlyPrice;
+    this.props.updatedAt = now;
+  }
+
   /** Activate once the first payment has succeeded. */
   public activate(now: Date): void {
     if (this.props.status === SubscriptionStatus.Cancelled) {

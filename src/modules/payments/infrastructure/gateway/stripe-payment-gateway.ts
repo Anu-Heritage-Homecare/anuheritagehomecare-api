@@ -11,6 +11,7 @@ import {
   WebhookPaymentEvent,
 } from '../../application/ports/payment-gateway.port';
 import {
+  ProviderChangeSubscriptionPlanParams,
   ProviderGateway,
   ProviderInitializeParams,
   ProviderInitializeSubscriptionParams,
@@ -48,6 +49,10 @@ interface StripeSetupIntent {
 interface StripePaymentMethod {
   id: string;
   card: { brand: string; last4: string; exp_month: number; exp_year: number };
+}
+
+interface StripeSubscriptionItems {
+  items: { data: { id: string }[] };
 }
 
 /**
@@ -146,6 +151,29 @@ export class StripePaymentGateway implements ProviderGateway {
       expMonth: card.exp_month,
       expYear: card.exp_year,
     };
+  }
+
+  async changeSubscriptionPlan(params: ProviderChangeSubscriptionPlanParams): Promise<void> {
+    // Replace the subscription's single item with the new price, prorating the
+    // difference so the customer is billed fairly for the mid cycle change.
+    const subscription = await this.call<StripeSubscriptionItems>(
+      'GET',
+      `/subscriptions/${encodeURIComponent(params.providerSubscriptionRef)}`,
+    );
+    const itemId = subscription.items.data[0]?.id;
+    if (itemId === undefined) {
+      throw new Error('Stripe subscription has no item to change');
+    }
+
+    const body = new URLSearchParams();
+    body.set('items[0][id]', itemId);
+    body.set('items[0][price]', params.newPlanReference);
+    body.set('proration_behavior', 'create_prorations');
+    await this.call<StripeSubscription>(
+      'POST',
+      `/subscriptions/${encodeURIComponent(params.providerSubscriptionRef)}`,
+      body,
+    );
   }
 
   private async createCustomer(ownerId: string, email: string): Promise<string> {

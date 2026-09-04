@@ -18,6 +18,9 @@ import { IssueInvoiceUseCase } from './issue-invoice.use-case';
 import { ListInvoicesUseCase } from './list-invoices.use-case';
 import { ListReceiptsUseCase } from './list-receipts.use-case';
 import { PayInvoiceUseCase } from './pay-invoice.use-case';
+import { UpgradeSubscriptionPlanUseCase } from './upgrade-subscription-plan.use-case';
+import { ChangeSubscriptionPlanUseCase } from '@modules/bookings/application/use-cases/change-subscription-plan.use-case';
+import { ChangeProviderSubscriptionPlanUseCase } from '@modules/payments/application/use-cases/change-subscription-plan.use-case';
 
 const NOW = new Date('2026-08-10T12:00:00.000Z');
 const clock: Clock = { now: () => NOW };
@@ -44,6 +47,16 @@ function subscriptionDirectory(subs: BillingSubscriptionView[]): BillingSubscrip
 function planDirectory(): BillingPlanDirectory {
   return {
     nameForType: (type) => Promise.resolve(type === 'PREMIUM' ? 'Premium Home Care' : null),
+    priceForType: (type) =>
+      Promise.resolve(
+        type === 'PREMIUM'
+          ? {
+              monthlyPriceMinor: 18_900_000,
+              stripePriceId: 'price_premium',
+              paystackPlanCode: 'PLN_premium',
+            }
+          : null,
+      ),
   };
 }
 
@@ -310,6 +323,97 @@ describe('pay invoice', () => {
 
     await expect(
       useCase.execute({ ownerId: 'someone-else', ownerEmail: 'a@b.com', invoiceId }),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+  });
+});
+
+describe('upgrade plan', () => {
+  const usdStandard: BillingSubscriptionView = {
+    id: 'sub-usd',
+    ownerId: 'owner-1',
+    careRecipientId: 'r1',
+    planType: 'STANDARD',
+    currency: 'USD',
+    monthlyPriceMinor: 120_000,
+    startDate: new Date('2026-07-15T00:00:00.000Z'),
+    active: true,
+  };
+  const ngnPremium: BillingSubscriptionView = { ...SUB, id: 'sub-ngn', planType: 'STANDARD' };
+
+  function useCase(
+    subs: BillingSubscriptionView[],
+    provider = { execute: jest.fn().mockResolvedValue(undefined) },
+    ours = { execute: jest.fn().mockResolvedValue(undefined) },
+  ): {
+    upgrade: UpgradeSubscriptionPlanUseCase;
+    provider: { execute: jest.Mock };
+    ours: { execute: jest.Mock };
+  } {
+    const upgrade = new UpgradeSubscriptionPlanUseCase(
+      subscriptionDirectory(subs),
+      planDirectory(),
+      provider as unknown as ChangeProviderSubscriptionPlanUseCase,
+      ours as unknown as ChangeSubscriptionPlanUseCase,
+    );
+    return { upgrade, provider, ours };
+  }
+
+  it('changes the plan at the provider and on our record for a Stripe market', async () => {
+    const { upgrade, provider, ours } = useCase([usdStandard]);
+
+    const result = await upgrade.execute({
+      ownerId: 'owner-1',
+      subscriptionId: 'sub-usd',
+      planType: 'PREMIUM',
+    });
+
+    expect(provider.execute).toHaveBeenCalledWith({
+      ownerId: 'owner-1',
+      subscriptionId: 'sub-usd',
+      newPlanReference: 'price_premium',
+    });
+    expect(ours.execute).toHaveBeenCalledWith({
+      ownerId: 'owner-1',
+      subscriptionId: 'sub-usd',
+      planType: 'PREMIUM',
+      monthlyPriceMinor: 18_900_000,
+      currency: 'USD',
+    });
+    expect(result).toEqual({
+      subscriptionId: 'sub-usd',
+      planType: 'PREMIUM',
+      planName: 'Premium Home Care',
+      currency: 'USD',
+      monthlyPriceMinor: 18_900_000,
+    });
+  });
+
+  it('rejects upgrading to the plan already held', async () => {
+    const { upgrade } = useCase([{ ...usdStandard, planType: 'PREMIUM' }]);
+    await expect(
+      upgrade.execute({ ownerId: 'owner-1', subscriptionId: 'sub-usd', planType: 'PREMIUM' }),
+    ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('rejects a plan the catalog does not price', async () => {
+    const { upgrade } = useCase([usdStandard]);
+    await expect(
+      upgrade.execute({ ownerId: 'owner-1', subscriptionId: 'sub-usd', planType: 'STANDARD_PLUS' }),
+    ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('is not available for a Paystack market yet', async () => {
+    const { upgrade, provider } = useCase([ngnPremium]);
+    await expect(
+      upgrade.execute({ ownerId: 'owner-1', subscriptionId: 'sub-ngn', planType: 'PREMIUM' }),
+    ).rejects.toBeInstanceOf(ValidationException);
+    expect(provider.execute).not.toHaveBeenCalled();
+  });
+
+  it('404s a subscription the owner does not own', async () => {
+    const { upgrade } = useCase([usdStandard]);
+    await expect(
+      upgrade.execute({ ownerId: 'someone-else', subscriptionId: 'sub-usd', planType: 'PREMIUM' }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 });

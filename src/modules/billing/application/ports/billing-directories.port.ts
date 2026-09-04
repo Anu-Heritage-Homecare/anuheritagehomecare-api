@@ -24,9 +24,18 @@ export interface BillingSubscriptionDirectory {
 
 export const BILLING_SUBSCRIPTION_DIRECTORY = Symbol('BILLING_SUBSCRIPTION_DIRECTORY');
 
+/** A plan's price and provider references in one currency. */
+export interface BillingPlanPriceView {
+  monthlyPriceMinor: number;
+  stripePriceId: string | null;
+  paystackPlanCode: string | null;
+}
+
 export interface BillingPlanDirectory {
   /** The catalog display name for a plan type, or null if unknown. */
   nameForType(planType: string): Promise<string | null>;
+  /** The plan's monthly price and provider references for a currency, or null. */
+  priceForType(planType: string, currency: string): Promise<BillingPlanPriceView | null>;
 }
 
 export const BILLING_PLAN_DIRECTORY = Symbol('BILLING_PLAN_DIRECTORY');

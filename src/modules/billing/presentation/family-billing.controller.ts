@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -24,13 +25,16 @@ import { GetReceiptUseCase } from '../application/use-cases/get-receipt.use-case
 import { ListInvoicesUseCase } from '../application/use-cases/list-invoices.use-case';
 import { ListReceiptsUseCase } from '../application/use-cases/list-receipts.use-case';
 import { PayInvoiceUseCase } from '../application/use-cases/pay-invoice.use-case';
+import { UpgradeSubscriptionPlanUseCase } from '../application/use-cases/upgrade-subscription-plan.use-case';
 import {
   BillingDashboardResponseDto,
   InvoiceDetailResponseDto,
   InvoiceSummaryResponseDto,
   PayInvoiceResponseDto,
   ReceiptResponseDto,
+  UpgradedPlanResponseDto,
 } from './dto/billing-response.dto';
+import { UpgradePlanRequestDto } from './dto/upgrade-plan-request.dto';
 
 /**
  * Family owner billing reads (the Billing tab). Every route requires a valid
@@ -49,6 +53,7 @@ export class FamilyBillingController {
     private readonly listReceipts: ListReceiptsUseCase,
     private readonly getReceipt: GetReceiptUseCase,
     private readonly payInvoiceUseCase: PayInvoiceUseCase,
+    private readonly upgradePlan: UpgradeSubscriptionPlanUseCase,
   ) {}
 
   @Get()
@@ -96,6 +101,23 @@ export class FamilyBillingController {
       invoiceId: id,
     });
     return PayInvoiceResponseDto.fromResult(result);
+  }
+
+  @Post('subscriptions/:id/upgrade')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change a subscription onto a different plan (Upgrade Plan)' })
+  @ApiOkResponse({ type: UpgradedPlanResponseDto })
+  async upgradeSubscription(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpgradePlanRequestDto,
+  ): Promise<UpgradedPlanResponseDto> {
+    const result = await this.upgradePlan.execute({
+      ownerId: principal.userId,
+      subscriptionId: id,
+      planType: body.planType,
+    });
+    return UpgradedPlanResponseDto.fromResult(result);
   }
 
   @Get('receipts')

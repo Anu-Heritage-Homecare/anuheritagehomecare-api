@@ -79,6 +79,14 @@ export interface WebhookPaymentEvent {
   outcome: GatewayOutcome;
 }
 
+export interface ChangeSubscriptionPlanParams {
+  provider: PaymentProvider;
+  /** The provider's own subscription identifier (stored on the initiating payment). */
+  providerSubscriptionRef: string;
+  /** The new recurring price (Stripe) or plan code (Paystack) at the provider. */
+  newPlanReference: string;
+}
+
 /**
  * Provider agnostic port over a payment gateway. Implemented per provider and
  * dispatched by the provider on each call, so the application layer never depends
@@ -92,6 +100,8 @@ export interface PaymentGateway {
   startCardSetup(params: StartCardSetupParams): Promise<CardSetupInitialization>;
   /** Read back the tokenised card once the client has completed the setup. */
   retrieveSavedCard(provider: PaymentProvider, providerReference: string): Promise<SavedCard>;
+  /** Move an existing provider subscription onto a different recurring plan. */
+  changeSubscriptionPlan(params: ChangeSubscriptionPlanParams): Promise<void>;
   verify(provider: PaymentProvider, providerReference: string): Promise<PaymentVerification>;
   /** Verify the webhook signature and parse it, or throw if the signature is invalid. */
   parseWebhook(provider: PaymentProvider, rawBody: string, signature: string): WebhookPaymentEvent;

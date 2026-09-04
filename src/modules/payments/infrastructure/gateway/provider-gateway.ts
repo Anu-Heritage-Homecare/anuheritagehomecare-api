@@ -25,6 +25,11 @@ export interface ProviderStartCardSetupParams {
   customerRef: string | null;
 }
 
+export interface ProviderChangeSubscriptionPlanParams {
+  providerSubscriptionRef: string;
+  newPlanReference: string;
+}
+
 /**
  * A single provider's implementation of the gateway operations. The composite
  * gateway dispatches the port calls to the right one of these by provider.
@@ -36,6 +41,7 @@ export interface ProviderGateway {
   ): Promise<PaymentInitialization>;
   startCardSetup(params: ProviderStartCardSetupParams): Promise<CardSetupInitialization>;
   retrieveSavedCard(providerReference: string): Promise<SavedCard>;
+  changeSubscriptionPlan(params: ProviderChangeSubscriptionPlanParams): Promise<void>;
   verify(providerReference: string): Promise<PaymentVerification>;
   parseWebhook(rawBody: string, signature: string): WebhookPaymentEvent;
 }

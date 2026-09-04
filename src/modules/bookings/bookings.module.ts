@@ -3,6 +3,7 @@ import { PassportModule } from '@nestjs/passport';
 import { CarePlansModule } from '@modules/care-plans/care-plans.module';
 import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.module';
 import { CARE_RECIPIENT_ACCESS } from './application/ports/care-recipient-access.port';
+import { ChangeSubscriptionPlanUseCase } from './application/use-cases/change-subscription-plan.use-case';
 import { CreateFlexibleBookingUseCase } from './application/use-cases/create-flexible-booking.use-case';
 import { CreateSubscriptionUseCase } from './application/use-cases/create-subscription.use-case';
 import { GetAvailabilityUseCase } from './application/use-cases/get-availability.use-case';
@@ -32,10 +33,11 @@ import { SubscriptionsController } from './presentation/subscriptions.controller
     ListBookingsUseCase,
     CreateSubscriptionUseCase,
     ListSubscriptionsUseCase,
+    ChangeSubscriptionPlanUseCase,
     { provide: BOOKING_REPOSITORY, useClass: BookingPrismaRepository },
     { provide: SUBSCRIPTION_REPOSITORY, useClass: SubscriptionPrismaRepository },
     { provide: CARE_RECIPIENT_ACCESS, useClass: PrismaCareRecipientAccess },
   ],
-  exports: [BOOKING_REPOSITORY, SUBSCRIPTION_REPOSITORY],
+  exports: [BOOKING_REPOSITORY, SUBSCRIPTION_REPOSITORY, ChangeSubscriptionPlanUseCase],
 })
 export class BookingsModule {}

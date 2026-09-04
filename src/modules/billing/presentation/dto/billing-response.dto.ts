@@ -6,6 +6,7 @@ import {
   InvoiceSummaryResult,
   ReceiptResult,
 } from '../../application/dto/billing.result';
+import { UpgradedPlanResult } from '../../application/use-cases/upgrade-subscription-plan.use-case';
 
 class BillingPlanDto {
   @ApiProperty({ example: 'Premium Home Care' })
@@ -168,5 +169,27 @@ export class ReceiptResponseDto {
 
   static fromResult(result: ReceiptResult): ReceiptResponseDto {
     return Object.assign(new ReceiptResponseDto(), result);
+  }
+}
+
+/** HTTP response after a subscription plan change, echoing the new plan. */
+export class UpgradedPlanResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  subscriptionId!: string;
+
+  @ApiProperty({ example: 'PREMIUM' })
+  planType!: string;
+
+  @ApiProperty({ nullable: true, example: 'Premium Home Care' })
+  planName!: string | null;
+
+  @ApiProperty({ example: 'NGN' })
+  currency!: string;
+
+  @ApiProperty({ example: 18900000 })
+  monthlyPriceMinor!: number;
+
+  static fromResult(result: UpgradedPlanResult): UpgradedPlanResponseDto {
+    return Object.assign(new UpgradedPlanResponseDto(), result);
   }
 }
