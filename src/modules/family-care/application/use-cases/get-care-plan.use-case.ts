@@ -3,6 +3,10 @@ import {
   CARE_RECIPIENT_REPOSITORY,
   CareRecipientRepository,
 } from '@modules/care-recipients/domain/care-recipient.repository';
+import {
+  CARE_GOAL_REPOSITORY,
+  CareGoalRepository,
+} from '@modules/care-recipients/domain/care-goal.repository';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
 import { WEEKDAY_SHORT_LABEL } from '@modules/care-recipients/domain/weekday.enum';
@@ -29,15 +33,17 @@ const SERVICE_LABEL: Record<string, string> = {
 /**
  * Use case: the recipient's care plan. The plan name comes from their booking and
  * the included services from the care needs captured at onboarding; the visit
- * schedule from their care schedule. Care goals, the caregiver roles (primary,
- * backup, coordinator) and care instructions are set by the office, which is not
- * built yet, so they are returned empty until that surface exists. Owner scoped.
+ * schedule from their care schedule; the care goals from the office set goal list.
+ * The caregiver roles (primary, backup, coordinator) and care instructions are
+ * also office set, which is not built yet, so they are returned empty until that
+ * surface exists. Owner scoped.
  */
 @Injectable()
 export class GetCarePlanUseCase {
   constructor(
     @Inject(CARE_RECIPIENT_REPOSITORY) private readonly recipients: CareRecipientRepository,
     @Inject(FAMILY_PLAN_DIRECTORY) private readonly plans: FamilyPlanDirectory,
+    @Inject(CARE_GOAL_REPOSITORY) private readonly goals: CareGoalRepository,
   ) {}
 
   async execute(query: GetCarePlanQuery): Promise<CarePlanResult> {
@@ -46,11 +52,14 @@ export class GetCarePlanUseCase {
       throw new NotFoundDomainException('Care recipient not found');
     }
 
-    const planName = await this.plans.planNameForRecipient(query.ownerId, query.careRecipientId);
+    const [planName, goals] = await Promise.all([
+      this.plans.planNameForRecipient(query.ownerId, query.careRecipientId),
+      this.goals.listForRecipient(query.careRecipientId),
+    ]);
 
     return {
       planName,
-      goals: [],
+      goals: goals.map((goal) => ({ label: goal.label, achieved: goal.achieved })),
       services: recipient.careNeeds.map((need) => SERVICE_LABEL[String(need)] ?? String(need)),
       schedule: this.buildSchedule(recipient),
       caregivers: { primary: null, backup: null, coordinator: null },

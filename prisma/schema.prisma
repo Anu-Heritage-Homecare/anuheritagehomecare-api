@@ -210,6 +210,11 @@ model CareRecipient {
   needsMedicationHelp Boolean?
   medications        Medication[]
 
+  // Care goals are set by the office (for example Maintain independence, Fall
+  // prevention), not by the family owner. Surfaced read only on the family care
+  // plan; the office capture surface is deferred to the admin module.
+  careGoals CareGoal[]
+
   // Step 4: care schedule (null until the step is completed). The recurring
   // pattern (which weekdays, the start time in minutes from midnight, and how
   // long each visit lasts in minutes) is optional and may be refined after
@@ -248,6 +253,23 @@ model Medication {
 
   @@index([careRecipientId])
   @@map("medications")
+}
+
+// One office set goal for a care recipient's plan (for example Maintain
+// independence). Owned by the recipient and surfaced read only on the family
+// care plan; ordered by position. The office capture path is deferred.
+model CareGoal {
+  id              String   @id @default(uuid()) @db.Uuid
+  careRecipientId String   @db.Uuid
+  label           String   @db.VarChar(200)
+  achieved        Boolean  @default(false)
+  position        Int
+  createdAt       DateTime @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId])
+  @@map("care_goals")
 }
 
 enum CareRecipientStatus {

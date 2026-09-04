@@ -1,5 +1,7 @@
 import { CareRecipientRepository } from '@modules/care-recipients/domain/care-recipient.repository';
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
+import { CareGoal } from '@modules/care-recipients/domain/care-goal.entity';
+import { CareGoalRepository } from '@modules/care-recipients/domain/care-goal.repository';
 import { UserRepository } from '@modules/identity/domain/user.repository';
 import { VisitRepository } from '@modules/visits/domain/visit.repository';
 import { Clock } from '@shared/application/ports/clock.port';
@@ -50,6 +52,30 @@ function recipients(recipient: CareRecipient): CareRecipientRepository {
 const plans: FamilyPlanDirectory = {
   planNameForRecipient: () => Promise.resolve('Standard Care'),
 };
+
+function goalsRepo(goals: CareGoal[]): CareGoalRepository {
+  return {
+    listForRecipient: () => Promise.resolve(goals),
+    replaceForRecipient: () => Promise.resolve(),
+  };
+}
+
+const sampleGoals = [
+  CareGoal.create({
+    id: 'g1',
+    careRecipientId: 'r1',
+    label: 'Maintain independence',
+    achieved: true,
+    position: 0,
+  }),
+  CareGoal.create({
+    id: 'g2',
+    careRecipientId: 'r1',
+    label: 'Fall prevention',
+    achieved: false,
+    position: 1,
+  }),
+];
 
 const users = {
   findById: (id: string) =>
@@ -124,7 +150,11 @@ describe('Care section reads', () => {
   });
 
   it('care plan derives services from care needs and schedule from the care schedule', async () => {
-    const useCase = new GetCarePlanUseCase(recipients(recipientStub()), plans);
+    const useCase = new GetCarePlanUseCase(
+      recipients(recipientStub()),
+      plans,
+      goalsRepo(sampleGoals),
+    );
 
     const result = await useCase.execute({ ownerId: 'owner-1', careRecipientId: 'r1' });
 
@@ -135,8 +165,12 @@ describe('Care section reads', () => {
     expect(result.schedule?.days).toEqual(['Mon', 'Wed', 'Fri']);
     expect(result.schedule?.startTime).toBe('9:00 AM');
     expect(result.schedule?.visitDurationHours).toBe(3);
-    // Office set data has no capture path yet.
-    expect(result.goals).toEqual([]);
+    // Care goals come from the office set goal list.
+    expect(result.goals).toEqual([
+      { label: 'Maintain independence', achieved: true },
+      { label: 'Fall prevention', achieved: false },
+    ]);
+    // The remaining office set data (caregiver roles) has no capture path yet.
     expect(result.caregivers.primary).toBeNull();
   });
 });

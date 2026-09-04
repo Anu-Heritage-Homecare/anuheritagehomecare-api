@@ -48,7 +48,7 @@ export class CarePlanResponseDto {
   @ApiProperty({ nullable: true, example: 'Standard Care' })
   planName!: string | null;
 
-  @ApiProperty({ description: 'Care goals (office set; empty until the admin surface exists)' })
+  @ApiProperty({ description: 'Care goals set by the office (empty when none are set)' })
   goals!: CarePlanResult['goals'];
 
   @ApiProperty({ type: [String], description: 'Services included, from the care needs' })
