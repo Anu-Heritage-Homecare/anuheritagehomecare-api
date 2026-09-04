@@ -70,6 +70,7 @@ export interface PaymentConfig {
   readonly paystackSecretKey: string;
   readonly paystackWebhookSecret: string;
   readonly callbackUrl: string;
+  readonly paystackCardSetupAmountMinor: number;
 }
 
 export interface KycConfig {
@@ -160,6 +161,7 @@ export function buildConfig(env: Env): {
       paystackSecretKey: env.PAYSTACK_SECRET_KEY,
       paystackWebhookSecret: env.PAYSTACK_WEBHOOK_SECRET,
       callbackUrl: env.PAYMENT_CALLBACK_URL,
+      paystackCardSetupAmountMinor: env.PAYSTACK_CARD_SETUP_AMOUNT_MINOR,
     },
     kyc: {
       qoreIdClientId: env.QOREID_CLIENT_ID,

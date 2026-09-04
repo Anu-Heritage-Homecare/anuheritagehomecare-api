@@ -3,15 +3,18 @@ import { ConfigService } from '@nestjs/config';
 import { PaymentConfig } from '@config/configuration';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import {
+  CardSetupInitialization,
   GatewayOutcome,
   PaymentInitialization,
   PaymentVerification,
+  SavedCard,
   WebhookPaymentEvent,
 } from '../../application/ports/payment-gateway.port';
 import {
   ProviderGateway,
   ProviderInitializeParams,
   ProviderInitializeSubscriptionParams,
+  ProviderStartCardSetupParams,
 } from './provider-gateway';
 
 const STRIPE_API = 'https://api.stripe.com/v1';
@@ -31,6 +34,20 @@ interface StripeCustomer {
 interface StripeSubscription {
   id: string;
   latest_invoice: { payment_intent: { client_secret: string } };
+}
+
+interface StripeSetupIntent {
+  id: string;
+  client_secret: string;
+  status: string;
+  customer: string | null;
+  metadata: Record<string, string>;
+  payment_method: StripePaymentMethod | null;
+}
+
+interface StripePaymentMethod {
+  id: string;
+  card: { brand: string; last4: string; exp_month: number; exp_year: number };
 }
 
 /**
@@ -91,6 +108,52 @@ export class StripePaymentGateway implements ProviderGateway {
       providerReference: subscription.id,
       clientSecret: subscription.latest_invoice.payment_intent.client_secret,
     };
+  }
+
+  async startCardSetup(params: ProviderStartCardSetupParams): Promise<CardSetupInitialization> {
+    const customerRef =
+      params.customerRef ?? (await this.createCustomer(params.ownerId, params.ownerEmail));
+
+    const body = new URLSearchParams();
+    body.set('customer', customerRef);
+    body.set('usage', 'off_session');
+    body.set('metadata[ownerId]', params.ownerId);
+    body.set('metadata[reference]', params.reference);
+
+    const intent = await this.call<StripeSetupIntent>('POST', '/setup_intents', body);
+    return {
+      providerReference: intent.id,
+      providerCustomerRef: customerRef,
+      clientSecret: intent.client_secret,
+    };
+  }
+
+  async retrieveSavedCard(providerReference: string): Promise<SavedCard> {
+    const intent = await this.call<StripeSetupIntent>(
+      'GET',
+      `/setup_intents/${encodeURIComponent(providerReference)}?expand[]=payment_method`,
+    );
+    if (intent.status !== 'succeeded' || intent.payment_method === null) {
+      throw new Error('Stripe card setup has not completed');
+    }
+    const card = intent.payment_method.card;
+    return {
+      ownerRef: intent.metadata.ownerId ?? '',
+      providerCustomerRef: intent.customer,
+      providerMethodRef: intent.payment_method.id,
+      brand: card.brand,
+      last4: card.last4,
+      expMonth: card.exp_month,
+      expYear: card.exp_year,
+    };
+  }
+
+  private async createCustomer(ownerId: string, email: string): Promise<string> {
+    const form = new URLSearchParams();
+    form.set('email', email);
+    form.set('metadata[ownerId]', ownerId);
+    const customer = await this.call<StripeCustomer>('POST', '/customers', form);
+    return customer.id;
   }
 
   async verify(providerReference: string): Promise<PaymentVerification> {

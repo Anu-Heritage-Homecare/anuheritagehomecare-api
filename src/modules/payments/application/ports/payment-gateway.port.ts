@@ -37,6 +37,43 @@ export interface PaymentVerification {
   currency: string;
 }
 
+export interface StartCardSetupParams {
+  provider: PaymentProvider;
+  /** The owner adding the card; echoed in provider metadata to bind it back. */
+  ownerId: string;
+  ownerEmail: string;
+  /** Our own opaque reference, echoed by the provider for reconciliation. */
+  reference: string;
+  /** Reuse an existing provider customer (Stripe) if the owner already has one. */
+  customerRef: string | null;
+}
+
+export interface CardSetupInitialization {
+  /** The handle the client echoes back to confirm (Stripe SetupIntent id / Paystack reference). */
+  providerReference: string;
+  /** The provider customer the card is attached to, persisted for reuse. */
+  providerCustomerRef: string | null;
+  /** Stripe: the SetupIntent client secret the app confirms the card with. */
+  clientSecret?: string;
+  /** Paystack: the hosted page URL where the user enters the card. */
+  authorizationUrl?: string;
+}
+
+/**
+ * A card tokenised by the provider, ready to persist. The raw card never reaches
+ * this service; only an opaque provider reference plus display metadata.
+ */
+export interface SavedCard {
+  /** The owner id the provider echoes from the metadata we set, for binding. */
+  ownerRef: string;
+  providerCustomerRef: string | null;
+  providerMethodRef: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+}
+
 export interface WebhookPaymentEvent {
   providerReference: string;
   outcome: GatewayOutcome;
@@ -51,6 +88,10 @@ export interface PaymentGateway {
   initialize(params: InitializePaymentParams): Promise<PaymentInitialization>;
   /** Start a recurring subscription and collect its first payment. */
   initializeSubscription(params: InitializeSubscriptionParams): Promise<PaymentInitialization>;
+  /** Begin saving a card: create the provider setup and return its client handle. */
+  startCardSetup(params: StartCardSetupParams): Promise<CardSetupInitialization>;
+  /** Read back the tokenised card once the client has completed the setup. */
+  retrieveSavedCard(provider: PaymentProvider, providerReference: string): Promise<SavedCard>;
   verify(provider: PaymentProvider, providerReference: string): Promise<PaymentVerification>;
   /** Verify the webhook signature and parse it, or throw if the signature is invalid. */
   parseWebhook(provider: PaymentProvider, rawBody: string, signature: string): WebhookPaymentEvent;

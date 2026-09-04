@@ -716,6 +716,7 @@ model PaymentMethod {
   isDefault           Boolean         @default(false)
   createdAt           DateTime        @default(now())
 
+  @@unique([provider, providerMethodRef])
   @@index([ownerId])
   @@map("payment_methods")
 }

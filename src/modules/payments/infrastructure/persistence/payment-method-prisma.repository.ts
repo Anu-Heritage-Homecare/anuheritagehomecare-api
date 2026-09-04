@@ -26,11 +26,33 @@ export class PaymentMethodPrismaRepository implements PaymentMethodRepository {
     });
   }
 
+  async findById(id: string): Promise<PaymentMethod | null> {
+    const row = await this.prisma.paymentMethod.findUnique({ where: { id } });
+    return row === null ? null : PaymentMethodMapper.toDomain(row);
+  }
+
   async listByOwner(ownerId: string): Promise<PaymentMethod[]> {
     const rows = await this.prisma.paymentMethod.findMany({
       where: { ownerId },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
     });
     return rows.map((row) => PaymentMethodMapper.toDomain(row));
+  }
+
+  async delete(ownerId: string, id: string): Promise<void> {
+    await this.prisma.paymentMethod.deleteMany({ where: { id, ownerId } });
+  }
+
+  async setDefault(ownerId: string, id: string): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.paymentMethod.updateMany({
+        where: { ownerId, isDefault: true },
+        data: { isDefault: false },
+      }),
+      this.prisma.paymentMethod.updateMany({
+        where: { id, ownerId },
+        data: { isDefault: true },
+      }),
+    ]);
   }
 }

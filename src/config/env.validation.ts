@@ -84,6 +84,10 @@ export const envSchema = z.object({
   PAYSTACK_SECRET_KEY: z.string().default(''),
   PAYSTACK_WEBHOOK_SECRET: z.string().default(''),
   PAYMENT_CALLBACK_URL: z.string().default(''),
+  // Nominal amount (in minor units) charged to save a reusable Paystack card,
+  // since Paystack only returns a reusable authorization after a real charge.
+  // The charge is refunded once the card is tokenised. Default 5000 (fifty naira).
+  PAYSTACK_CARD_SETUP_AMOUNT_MINOR: z.coerce.number().int().positive().default(5000),
 
   // KYC. US owners verify through Stripe (reusing STRIPE_SECRET_KEY above);
   // Nigeria owners verify a NIN or passport through QoreID. Optional so the

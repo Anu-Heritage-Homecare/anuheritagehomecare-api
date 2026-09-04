@@ -38,6 +38,10 @@ export class PaymentMethod extends Entity<string> {
     this.props.isDefault = true;
   }
 
+  public clearDefault(): void {
+    this.props.isDefault = false;
+  }
+
   public get ownerId(): string {
     return this.props.ownerId;
   }
