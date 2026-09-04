@@ -5,4 +5,10 @@ export interface UpdateCareScheduleCommand {
   frequency: string;
   estimatedStartDate: string;
   expectedDuration: string;
+  /** Weekdays the recurring visit falls on (optional). */
+  days?: string[];
+  /** Visit start time as minutes from midnight (optional). */
+  startMinute?: number | null;
+  /** How long a single visit lasts, in minutes (optional). */
+  visitDurationMinutes?: number | null;
 }

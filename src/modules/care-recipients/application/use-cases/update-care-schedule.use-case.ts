@@ -27,6 +27,9 @@ export class UpdateCareScheduleUseCase {
       frequency: command.frequency,
       estimatedStartDate,
       expectedDuration: command.expectedDuration,
+      days: command.days,
+      startMinute: command.startMinute,
+      visitDurationMinutes: command.visitDurationMinutes,
     });
 
     const recipient = await loadOwnedCareRecipient(

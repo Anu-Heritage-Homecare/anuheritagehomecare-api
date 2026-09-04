@@ -210,10 +210,16 @@ model CareRecipient {
   needsMedicationHelp Boolean?
   medications        Medication[]
 
-  // Step 4: care schedule (null until the step is completed).
+  // Step 4: care schedule (null until the step is completed). The recurring
+  // pattern (which weekdays, the start time in minutes from midnight, and how
+  // long each visit lasts in minutes) is optional and may be refined after
+  // onboarding by the family owner.
   careFrequency     CareFrequency?
   estimatedStartDate DateTime?     @db.Date
   expectedDuration  String?        @db.VarChar(120)
+  careDays          Weekday[]      @default([])
+  careStartMinute   Int?
+  careVisitDurationMinutes Int?
 
   completedAt DateTime?
   createdAt   DateTime  @default(now())
@@ -278,6 +284,18 @@ enum CareFrequency {
   LIVE_IN_CARE
 
   @@map("care_frequency")
+}
+
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+
+  @@map("weekday")
 }
 
 enum OnboardingStep {

@@ -6,6 +6,7 @@ import {
   Gender as PrismaGender,
   Medication as PrismaMedication,
   OnboardingStep as PrismaOnboardingStep,
+  Weekday as PrismaWeekday,
 } from '@prisma/client';
 import { CareRecipient } from '../../domain/care-recipient.entity';
 import { CareFrequency } from '../../domain/care-frequency.enum';
@@ -14,6 +15,7 @@ import { CareRecipientStatus } from '../../domain/care-recipient-status.enum';
 import { Gender } from '../../domain/gender.enum';
 import { Medication } from '../../domain/medication.entity';
 import { OnboardingStep } from '../../domain/onboarding-step.enum';
+import { Weekday } from '../../domain/weekday.enum';
 import { CareSchedule } from '../../domain/value-objects/care-schedule.vo';
 import { HealthInformation } from '../../domain/value-objects/health-information.vo';
 import { RecipientProfile } from '../../domain/value-objects/recipient-profile.vo';
@@ -78,6 +80,9 @@ export class CareRecipientMapper {
             frequency: CareRecipientMapper.TO_DOMAIN_FREQUENCY[row.careFrequency],
             estimatedStartDate: row.estimatedStartDate,
             expectedDuration: row.expectedDuration,
+            days: row.careDays.map((day) => CareRecipientMapper.TO_DOMAIN_WEEKDAY[day]),
+            startMinute: row.careStartMinute,
+            visitDurationMinutes: row.careVisitDurationMinutes,
           });
 
     return CareRecipient.rehydrate(row.id, {
@@ -124,6 +129,11 @@ export class CareRecipientMapper {
         schedule === null ? null : CareRecipientMapper.TO_PERSISTENCE_FREQUENCY[schedule.frequency],
       estimatedStartDate: schedule?.estimatedStartDate ?? null,
       expectedDuration: schedule?.expectedDuration ?? null,
+      careDays: (schedule?.days ?? []).map(
+        (day) => CareRecipientMapper.TO_PERSISTENCE_WEEKDAY[day],
+      ),
+      careStartMinute: schedule?.startMinute ?? null,
+      careVisitDurationMinutes: schedule?.visitDurationMinutes ?? null,
       completedAt: recipient.completedAt,
       createdAt: recipient.createdAt,
       updatedAt: recipient.updatedAt,
@@ -212,5 +222,25 @@ export class CareRecipientMapper {
     [CareFrequency.Daily]: 'DAILY',
     [CareFrequency.Weekly]: 'WEEKLY',
     [CareFrequency.LiveInCare]: 'LIVE_IN_CARE',
+  };
+
+  private static readonly TO_DOMAIN_WEEKDAY: Record<PrismaWeekday, Weekday> = {
+    MONDAY: Weekday.Monday,
+    TUESDAY: Weekday.Tuesday,
+    WEDNESDAY: Weekday.Wednesday,
+    THURSDAY: Weekday.Thursday,
+    FRIDAY: Weekday.Friday,
+    SATURDAY: Weekday.Saturday,
+    SUNDAY: Weekday.Sunday,
+  };
+
+  private static readonly TO_PERSISTENCE_WEEKDAY: Record<Weekday, PrismaWeekday> = {
+    [Weekday.Monday]: 'MONDAY',
+    [Weekday.Tuesday]: 'TUESDAY',
+    [Weekday.Wednesday]: 'WEDNESDAY',
+    [Weekday.Thursday]: 'THURSDAY',
+    [Weekday.Friday]: 'FRIDAY',
+    [Weekday.Saturday]: 'SATURDAY',
+    [Weekday.Sunday]: 'SUNDAY',
   };
 }

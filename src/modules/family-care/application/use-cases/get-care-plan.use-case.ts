@@ -5,6 +5,7 @@ import {
 } from '@modules/care-recipients/domain/care-recipient.repository';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
+import { WEEKDAY_SHORT_LABEL } from '@modules/care-recipients/domain/weekday.enum';
 import { CarePlanResult } from '../dto/care-section.result';
 import { FAMILY_PLAN_DIRECTORY, FamilyPlanDirectory } from '../ports/family-plan-directory.port';
 
@@ -66,6 +67,19 @@ export class GetCarePlanUseCase {
       frequency: String(schedule.frequency),
       startDate: schedule.estimatedStartDate.toISOString().slice(0, 10),
       expectedDuration: schedule.expectedDuration,
+      days: schedule.days.map((day) => WEEKDAY_SHORT_LABEL[day]),
+      startTime: schedule.startMinute === null ? null : formatTimeOfDay(schedule.startMinute),
+      visitDurationHours:
+        schedule.visitDurationMinutes === null ? null : schedule.visitDurationMinutes / 60,
     };
   }
+}
+
+/** Format minutes from midnight as a twelve hour clock time, for example 9:00 AM. */
+function formatTimeOfDay(minute: number): string {
+  const hour24 = Math.floor(minute / 60);
+  const minutes = minute % 60;
+  const period = hour24 < 12 ? 'AM' : 'PM';
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${period}`;
 }

@@ -122,6 +122,20 @@ export class CareRecipient extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
+  /**
+   * Revise the care schedule of an already onboarded recipient. Unlike the
+   * onboarding step this is permitted after the record is active (a family owner
+   * adjusting their plan) and does not move the onboarding pointer. A schedule must
+   * already exist, so the recipient has been through onboarding.
+   */
+  public reviseSchedule(schedule: CareSchedule, now: Date): void {
+    if (this.props.schedule === null) {
+      throw new ValidationException('The care schedule has not been set up yet');
+    }
+    this.props.schedule = schedule;
+    this.props.updatedAt = now;
+  }
+
   /** Move the resume pointer forward, never backward. */
   private advanceStep(step: OnboardingStep): void {
     this.props.onboardingStep = furthestStep(this.props.onboardingStep, step);

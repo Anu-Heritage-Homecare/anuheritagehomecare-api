@@ -139,6 +139,9 @@ export class CareRecipientsController {
       frequency: body.frequency,
       estimatedStartDate: body.estimatedStartDate,
       expectedDuration: body.expectedDuration,
+      days: body.days,
+      startMinute: body.startMinute,
+      visitDurationMinutes: body.visitDurationMinutes,
     });
     return CareRecipientResponseDto.fromResult(result);
   }

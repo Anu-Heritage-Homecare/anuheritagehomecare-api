@@ -27,6 +27,9 @@ function recipientStub(overrides: Record<string, unknown> = {}): CareRecipient {
       frequency: 'WEEKLY',
       estimatedStartDate: new Date('2026-11-01T00:00:00.000Z'),
       expectedDuration: '3 months',
+      days: ['MONDAY', 'WEDNESDAY', 'FRIDAY'],
+      startMinute: 540,
+      visitDurationMinutes: 180,
     },
     profile: {
       name: 'Mrs Moses Rose',
@@ -128,6 +131,10 @@ describe('Care section reads', () => {
     expect(result.planName).toBe('Standard Care');
     expect(result.services).toEqual(['Meal Prep', 'Bathing', 'Laundry']);
     expect(result.schedule?.expectedDuration).toBe('3 months');
+    // The recurring pattern is formatted for the Visit Schedule widget.
+    expect(result.schedule?.days).toEqual(['Mon', 'Wed', 'Fri']);
+    expect(result.schedule?.startTime).toBe('9:00 AM');
+    expect(result.schedule?.visitDurationHours).toBe(3);
     // Office set data has no capture path yet.
     expect(result.goals).toEqual([]);
     expect(result.caregivers.primary).toBeNull();

@@ -11,6 +11,7 @@ import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-ca
 import { GetFamilyVisitDetailUseCase } from './application/use-cases/get-family-visit-detail.use-case';
 import { GetRecipientHealthUseCase } from './application/use-cases/get-recipient-health.use-case';
 import { GetRecipientVisitsUseCase } from './application/use-cases/get-recipient-visits.use-case';
+import { ReviseCareScheduleUseCase } from './application/use-cases/revise-care-schedule.use-case';
 import { BookingsFamilyPlanDirectory } from './infrastructure/access/bookings-family-plan-directory';
 import { FamilyCareController } from './presentation/family-care.controller';
 
@@ -30,6 +31,7 @@ import { FamilyCareController } from './presentation/family-care.controller';
     GetRecipientVisitsUseCase,
     GetFamilyVisitDetailUseCase,
     DownloadVisitPhotosUseCase,
+    ReviseCareScheduleUseCase,
     { provide: FAMILY_PLAN_DIRECTORY, useClass: BookingsFamilyPlanDirectory },
   ],
 })

@@ -38,7 +38,14 @@ export interface CarePlanResult {
   planName: string | null;
   goals: { label: string; achieved: boolean }[];
   services: string[];
-  schedule: { frequency: string; startDate: string; expectedDuration: string } | null;
+  schedule: {
+    frequency: string;
+    startDate: string;
+    expectedDuration: string;
+    days: string[];
+    startTime: string | null;
+    visitDurationHours: number | null;
+  } | null;
   caregivers: {
     primary: { id: string; name: string } | null;
     backup: { id: string; name: string } | null;

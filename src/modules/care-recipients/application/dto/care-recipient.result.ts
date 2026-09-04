@@ -41,6 +41,9 @@ export interface CareRecipientResult {
     frequency: CareFrequency;
     estimatedStartDate: string;
     expectedDuration: string;
+    days: string[];
+    startMinute: number | null;
+    visitDurationMinutes: number | null;
   } | null;
   completedAt: string | null;
   createdAt: string;
@@ -95,6 +98,9 @@ export function toCareRecipientResult(recipient: CareRecipient): CareRecipientRe
             frequency: schedule.frequency,
             estimatedStartDate: toIsoDate(schedule.estimatedStartDate),
             expectedDuration: schedule.expectedDuration,
+            days: schedule.days.map((day) => String(day)),
+            startMinute: schedule.startMinute,
+            visitDurationMinutes: schedule.visitDurationMinutes,
           },
     completedAt: recipient.completedAt === null ? null : recipient.completedAt.toISOString(),
     createdAt: recipient.createdAt.toISOString(),

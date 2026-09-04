@@ -1,4 +1,15 @@
-import { Controller, Get, Param, ParseUUIDPipe, StreamableFile, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Put,
+  StreamableFile,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-principal';
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
@@ -10,11 +21,13 @@ import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-c
 import { GetFamilyVisitDetailUseCase } from '../application/use-cases/get-family-visit-detail.use-case';
 import { GetRecipientHealthUseCase } from '../application/use-cases/get-recipient-health.use-case';
 import { GetRecipientVisitsUseCase } from '../application/use-cases/get-recipient-visits.use-case';
+import { ReviseCareScheduleUseCase } from '../application/use-cases/revise-care-schedule.use-case';
 import {
   CareOverviewResponseDto,
   CarePlanResponseDto,
   RecipientHealthResponseDto,
 } from './dto/care-section-response.dto';
+import { ReviseScheduleRequestDto } from './dto/revise-schedule-request.dto';
 import {
   FamilyVisitDetailResponseDto,
   FamilyVisitsResponseDto,
@@ -36,6 +49,7 @@ export class FamilyCareController {
     private readonly getVisits: GetRecipientVisitsUseCase,
     private readonly getVisitDetail: GetFamilyVisitDetailUseCase,
     private readonly downloadPhotos: DownloadVisitPhotosUseCase,
+    private readonly reviseSchedule: ReviseCareScheduleUseCase,
   ) {}
 
   @Get('care-recipients/:id/overview')
@@ -70,6 +84,32 @@ export class FamilyCareController {
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CarePlanResponseDto> {
+    const result = await this.getCarePlan.execute({
+      ownerId: principal.userId,
+      careRecipientId: id,
+    });
+    return CarePlanResponseDto.fromResult(result);
+  }
+
+  @Put('care-recipients/:id/schedule')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Modify the care schedule of an active recipient' })
+  @ApiOkResponse({ type: CarePlanResponseDto })
+  async modifySchedule(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ReviseScheduleRequestDto,
+  ): Promise<CarePlanResponseDto> {
+    await this.reviseSchedule.execute({
+      ownerId: principal.userId,
+      careRecipientId: id,
+      frequency: body.frequency,
+      estimatedStartDate: body.estimatedStartDate,
+      expectedDuration: body.expectedDuration,
+      days: body.days,
+      startMinute: body.startMinute,
+      visitDurationMinutes: body.visitDurationMinutes,
+    });
     const result = await this.getCarePlan.execute({
       ownerId: principal.userId,
       careRecipientId: id,

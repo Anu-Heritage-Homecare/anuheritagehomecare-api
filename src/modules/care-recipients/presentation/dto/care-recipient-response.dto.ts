@@ -43,6 +43,15 @@ class CareRecipientScheduleDto {
 
   @ApiProperty()
   expectedDuration!: string;
+
+  @ApiProperty({ type: String, isArray: true, example: ['MONDAY', 'WEDNESDAY', 'FRIDAY'] })
+  days!: string[];
+
+  @ApiProperty({ nullable: true, example: 540 })
+  startMinute!: number | null;
+
+  @ApiProperty({ nullable: true, example: 180 })
+  visitDurationMinutes!: number | null;
 }
 
 /**
