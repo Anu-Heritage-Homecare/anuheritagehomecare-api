@@ -19,13 +19,16 @@ class InMemoryPreferencesRepository implements ProfilePreferencesRepository {
 }
 
 const allOn = {
-  push: true,
-  email: true,
-  sms: true,
   visitUpdates: true,
-  careAlerts: true,
-  billingAlerts: true,
-  messageAlerts: true,
+  caregiverUpdates: true,
+  healthAlerts: true,
+  medicationReminders: true,
+  messages: true,
+  carePlanUpdates: true,
+  announcements: true,
+  invoicesAndPayments: true,
+  paymentReminders: true,
+  marketingAndOffers: true,
 };
 
 describe('profile preferences', () => {
@@ -37,22 +40,24 @@ describe('profile preferences', () => {
       userId: 'user-1',
     });
     expect(result.language).toBe('en');
-    expect(result.notifications.push).toBe(true);
-    expect(result.notifications.sms).toBe(false);
+    expect(result.notifications.visitUpdates).toBe(true);
+    // Marketing is the one category off by default.
+    expect(result.notifications.marketingAndOffers).toBe(false);
   });
 
   it('updates and then reads back the saved preferences', async () => {
     const repo = new InMemoryPreferencesRepository();
     await new UpdatePreferencesUseCase(repo, clock).execute({
       userId: 'user-1',
-      notifications: { ...allOn, sms: false, billingAlerts: false },
+      notifications: { ...allOn, marketingAndOffers: false, invoicesAndPayments: false },
       language: 'en',
       preferredContactMethod: 'PHONE',
     });
 
     const result = await new GetPreferencesUseCase(repo, clock).execute({ userId: 'user-1' });
-    expect(result.notifications.sms).toBe(false);
-    expect(result.notifications.billingAlerts).toBe(false);
+    expect(result.notifications.marketingAndOffers).toBe(false);
+    expect(result.notifications.invoicesAndPayments).toBe(false);
+    expect(result.notifications.healthAlerts).toBe(true);
     expect(result.preferredContactMethod).toBe('PHONE');
   });
 

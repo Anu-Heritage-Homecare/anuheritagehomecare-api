@@ -1,15 +1,42 @@
 import { Entity } from '@shared/domain/entity.base';
 import { ValidationException } from '@shared/domain/domain-exception';
 
+/**
+ * The owner's per category notification switches, mirroring the Notifications
+ * screen exactly: four Care Updates, three Communications, two Billing and
+ * Payments, and one Marketing toggle. Each governs whether a class of event
+ * reaches the owner. Marketing is off by default; every other category is on.
+ */
 export interface NotificationPreferences {
-  push: boolean;
-  email: boolean;
-  sms: boolean;
+  // Care Updates
   visitUpdates: boolean;
-  careAlerts: boolean;
-  billingAlerts: boolean;
-  messageAlerts: boolean;
+  caregiverUpdates: boolean;
+  healthAlerts: boolean;
+  medicationReminders: boolean;
+  // Communications
+  messages: boolean;
+  carePlanUpdates: boolean;
+  announcements: boolean;
+  // Billing and Payments
+  invoicesAndPayments: boolean;
+  paymentReminders: boolean;
+  // Marketing
+  marketingAndOffers: boolean;
 }
+
+/** The ordered keys of every notification category, for exhaustive iteration. */
+export const NOTIFICATION_CATEGORY_KEYS: readonly (keyof NotificationPreferences)[] = [
+  'visitUpdates',
+  'caregiverUpdates',
+  'healthAlerts',
+  'medicationReminders',
+  'messages',
+  'carePlanUpdates',
+  'announcements',
+  'invoicesAndPayments',
+  'paymentReminders',
+  'marketingAndOffers',
+];
 
 export type PreferredContactMethod = 'EMAIL' | 'PHONE' | 'SMS';
 
@@ -26,7 +53,7 @@ const CONTACT_METHODS: PreferredContactMethod[] = ['EMAIL', 'PHONE', 'SMS'];
 /**
  * A family owner's notification and app preferences, keyed by their user id. The
  * entity id is the user id (one row per user). New users get sensible defaults
- * (all notifications on except SMS, English) until they change them.
+ * (every notification category on except Marketing, English) until they change them.
  */
 export class ProfilePreferences extends Entity<string> {
   private props: ProfilePreferencesProps;
@@ -39,13 +66,16 @@ export class ProfilePreferences extends Entity<string> {
   public static default(userId: string, now: Date): ProfilePreferences {
     return new ProfilePreferences(userId, {
       notifications: {
-        push: true,
-        email: true,
-        sms: false,
         visitUpdates: true,
-        careAlerts: true,
-        billingAlerts: true,
-        messageAlerts: true,
+        caregiverUpdates: true,
+        healthAlerts: true,
+        medicationReminders: true,
+        messages: true,
+        carePlanUpdates: true,
+        announcements: true,
+        invoicesAndPayments: true,
+        paymentReminders: true,
+        marketingAndOffers: false,
       },
       language: 'en',
       preferredContactMethod: 'EMAIL',

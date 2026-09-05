@@ -683,20 +683,30 @@ enum InvitationStatus {
 // A family owner's notification and app preferences (the Profile Preferences and
 // Notifications screens). One row per user, created with sensible defaults on
 // first read. Owned by the profile context.
+// A family owner's per category notification switches, mirroring the
+// Notifications screen. One row per user. Marketing is off by default; every
+// other category is on.
 model ProfilePreferences {
-  userId        String  @id @db.Uuid
-  pushEnabled   Boolean @default(true)
-  emailEnabled  Boolean @default(true)
-  smsEnabled    Boolean @default(false)
-  visitUpdates  Boolean @default(true)
-  careAlerts    Boolean @default(true)
-  billingAlerts Boolean @default(true)
-  messageAlerts Boolean @default(true)
-  language      String  @default("en") @db.VarChar(10)
+  userId              String  @id @db.Uuid
+  // Care Updates
+  visitUpdates        Boolean @default(true)
+  caregiverUpdates    Boolean @default(true)
+  healthAlerts        Boolean @default(true)
+  medicationReminders Boolean @default(true)
+  // Communications
+  messages            Boolean @default(true)
+  carePlanUpdates     Boolean @default(true)
+  announcements       Boolean @default(true)
+  // Billing and Payments
+  invoicesAndPayments Boolean @default(true)
+  paymentReminders    Boolean @default(true)
+  // Marketing
+  marketingAndOffers  Boolean @default(false)
+  language            String  @default("en") @db.VarChar(10)
   // Preferred contact method: EMAIL, PHONE or SMS.
   preferredContactMethod String @default("EMAIL") @db.VarChar(10)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@map("profile_preferences")
 }

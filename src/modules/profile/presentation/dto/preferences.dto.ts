@@ -4,13 +4,20 @@ import { IsBoolean, IsIn, IsObject, ValidateNested } from 'class-validator';
 import { PreferencesResult } from '../../application/use-cases/get-preferences.use-case';
 
 class NotificationPreferencesDto {
-  @ApiProperty() @IsBoolean() push!: boolean;
-  @ApiProperty() @IsBoolean() email!: boolean;
-  @ApiProperty() @IsBoolean() sms!: boolean;
+  // Care Updates
   @ApiProperty() @IsBoolean() visitUpdates!: boolean;
-  @ApiProperty() @IsBoolean() careAlerts!: boolean;
-  @ApiProperty() @IsBoolean() billingAlerts!: boolean;
-  @ApiProperty() @IsBoolean() messageAlerts!: boolean;
+  @ApiProperty() @IsBoolean() caregiverUpdates!: boolean;
+  @ApiProperty() @IsBoolean() healthAlerts!: boolean;
+  @ApiProperty() @IsBoolean() medicationReminders!: boolean;
+  // Communications
+  @ApiProperty() @IsBoolean() messages!: boolean;
+  @ApiProperty() @IsBoolean() carePlanUpdates!: boolean;
+  @ApiProperty() @IsBoolean() announcements!: boolean;
+  // Billing and Payments
+  @ApiProperty() @IsBoolean() invoicesAndPayments!: boolean;
+  @ApiProperty() @IsBoolean() paymentReminders!: boolean;
+  // Marketing
+  @ApiProperty() @IsBoolean() marketingAndOffers!: boolean;
 }
 
 /** Request to replace the owner's notification and app preferences. */
