@@ -611,6 +611,34 @@ enum Currency {
   @@map("currency")
 }
 
+// The family owner's emergency contact (Profile). One row per user; distinct from
+// the owner's own account details so a different person can be reached in an
+// emergency. Owned by the profile context.
+model EmergencyContact {
+  userId       String   @id @db.Uuid
+  name         String   @db.VarChar(200)
+  phone        String   @db.VarChar(20)
+  relationship String   @db.VarChar(120)
+  updatedAt    DateTime @updatedAt
+
+  @@map("emergency_contacts")
+}
+
+// One person in the owner's care circle (Profile): family and friends around the
+// recipient. Owned by the profile context and ordered by when they were added.
+model CareCircleMember {
+  id           String   @id @default(uuid()) @db.Uuid
+  ownerId      String   @db.Uuid
+  name         String   @db.VarChar(200)
+  relationship String   @db.VarChar(120)
+  phone        String?  @db.VarChar(20)
+  email        String?  @db.VarChar(255)
+  createdAt    DateTime @default(now())
+
+  @@index([ownerId])
+  @@map("care_circle_members")
+}
+
 // A family owner's notification and app preferences (the Profile Preferences and
 // Notifications screens). One row per user, created with sensible defaults on
 // first read. Owned by the profile context.
