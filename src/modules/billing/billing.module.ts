@@ -9,6 +9,7 @@ import {
   BILLING_SUBSCRIPTION_DIRECTORY,
 } from './application/ports/billing-directories.port';
 import { GetBillingDashboardUseCase } from './application/use-cases/get-billing-dashboard.use-case';
+import { GetUpcomingPaymentUseCase } from './application/use-cases/get-upcoming-payment.use-case';
 import { GetInvoiceUseCase } from './application/use-cases/get-invoice.use-case';
 import { GetReceiptUseCase } from './application/use-cases/get-receipt.use-case';
 import { IssueInvoiceUseCase } from './application/use-cases/issue-invoice.use-case';
@@ -34,6 +35,7 @@ import { FamilyBillingController } from './presentation/family-billing.controlle
   controllers: [FamilyBillingController],
   providers: [
     GetBillingDashboardUseCase,
+    GetUpcomingPaymentUseCase,
     ListInvoicesUseCase,
     GetInvoiceUseCase,
     ListReceiptsUseCase,

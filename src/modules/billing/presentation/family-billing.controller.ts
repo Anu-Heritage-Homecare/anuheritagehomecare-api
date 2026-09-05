@@ -20,6 +20,7 @@ import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-princ
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
 import { GetBillingDashboardUseCase } from '../application/use-cases/get-billing-dashboard.use-case';
+import { GetUpcomingPaymentUseCase } from '../application/use-cases/get-upcoming-payment.use-case';
 import { GetInvoiceUseCase } from '../application/use-cases/get-invoice.use-case';
 import { GetReceiptUseCase } from '../application/use-cases/get-receipt.use-case';
 import { ListInvoicesUseCase } from '../application/use-cases/list-invoices.use-case';
@@ -32,6 +33,7 @@ import {
   InvoiceSummaryResponseDto,
   PayInvoiceResponseDto,
   ReceiptResponseDto,
+  UpcomingPaymentResponseDto,
   UpgradedPlanResponseDto,
 } from './dto/billing-response.dto';
 import { UpgradePlanRequestDto } from './dto/upgrade-plan-request.dto';
@@ -54,6 +56,7 @@ export class FamilyBillingController {
     private readonly getReceipt: GetReceiptUseCase,
     private readonly payInvoiceUseCase: PayInvoiceUseCase,
     private readonly upgradePlan: UpgradeSubscriptionPlanUseCase,
+    private readonly getUpcomingPayment: GetUpcomingPaymentUseCase,
   ) {}
 
   @Get()
@@ -64,6 +67,19 @@ export class FamilyBillingController {
   ): Promise<BillingDashboardResponseDto> {
     const result = await this.getDashboard.execute({ ownerId: principal.userId });
     return BillingDashboardResponseDto.fromResult(result);
+  }
+
+  @Get('upcoming-payment')
+  @ApiOperation({ summary: 'The upcoming payment detail: amount, tax, total, method and auto pay' })
+  @ApiOkResponse({ type: UpcomingPaymentResponseDto })
+  async upcomingPayment(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): Promise<UpcomingPaymentResponseDto> {
+    const result = await this.getUpcomingPayment.execute({
+      ownerId: principal.userId,
+      country: principal.country,
+    });
+    return UpcomingPaymentResponseDto.fromResult(result);
   }
 
   @Get('invoices')

@@ -11,7 +11,9 @@ import {
   BillingSubscriptionDirectory,
   BillingSubscriptionView,
 } from '../ports/billing-directories.port';
+import { ConfigService } from '@nestjs/config';
 import { GetBillingDashboardUseCase } from './get-billing-dashboard.use-case';
+import { GetUpcomingPaymentUseCase } from './get-upcoming-payment.use-case';
 import { GetInvoiceUseCase } from './get-invoice.use-case';
 import { GetReceiptUseCase } from './get-receipt.use-case';
 import { IssueInvoiceUseCase } from './issue-invoice.use-case';
@@ -60,10 +62,14 @@ function planDirectory(): BillingPlanDirectory {
   };
 }
 
-function paymentDirectory(payments: BillingPaymentView[]): BillingPaymentDirectory {
+function paymentDirectory(
+  payments: BillingPaymentView[],
+  defaultCard: { brand: string; last4: string } | null = null,
+): BillingPaymentDirectory {
   return {
     listForOwner: () => Promise.resolve([...payments]),
     findForOwner: (_ownerId, id) => Promise.resolve(payments.find((p) => p.id === id) ?? null),
+    defaultCardForOwner: () => Promise.resolve(defaultCard),
   };
 }
 
@@ -415,5 +421,64 @@ describe('upgrade plan', () => {
     await expect(
       upgrade.execute({ ownerId: 'someone-else', subscriptionId: 'sub-usd', planType: 'PREMIUM' }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
+  });
+});
+
+describe('upcoming payment', () => {
+  function taxConfig(bpsByCountry: Record<string, number>): ConfigService {
+    return {
+      getOrThrow: () => ({ taxRateBpsByCountry: bpsByCountry }),
+    } as unknown as ConfigService;
+  }
+
+  it('breaks the next charge into base, tax and total with the market rate', async () => {
+    const useCase = new GetUpcomingPaymentUseCase(
+      subscriptionDirectory([SUB]),
+      paymentDirectory([], { brand: 'Visa', last4: '4242' }),
+      clock,
+      taxConfig({ NG: 333 }),
+    );
+
+    const result = await useCase.execute({ ownerId: 'owner-1', country: 'NG' });
+
+    expect(result).toEqual({
+      nextPaymentDate: '2026-08-15',
+      currency: 'NGN',
+      basePlanMinor: 18_900_000,
+      taxRateBps: 333,
+      taxMinor: 629_370, // floor(18_900_000 * 333 / 10000)
+      totalMinor: 19_529_370,
+      autoPay: true,
+      paymentMethod: { brand: 'Visa', last4: '4242' },
+    });
+  });
+
+  it('adds no tax when the market has no rate configured, and no card is null', async () => {
+    const useCase = new GetUpcomingPaymentUseCase(
+      subscriptionDirectory([SUB]),
+      paymentDirectory([]),
+      clock,
+      taxConfig({}),
+    );
+
+    const result = await useCase.execute({ ownerId: 'owner-1', country: 'NG' });
+
+    expect(result.taxRateBps).toBe(0);
+    expect(result.taxMinor).toBe(0);
+    expect(result.totalMinor).toBe(18_900_000);
+    expect(result.paymentMethod).toBeNull();
+  });
+
+  it('404s when the owner has no active subscription', async () => {
+    const useCase = new GetUpcomingPaymentUseCase(
+      subscriptionDirectory([]),
+      paymentDirectory([]),
+      clock,
+      taxConfig({ NG: 333 }),
+    );
+
+    await expect(useCase.execute({ ownerId: 'owner-1', country: 'NG' })).rejects.toBeInstanceOf(
+      NotFoundDomainException,
+    );
   });
 });

@@ -5,6 +5,7 @@ import {
   InvoiceDetailResult,
   InvoiceSummaryResult,
   ReceiptResult,
+  UpcomingPaymentResult,
 } from '../../application/dto/billing.result';
 import { UpgradedPlanResult } from '../../application/use-cases/upgrade-subscription-plan.use-case';
 
@@ -169,6 +170,45 @@ export class ReceiptResponseDto {
 
   static fromResult(result: ReceiptResult): ReceiptResponseDto {
     return Object.assign(new ReceiptResponseDto(), result);
+  }
+}
+
+class UpcomingPaymentMethodDto {
+  @ApiProperty({ example: 'Visa' })
+  brand!: string;
+
+  @ApiProperty({ example: '4242' })
+  last4!: string;
+}
+
+/** HTTP response for the Upcoming Payment detail. */
+export class UpcomingPaymentResponseDto {
+  @ApiProperty({ example: '2026-08-15' })
+  nextPaymentDate!: string;
+
+  @ApiProperty({ example: 'NGN' })
+  currency!: string;
+
+  @ApiProperty({ example: 18_900_000 })
+  basePlanMinor!: number;
+
+  @ApiProperty({ example: 333, description: 'Tax rate in basis points (333 = 3.33%)' })
+  taxRateBps!: number;
+
+  @ApiProperty({ example: 629_370 })
+  taxMinor!: number;
+
+  @ApiProperty({ example: 19_529_370 })
+  totalMinor!: number;
+
+  @ApiProperty({ example: true })
+  autoPay!: boolean;
+
+  @ApiProperty({ type: UpcomingPaymentMethodDto, nullable: true })
+  paymentMethod!: { brand: string; last4: string } | null;
+
+  static fromResult(result: UpcomingPaymentResult): UpcomingPaymentResponseDto {
+    return Object.assign(new UpcomingPaymentResponseDto(), result);
   }
 }
 

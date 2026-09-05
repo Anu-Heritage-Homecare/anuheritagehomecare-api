@@ -99,6 +99,11 @@ export const envSchema = z.object({
   // payments webhook endpoint secret).
   STRIPE_IDENTITY_WEBHOOK_SECRET: z.string().default(''),
 
+  // Sales tax rate applied to billing, in basis points, per market. Defaults to
+  // zero so no tax is added until the real rates are configured.
+  BILLING_TAX_BPS_US: z.coerce.number().int().min(0).max(10000).default(0),
+  BILLING_TAX_BPS_NG: z.coerce.number().int().min(0).max(10000).default(0),
+
   // Cloudinary photo storage for visit photos. Optional so the service boots
   // without them; the adapter fails closed for uploads if the secret is empty.
   // Signed upload happens client side with a server issued signature, so the api

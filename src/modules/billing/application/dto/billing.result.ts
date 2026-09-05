@@ -20,6 +20,18 @@ export interface BillingDashboardResult {
   };
 }
 
+/** The Upcoming Payment detail: the next charge broken down, plus how it is paid. */
+export interface UpcomingPaymentResult {
+  nextPaymentDate: string;
+  currency: string;
+  basePlanMinor: number;
+  taxRateBps: number;
+  taxMinor: number;
+  totalMinor: number;
+  autoPay: boolean;
+  paymentMethod: { brand: string; last4: string } | null;
+}
+
 /** One invoice in the owner's billing history. */
 export interface InvoiceSummaryResult {
   id: string;

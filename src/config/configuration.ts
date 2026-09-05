@@ -87,6 +87,11 @@ export interface PhotoStorageConfig {
   readonly folder: string;
 }
 
+export interface BillingConfig {
+  /** Sales tax rate in basis points, keyed by ISO country code (for example US, NG). */
+  readonly taxRateBpsByCountry: Record<string, number>;
+}
+
 export function buildConfig(env: Env): {
   app: AppConfig;
   auth: AuthConfig;
@@ -99,6 +104,7 @@ export function buildConfig(env: Env): {
   payment: PaymentConfig;
   kyc: KycConfig;
   photoStorage: PhotoStorageConfig;
+  billing: BillingConfig;
 } {
   return {
     app: {
@@ -174,6 +180,12 @@ export function buildConfig(env: Env): {
       apiKey: env.CLOUDINARY_API_KEY,
       apiSecret: env.CLOUDINARY_API_SECRET,
       folder: env.CLOUDINARY_FOLDER,
+    },
+    billing: {
+      taxRateBpsByCountry: {
+        US: env.BILLING_TAX_BPS_US,
+        NG: env.BILLING_TAX_BPS_NG,
+      },
     },
   };
 }

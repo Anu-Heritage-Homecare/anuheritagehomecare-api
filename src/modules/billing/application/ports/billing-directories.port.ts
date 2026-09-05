@@ -53,9 +53,17 @@ export interface BillingPaymentView {
   createdAt: Date;
 }
 
+/** The owner's default saved card, as billing needs to show it. */
+export interface BillingCardView {
+  brand: string;
+  last4: string;
+}
+
 export interface BillingPaymentDirectory {
   listForOwner(ownerId: string): Promise<BillingPaymentView[]>;
   findForOwner(ownerId: string, paymentId: string): Promise<BillingPaymentView | null>;
+  /** The owner's default saved card, or null when none is on file. */
+  defaultCardForOwner(ownerId: string): Promise<BillingCardView | null>;
 }
 
 export const BILLING_PAYMENT_DIRECTORY = Symbol('BILLING_PAYMENT_DIRECTORY');
