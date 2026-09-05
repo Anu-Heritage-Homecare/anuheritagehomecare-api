@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -22,6 +23,7 @@ import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
 import { GetBillingDashboardUseCase } from '../application/use-cases/get-billing-dashboard.use-case';
 import { GetUpcomingPaymentUseCase } from '../application/use-cases/get-upcoming-payment.use-case';
 import { GetInvoiceUseCase } from '../application/use-cases/get-invoice.use-case';
+import { ListInvoicesFilterDto } from './dto/list-invoices-filter.dto';
 import { GetReceiptUseCase } from '../application/use-cases/get-receipt.use-case';
 import { ListInvoicesUseCase } from '../application/use-cases/list-invoices.use-case';
 import { ListReceiptsUseCase } from '../application/use-cases/list-receipts.use-case';
@@ -83,12 +85,16 @@ export class FamilyBillingController {
   }
 
   @Get('invoices')
-  @ApiOperation({ summary: "The owner's invoices, newest first" })
+  @ApiOperation({ summary: "The owner's invoices, newest first (All, Paid or Outstanding)" })
   @ApiOkResponse({ type: [InvoiceSummaryResponseDto] })
   async invoices(
     @CurrentUser() principal: AuthenticatedPrincipal,
+    @Query() query: ListInvoicesFilterDto,
   ): Promise<InvoiceSummaryResponseDto[]> {
-    const results = await this.listInvoices.execute({ ownerId: principal.userId });
+    const results = await this.listInvoices.execute({
+      ownerId: principal.userId,
+      filter: query.status,
+    });
     return results.map((result) => InvoiceSummaryResponseDto.fromResult(result));
   }
 

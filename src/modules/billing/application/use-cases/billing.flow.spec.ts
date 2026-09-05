@@ -4,6 +4,7 @@ import { NotFoundDomainException, ValidationException } from '@shared/domain/dom
 import { InitiatePaymentUseCase } from '@modules/payments/application/use-cases/initiate-payment.use-case';
 import { Invoice } from '../../domain/invoice.entity';
 import { InvoiceRepository } from '../../domain/invoice.repository';
+import { InvoiceSummaryResult } from '../dto/billing.result';
 import {
   BillingPaymentDirectory,
   BillingPaymentView,
@@ -244,6 +245,38 @@ describe('invoices', () => {
       paymentDirectory([invoicePayment]),
     ).execute({ ownerId: 'owner-1' });
     expect(list[0].status).toBe('PAID');
+  });
+
+  it('filters by the Paid and Outstanding tabs', async () => {
+    const sub2: BillingSubscriptionView = {
+      ...SUB,
+      id: 'sub-2',
+      startDate: new Date('2026-06-15T00:00:00.000Z'),
+    };
+    const both = new IssueInvoiceUseCase(
+      subscriptionDirectory([SUB, sub2]),
+      invoices,
+      incrementingIds(),
+      clock,
+    );
+    await both.execute({ subscriptionId: 'sub-1', reference: NOW });
+    const paidInvoice = await both.execute({ subscriptionId: 'sub-2', reference: NOW });
+    const settling = payment({
+      id: 'pay-inv',
+      payableType: 'INVOICE',
+      payableId: paidInvoice.id,
+      createdAt: new Date('2026-08-09'),
+    });
+
+    const list = (filter?: 'PAID' | 'OUTSTANDING'): Promise<InvoiceSummaryResult[]> =>
+      new ListInvoicesUseCase(invoices, paymentDirectory([settling])).execute({
+        ownerId: 'owner-1',
+        filter,
+      });
+
+    expect((await list()).length).toBe(2);
+    expect((await list('PAID')).map((i) => i.status)).toEqual(['PAID']);
+    expect((await list('OUTSTANDING')).map((i) => i.status)).toEqual(['ISSUED']);
   });
 
   it('is idempotent per subscription period, and fetches owner scoped', async () => {
