@@ -22,6 +22,9 @@ export class PaymentMethodResponseDto {
   @ApiProperty({ example: 2028 })
   expYear!: number;
 
+  @ApiProperty({ nullable: true, example: 'Raener Yaeger' })
+  cardHolderName!: string | null;
+
   @ApiProperty()
   isDefault!: boolean;
 
@@ -33,6 +36,7 @@ export class PaymentMethodResponseDto {
     dto.last4 = result.last4;
     dto.expMonth = result.expMonth;
     dto.expYear = result.expYear;
+    dto.cardHolderName = result.cardHolderName;
     dto.isDefault = result.isDefault;
     return dto;
   }

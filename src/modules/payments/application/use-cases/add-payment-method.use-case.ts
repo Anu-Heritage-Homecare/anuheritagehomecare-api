@@ -17,6 +17,8 @@ export interface AddPaymentMethodCommand {
   country: string;
   /** The setup handle returned by the start step and completed by the client. */
   reference: string;
+  /** The name the owner gave the card (display only; never the card data). */
+  cardHolderName?: string;
 }
 
 /**
@@ -59,6 +61,7 @@ export class AddPaymentMethodUseCase {
       last4: card.last4,
       expMonth: card.expMonth,
       expYear: card.expYear,
+      cardHolderName: command.cardHolderName?.trim() || null,
       isDefault: existing.length === 0,
       createdAt: this.clock.now(),
     });

@@ -10,6 +10,8 @@ interface PaymentMethodProps {
   last4: string;
   expMonth: number;
   expYear: number;
+  /** The name the owner gave the card, for display; not from the card itself. */
+  cardHolderName: string | null;
   isDefault: boolean;
   createdAt: Date;
 }
@@ -64,6 +66,10 @@ export class PaymentMethod extends Entity<string> {
 
   public get last4(): string {
     return this.props.last4;
+  }
+
+  public get cardHolderName(): string | null {
+    return this.props.cardHolderName;
   }
 
   public get expMonth(): number {

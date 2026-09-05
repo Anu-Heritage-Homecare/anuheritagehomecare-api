@@ -21,6 +21,7 @@ export class PaymentMethodPrismaRepository implements PaymentMethodRepository {
         last4: row.last4,
         expMonth: row.expMonth,
         expYear: row.expYear,
+        cardHolderName: row.cardHolderName,
         isDefault: row.isDefault,
       },
     });

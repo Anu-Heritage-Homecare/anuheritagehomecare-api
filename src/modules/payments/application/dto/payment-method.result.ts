@@ -8,6 +8,7 @@ export interface PaymentMethodResult {
   last4: string;
   expMonth: number;
   expYear: number;
+  cardHolderName: string | null;
   isDefault: boolean;
 }
 
@@ -19,6 +20,7 @@ export function toPaymentMethodResult(method: PaymentMethod): PaymentMethodResul
     last4: method.last4,
     expMonth: method.expMonth,
     expYear: method.expYear,
+    cardHolderName: method.cardHolderName,
     isDefault: method.isDefault,
   };
 }

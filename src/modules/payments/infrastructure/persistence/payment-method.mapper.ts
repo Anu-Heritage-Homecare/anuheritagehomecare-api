@@ -17,6 +17,7 @@ export class PaymentMethodMapper {
       last4: row.last4,
       expMonth: row.expMonth,
       expYear: row.expYear,
+      cardHolderName: row.cardHolderName,
       isDefault: row.isDefault,
       createdAt: row.createdAt,
     });
@@ -33,6 +34,7 @@ export class PaymentMethodMapper {
       last4: method.last4,
       expMonth: method.expMonth,
       expYear: method.expYear,
+      cardHolderName: method.cardHolderName,
       isDefault: method.isDefault,
       createdAt: method.createdAt,
     };

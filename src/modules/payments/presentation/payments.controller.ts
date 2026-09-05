@@ -112,6 +112,7 @@ export class PaymentsController {
       ownerId: principal.userId,
       country: principal.country,
       reference: body.reference,
+      cardHolderName: body.cardHolderName,
     });
     return PaymentMethodResponseDto.fromResult(result);
   }

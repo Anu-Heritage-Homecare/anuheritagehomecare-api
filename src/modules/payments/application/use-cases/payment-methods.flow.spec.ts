@@ -39,20 +39,32 @@ describe('payment method management', () => {
     expect(setup.reference).toBe('setup_ref-1');
   });
 
-  it('saves the tokenised card and makes the first one default', async () => {
+  it('saves the tokenised card with the holder name and makes the first one default', async () => {
     const setup = await start.execute({ ownerId: 'owner-1', ownerEmail: 'a@b.com', country: 'NG' });
     const saved = await add.execute({
       ownerId: 'owner-1',
       country: 'NG',
       reference: setup.reference,
+      cardHolderName: '  Raener Yaeger  ',
     });
 
     expect(saved).toMatchObject({
       provider: PaymentProvider.Paystack,
       brand: 'Visa',
       last4: '4242',
+      cardHolderName: 'Raener Yaeger',
       isDefault: true,
     });
+  });
+
+  it('stores a null holder name when none is given', async () => {
+    const setup = await start.execute({ ownerId: 'owner-1', ownerEmail: 'a@b.com', country: 'NG' });
+    const saved = await add.execute({
+      ownerId: 'owner-1',
+      country: 'NG',
+      reference: setup.reference,
+    });
+    expect(saved.cardHolderName).toBeNull();
   });
 
   it('is idempotent when the same card setup is confirmed twice', async () => {

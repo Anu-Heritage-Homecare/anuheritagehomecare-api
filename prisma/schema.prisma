@@ -778,6 +778,7 @@ model PaymentMethod {
   last4               String          @db.VarChar(4)
   expMonth            Int
   expYear             Int
+  cardHolderName      String?         @db.VarChar(200)
   isDefault           Boolean         @default(false)
   createdAt           DateTime        @default(now())
 
