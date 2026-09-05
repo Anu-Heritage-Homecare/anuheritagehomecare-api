@@ -4,6 +4,7 @@ import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generato
 import { Currency } from '@shared/domain/currency.enum';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { Invoice } from '../../domain/invoice.entity';
+import { InvoiceLineItem } from '../../domain/invoice-line-item.vo';
 import { INVOICE_REPOSITORY, InvoiceRepository } from '../../domain/invoice.repository';
 import { InvoiceDetailResult, toInvoiceDetail } from '../dto/billing.result';
 import { monthlyPeriodContaining } from '../billing-date.util';
@@ -16,11 +17,21 @@ export interface IssueInvoiceCommand {
   subscriptionId: string;
   /** Any day within the period to bill for. */
   reference: Date;
+  /**
+   * The services and charges to itemise, provided by the office. When omitted a
+   * single line for the plan at its monthly price is used.
+   */
+  lineItems?: { description: string; amountMinor: number }[];
+  /** The tax rate to apply, in basis points; defaults to none. */
+  taxRateBps?: number;
+  /** An office applied discount in minor units; defaults to none. */
+  discountMinor?: number;
 }
 
 /**
- * Use case: issue an invoice for one monthly subscription period. It bills the
- * subscription's monthly price for the period containing the reference day.
+ * Use case: issue an invoice for one monthly subscription period. The office
+ * supplies the line items (or the plan is billed as a single line), and the tax
+ * rate and any discount are snapshotted so the invoice stays a true record.
  * Idempotent per subscription and period. The invoice is paid once its charge
  * settles, which the reads reflect from the settling payment.
  *
@@ -50,6 +61,17 @@ export class IssueInvoiceUseCase {
     );
     const now = this.clock.now();
 
+    const sourceLines =
+      command.lineItems !== undefined && command.lineItems.length > 0
+        ? command.lineItems
+        : [
+            {
+              description: `${subscription.planType} plan`,
+              amountMinor: subscription.monthlyPriceMinor,
+            },
+          ];
+    const lineItems = sourceLines.map((line) => InvoiceLineItem.create(line));
+
     const invoice = Invoice.issue({
       id: this.ids.generate(),
       ownerId: subscription.ownerId,
@@ -57,7 +79,9 @@ export class IssueInvoiceUseCase {
       subscriptionId: subscription.id,
       number: IssueInvoiceUseCase.numberFor(periodStart, subscription.id),
       currency: subscription.currency as Currency,
-      amountMinor: subscription.monthlyPriceMinor,
+      lineItems,
+      taxRateBps: command.taxRateBps ?? 0,
+      discountMinor: command.discountMinor ?? 0,
       periodStart,
       periodEnd,
       dueDate: periodStart,

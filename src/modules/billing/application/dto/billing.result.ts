@@ -44,10 +44,16 @@ export interface InvoiceSummaryResult {
   dueDate: string;
 }
 
-/** The full detail of one invoice. */
+/** The full detail of one invoice: its line items and money breakdown. */
 export interface InvoiceDetailResult extends InvoiceSummaryResult {
   careRecipientId: string;
   subscriptionId: string;
+  lineItems: { description: string; amountMinor: number }[];
+  subtotalMinor: number;
+  taxRateBps: number;
+  taxMinor: number;
+  discountMinor: number;
+  totalMinor: number;
   issuedAt: string;
   paidAt: string | null;
 }
@@ -81,6 +87,15 @@ export function toInvoiceDetail(invoice: Invoice): InvoiceDetailResult {
     ...toInvoiceSummary(invoice),
     careRecipientId: invoice.careRecipientId,
     subscriptionId: invoice.subscriptionId,
+    lineItems: invoice.lineItems.map((line) => ({
+      description: line.description,
+      amountMinor: line.amountMinor,
+    })),
+    subtotalMinor: invoice.subtotalMinor,
+    taxRateBps: invoice.taxRateBps,
+    taxMinor: invoice.taxMinor,
+    discountMinor: invoice.discountMinor,
+    totalMinor: invoice.amountMinor,
     issuedAt: invoice.issuedAt.toISOString(),
     paidAt: invoice.paidAt === null ? null : invoice.paidAt.toISOString(),
   };

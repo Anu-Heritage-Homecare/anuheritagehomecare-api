@@ -628,6 +628,13 @@ model Invoice {
   subscriptionId  String        @db.Uuid
   number          String        @unique @db.VarChar(40)
   currency        Currency
+  // Money breakdown, snapshotted at issue: subtotal is the sum of the line items,
+  // tax is derived from the rate, and amountMinor is the charged total (subtotal
+  // plus tax less discount).
+  subtotalMinor   Int
+  taxRateBps      Int           @default(0)
+  taxMinor        Int           @default(0)
+  discountMinor   Int           @default(0)
   amountMinor     Int
   periodStart     DateTime      @db.Date
   periodEnd       DateTime      @db.Date
@@ -636,9 +643,27 @@ model Invoice {
   issuedAt        DateTime      @default(now())
   paidAt          DateTime?
 
+  lineItems InvoiceLineItem[]
+
   @@unique([subscriptionId, periodStart])
   @@index([ownerId, periodStart])
   @@map("invoices")
+}
+
+// One service or charge line on an invoice, snapshotted at issue and ordered by
+// position. Owned by the Invoice and replaced wholesale when the invoice is saved.
+model InvoiceLineItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  invoiceId   String   @db.Uuid
+  description String   @db.VarChar(200)
+  amountMinor Int
+  position    Int
+  createdAt   DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_line_items")
 }
 
 enum BillingModel {

@@ -91,12 +91,38 @@ export class InvoiceSummaryResponseDto {
 }
 
 /** One invoice in full. */
+class InvoiceLineItemDto {
+  @ApiProperty({ example: 'Medication Support' })
+  description!: string;
+
+  @ApiProperty({ example: 26_000 })
+  amountMinor!: number;
+}
+
 export class InvoiceDetailResponseDto extends InvoiceSummaryResponseDto {
   @ApiProperty({ format: 'uuid' })
   careRecipientId!: string;
 
   @ApiProperty({ format: 'uuid' })
   subscriptionId!: string;
+
+  @ApiProperty({ type: [InvoiceLineItemDto], description: 'The services and charges billed' })
+  lineItems!: { description: string; amountMinor: number }[];
+
+  @ApiProperty({ example: 130_000 })
+  subtotalMinor!: number;
+
+  @ApiProperty({ example: 333, description: 'Tax rate in basis points (333 = 3.33%)' })
+  taxRateBps!: number;
+
+  @ApiProperty({ example: 4_329 })
+  taxMinor!: number;
+
+  @ApiProperty({ example: 0 })
+  discountMinor!: number;
+
+  @ApiProperty({ example: 134_329, description: 'Charged total: subtotal plus tax less discount' })
+  totalMinor!: number;
 
   @ApiProperty()
   issuedAt!: string;

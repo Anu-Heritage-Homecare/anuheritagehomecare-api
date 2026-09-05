@@ -226,6 +226,37 @@ describe('invoices', () => {
     expect(detail.paidAt).toBeNull();
   });
 
+  it('itemises the office line items with a tax and discount breakdown', async () => {
+    const detail = await issuer().execute({
+      subscriptionId: 'sub-1',
+      reference: NOW,
+      lineItems: [
+        { description: 'Medication Support', amountMinor: 100_000 },
+        { description: 'Meal Assistance', amountMinor: 50_000 },
+      ],
+      taxRateBps: 333,
+      discountMinor: 5_000,
+    });
+
+    expect(detail.lineItems).toEqual([
+      { description: 'Medication Support', amountMinor: 100_000 },
+      { description: 'Meal Assistance', amountMinor: 50_000 },
+    ]);
+    expect(detail.subtotalMinor).toBe(150_000);
+    expect(detail.taxRateBps).toBe(333);
+    expect(detail.taxMinor).toBe(4_995); // floor(150_000 * 333 / 10000)
+    expect(detail.discountMinor).toBe(5_000);
+    expect(detail.totalMinor).toBe(149_995); // 150_000 + 4_995 - 5_000
+    expect(detail.amountMinor).toBe(149_995);
+  });
+
+  it('falls back to a single plan line when the office gives no items', async () => {
+    const detail = await issuer().execute({ subscriptionId: 'sub-1', reference: NOW });
+    expect(detail.lineItems).toEqual([{ description: 'PREMIUM plan', amountMinor: 18_900_000 }]);
+    expect(detail.subtotalMinor).toBe(18_900_000);
+    expect(detail.totalMinor).toBe(18_900_000);
+  });
+
   it('reflects an invoice as paid on read once its charge settles', async () => {
     const issued = await issuer().execute({ subscriptionId: 'sub-1', reference: NOW });
     const invoicePayment = payment({

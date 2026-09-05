@@ -2,6 +2,9 @@ import { AggregateRoot } from '@shared/domain/aggregate-root.base';
 import { ValidationException } from '@shared/domain/domain-exception';
 import { Currency } from '@shared/domain/currency.enum';
 import { InvoiceStatus } from './invoice-status.enum';
+import { InvoiceLineItem } from './invoice-line-item.vo';
+
+const BASIS_POINTS = 10_000;
 
 interface InvoiceProps {
   ownerId: string;
@@ -9,6 +12,11 @@ interface InvoiceProps {
   subscriptionId: string;
   number: string;
   currency: Currency;
+  lineItems: InvoiceLineItem[];
+  subtotalMinor: number;
+  taxRateBps: number;
+  taxMinor: number;
+  discountMinor: number;
   amountMinor: number;
   periodStart: Date;
   periodEnd: Date;
@@ -39,25 +47,51 @@ export class Invoice extends AggregateRoot<string> {
     subscriptionId: string;
     number: string;
     currency: Currency;
-    amountMinor: number;
+    lineItems: InvoiceLineItem[];
+    taxRateBps: number;
+    discountMinor: number;
     periodStart: Date;
     periodEnd: Date;
     dueDate: Date;
     issuedAt: Date;
   }): Invoice {
-    if (!Number.isInteger(params.amountMinor) || params.amountMinor < 0) {
-      throw new ValidationException('An invoice amount must be a non negative whole number');
+    if (params.lineItems.length === 0) {
+      throw new ValidationException('An invoice needs at least one line item');
+    }
+    if (
+      !Number.isInteger(params.taxRateBps) ||
+      params.taxRateBps < 0 ||
+      params.taxRateBps > BASIS_POINTS
+    ) {
+      throw new ValidationException('The tax rate must be between 0 and 10000 basis points');
     }
     if (params.periodEnd.getTime() < params.periodStart.getTime()) {
       throw new ValidationException('The invoice period ends before it starts');
     }
+
+    const subtotalMinor = params.lineItems.reduce((sum, line) => sum + line.amountMinor, 0);
+    const taxMinor = Math.floor((subtotalMinor * params.taxRateBps) / BASIS_POINTS);
+    if (
+      !Number.isInteger(params.discountMinor) ||
+      params.discountMinor < 0 ||
+      params.discountMinor > subtotalMinor + taxMinor
+    ) {
+      throw new ValidationException('The discount must be between zero and the invoice total');
+    }
+    const amountMinor = subtotalMinor + taxMinor - params.discountMinor;
+
     return new Invoice(params.id, {
       ownerId: params.ownerId,
       careRecipientId: params.careRecipientId,
       subscriptionId: params.subscriptionId,
       number: params.number,
       currency: params.currency,
-      amountMinor: params.amountMinor,
+      lineItems: [...params.lineItems],
+      subtotalMinor,
+      taxRateBps: params.taxRateBps,
+      taxMinor,
+      discountMinor: params.discountMinor,
+      amountMinor,
       periodStart: params.periodStart,
       periodEnd: params.periodEnd,
       dueDate: params.dueDate,
@@ -100,6 +134,27 @@ export class Invoice extends AggregateRoot<string> {
     return this.props.currency;
   }
 
+  public get lineItems(): InvoiceLineItem[] {
+    return [...this.props.lineItems];
+  }
+
+  public get subtotalMinor(): number {
+    return this.props.subtotalMinor;
+  }
+
+  public get taxRateBps(): number {
+    return this.props.taxRateBps;
+  }
+
+  public get taxMinor(): number {
+    return this.props.taxMinor;
+  }
+
+  public get discountMinor(): number {
+    return this.props.discountMinor;
+  }
+
+  /** The amount charged: subtotal plus tax less discount. */
   public get amountMinor(): number {
     return this.props.amountMinor;
   }

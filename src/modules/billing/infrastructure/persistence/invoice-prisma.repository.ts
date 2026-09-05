@@ -16,15 +16,27 @@ export class InvoicePrismaRepository implements InvoiceRepository {
   async save(invoice: Invoice): Promise<void> {
     const row = InvoiceMapper.toPersistence(invoice);
     const { id: _id, subscriptionId, periodStart, ...mutable } = row;
-    await this.prisma.invoice.upsert({
-      where: { subscriptionId_periodStart: { subscriptionId, periodStart } },
-      create: row,
-      update: mutable,
+    const lines = InvoiceMapper.toLineItemRows(invoice);
+    await this.prisma.$transaction(async (tx) => {
+      // Upsert on the period key: re-issuing a period overwrites its invoice, so
+      // the persisted id may differ from the new one; the line items hang off it.
+      const persisted = await tx.invoice.upsert({
+        where: { subscriptionId_periodStart: { subscriptionId, periodStart } },
+        create: row,
+        update: mutable,
+      });
+      await tx.invoiceLineItem.deleteMany({ where: { invoiceId: persisted.id } });
+      await tx.invoiceLineItem.createMany({
+        data: lines.map((line) => ({ ...line, invoiceId: persisted.id })),
+      });
     });
   }
 
   async findById(id: string): Promise<Invoice | null> {
-    const row = await this.prisma.invoice.findUnique({ where: { id } });
+    const row = await this.prisma.invoice.findUnique({
+      where: { id },
+      include: { lineItems: true },
+    });
     return row ? InvoiceMapper.toDomain(row) : null;
   }
 
@@ -32,6 +44,7 @@ export class InvoicePrismaRepository implements InvoiceRepository {
     const rows = await this.prisma.invoice.findMany({
       where: { ownerId },
       orderBy: { periodStart: 'desc' },
+      include: { lineItems: true },
     });
     return rows.map((row) => InvoiceMapper.toDomain(row));
   }
