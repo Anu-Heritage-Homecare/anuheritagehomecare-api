@@ -7,9 +7,13 @@ import {
   PROFILE_PLAN_DIRECTORY,
   PROFILE_USER_DIRECTORY,
 } from './application/ports/profile-directories.port';
+import { GetPreferencesUseCase } from './application/use-cases/get-preferences.use-case';
 import { GetProfileAccountUseCase } from './application/use-cases/get-profile-account.use-case';
+import { UpdatePreferencesUseCase } from './application/use-cases/update-preferences.use-case';
+import { PROFILE_PREFERENCES_REPOSITORY } from './domain/profile-preferences.repository';
 import { BookingsProfilePlanDirectory } from './infrastructure/access/bookings-profile-plan-directory';
 import { IdentityProfileUserDirectory } from './infrastructure/access/identity-profile-user-directory';
+import { ProfilePreferencesPrismaRepository } from './infrastructure/persistence/profile-preferences-prisma.repository';
 import { ProfileController } from './presentation/profile.controller';
 
 /**
@@ -22,8 +26,11 @@ import { ProfileController } from './presentation/profile.controller';
   controllers: [ProfileController],
   providers: [
     GetProfileAccountUseCase,
+    GetPreferencesUseCase,
+    UpdatePreferencesUseCase,
     { provide: PROFILE_USER_DIRECTORY, useClass: IdentityProfileUserDirectory },
     { provide: PROFILE_PLAN_DIRECTORY, useClass: BookingsProfilePlanDirectory },
+    { provide: PROFILE_PREFERENCES_REPOSITORY, useClass: ProfilePreferencesPrismaRepository },
   ],
 })
 export class ProfileModule {}

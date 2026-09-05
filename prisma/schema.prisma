@@ -611,6 +611,25 @@ enum Currency {
   @@map("currency")
 }
 
+// A family owner's notification and app preferences (the Profile Preferences and
+// Notifications screens). One row per user, created with sensible defaults on
+// first read. Owned by the profile context.
+model ProfilePreferences {
+  userId        String  @id @db.Uuid
+  pushEnabled   Boolean @default(true)
+  emailEnabled  Boolean @default(true)
+  smsEnabled    Boolean @default(false)
+  visitUpdates  Boolean @default(true)
+  careAlerts    Boolean @default(true)
+  billingAlerts Boolean @default(true)
+  messageAlerts Boolean @default(true)
+  language      String  @default("en") @db.VarChar(10)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("profile_preferences")
+}
+
 enum InvoiceStatus {
   ISSUED
   PAID
