@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Patch,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -12,8 +22,11 @@ import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { ChangePasswordUseCase } from '../application/use-cases/change-password.use-case';
 import { DisableTwoFactorUseCase } from '../application/use-cases/disable-two-factor.use-case';
 import { EnableTwoFactorUseCase } from '../application/use-cases/enable-two-factor.use-case';
+import { CreateProfilePhotoTicketUseCase } from '../application/use-cases/create-profile-photo-ticket.use-case';
 import { GetMyProfileUseCase } from '../application/use-cases/get-my-profile.use-case';
 import { LoginUseCase } from '../application/use-cases/login.use-case';
+import { SetProfilePhotoUseCase } from '../application/use-cases/set-profile-photo.use-case';
+import { UpdateMyProfileUseCase } from '../application/use-cases/update-my-profile.use-case';
 import { SetupTwoFactorUseCase } from '../application/use-cases/setup-two-factor.use-case';
 import { VerifyTwoFactorLoginUseCase } from '../application/use-cases/verify-two-factor-login.use-case';
 import { LogoutUseCase } from '../application/use-cases/logout.use-case';
@@ -36,6 +49,9 @@ import { RequestPasswordResetRequestDto } from './dto/request-password-reset-req
 import { ResendEmailVerificationRequestDto } from './dto/resend-email-verification-request.dto';
 import { ResetPasswordRequestDto } from './dto/reset-password-request.dto';
 import { ResetTokenResponseDto } from './dto/reset-token-response.dto';
+import { UpdateProfileRequestDto } from './dto/update-profile-request.dto';
+import { SetProfilePhotoRequestDto } from './dto/set-profile-photo-request.dto';
+import { PhotoUploadTicketResponseDto } from './dto/photo-upload-ticket-response.dto';
 import { UserProfileResponseDto } from './dto/user-profile-response.dto';
 import { VerifyEmailRequestDto } from './dto/verify-email-request.dto';
 import { VerifyPasswordResetOtpRequestDto } from './dto/verify-password-reset-otp-request.dto';
@@ -73,6 +89,9 @@ export class AuthController {
     private readonly resetPassword: ResetPasswordUseCase,
     private readonly changePassword: ChangePasswordUseCase,
     private readonly getMyProfile: GetMyProfileUseCase,
+    private readonly updateMyProfile: UpdateMyProfileUseCase,
+    private readonly createProfilePhotoTicket: CreateProfilePhotoTicketUseCase,
+    private readonly setProfilePhoto: SetProfilePhotoUseCase,
     private readonly setupTwoFactor: SetupTwoFactorUseCase,
     private readonly enableTwoFactor: EnableTwoFactorUseCase,
     private readonly disableTwoFactor: DisableTwoFactorUseCase,
@@ -88,6 +107,48 @@ export class AuthController {
     @CurrentUser() principal: AuthenticatedPrincipal,
   ): Promise<UserProfileResponseDto> {
     const result = await this.getMyProfile.execute({ userId: principal.userId });
+    return UserProfileResponseDto.fromResult(result);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update the personal information of the authenticated user' })
+  @ApiOkResponse({ type: UserProfileResponseDto })
+  async updateProfile(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: UpdateProfileRequestDto,
+  ): Promise<UserProfileResponseDto> {
+    const result = await this.updateMyProfile.execute({ userId: principal.userId, ...body });
+    return UserProfileResponseDto.fromResult(result);
+  }
+
+  @Post('me/photo/upload-ticket')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a signed ticket to upload a new profile photo' })
+  @ApiCreatedResponse({ type: PhotoUploadTicketResponseDto })
+  uploadPhotoTicket(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): PhotoUploadTicketResponseDto {
+    const ticket = this.createProfilePhotoTicket.execute({ userId: principal.userId });
+    return PhotoUploadTicketResponseDto.fromTicket(ticket);
+  }
+
+  @Put('me/photo')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Set or clear the profile photo after an upload' })
+  @ApiOkResponse({ type: UserProfileResponseDto })
+  async setPhoto(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: SetProfilePhotoRequestDto,
+  ): Promise<UserProfileResponseDto> {
+    const result = await this.setProfilePhoto.execute({
+      userId: principal.userId,
+      photoKey: body.photoKey ?? null,
+    });
     return UserProfileResponseDto.fromResult(result);
   }
 

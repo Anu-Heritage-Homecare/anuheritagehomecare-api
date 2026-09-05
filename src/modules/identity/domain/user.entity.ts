@@ -115,6 +115,25 @@ export class User extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
+  /** Update the editable personal information (name, phone and postal address). */
+  public updateProfile(
+    name: PersonName,
+    phone: PhoneNumber,
+    address: PostalAddress,
+    now: Date,
+  ): void {
+    this.props.name = name;
+    this.props.phone = phone;
+    this.props.address = address;
+    this.props.updatedAt = now;
+  }
+
+  /** Set (or clear) the profile photo, stored as an opaque object store key. */
+  public setPhotoKey(photoKey: string | null, now: Date): void {
+    this.props.photoKey = photoKey;
+    this.props.updatedAt = now;
+  }
+
   /**
    * Begin two factor setup by storing an (already encrypted) TOTP secret. The
    * factor is not active yet: the user must prove they can generate a valid code

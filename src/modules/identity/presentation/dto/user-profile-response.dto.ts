@@ -76,6 +76,9 @@ export class UserProfileResponseDto {
   @ApiProperty({ enum: UserStatus, enumName: 'UserStatus' })
   status!: UserStatus;
 
+  @ApiProperty({ nullable: true, description: 'Signed avatar URL, or null when none is set' })
+  photoUrl!: string | null;
+
   static fromResult(result: UserProfileResult): UserProfileResponseDto {
     const dto = new UserProfileResponseDto();
     dto.id = result.id;
@@ -90,6 +93,7 @@ export class UserProfileResponseDto {
     dto.isFamilyOwner = result.isFamilyOwner;
     dto.mustChangePassword = result.mustChangePassword;
     dto.status = result.status;
+    dto.photoUrl = result.photoUrl;
     return dto;
   }
 }

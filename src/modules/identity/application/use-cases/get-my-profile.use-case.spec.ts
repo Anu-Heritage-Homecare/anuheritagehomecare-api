@@ -1,3 +1,4 @@
+import { PhotoStorage } from '@shared/application/ports/photo-storage.port';
 import { UnauthorizedDomainException } from '@shared/domain/domain-exception';
 import { Country } from '../../domain/country.enum';
 import { UserType } from '../../domain/user-type.enum';
@@ -5,13 +6,19 @@ import { InMemoryUserRepository } from '../../test-support/doubles';
 import { buildUser } from '../../test-support/user-builder';
 import { GetMyProfileUseCase } from './get-my-profile.use-case';
 
+const photos: PhotoStorage = {
+  createUploadTicket: () => ({ uploadUrl: '', fields: {}, key: '' }),
+  urlFor: (key) => (key.length === 0 ? '' : `https://cdn/${key}`),
+  download: () => Promise.resolve(Buffer.from('')),
+};
+
 describe('GetMyProfileUseCase', () => {
   let users: InMemoryUserRepository;
   let useCase: GetMyProfileUseCase;
 
   beforeEach(() => {
     users = new InMemoryUserRepository();
-    useCase = new GetMyProfileUseCase(users);
+    useCase = new GetMyProfileUseCase(users, photos);
   });
 
   it('returns the personal information of the authenticated user', async () => {

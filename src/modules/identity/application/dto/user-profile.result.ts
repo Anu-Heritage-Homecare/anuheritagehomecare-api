@@ -30,6 +30,10 @@ export interface UserProfileResult {
   isFamilyOwner: boolean;
   mustChangePassword: boolean;
   status: UserStatus;
+  /** Opaque object store key for the avatar; null when none is set. */
+  photoKey: string | null;
+  /** Signed delivery URL for the avatar, resolved by the reads that have storage. */
+  photoUrl: string | null;
 }
 
 export function toUserProfile(user: User): UserProfileResult {
@@ -53,5 +57,7 @@ export function toUserProfile(user: User): UserProfileResult {
     isFamilyOwner: user.isFamilyOwner,
     mustChangePassword: user.mustChangePassword,
     status: user.status,
+    photoKey: user.photoKey,
+    photoUrl: null,
   };
 }
