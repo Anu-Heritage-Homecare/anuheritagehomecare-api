@@ -5,6 +5,7 @@ import { CareRecipientRepository } from '@modules/care-recipients/domain/care-re
 import { CareSchedule } from '@modules/care-recipients/domain/value-objects/care-schedule.vo';
 import { Weekday } from '@modules/care-recipients/domain/weekday.enum';
 import { ReviseCareScheduleUseCase } from './revise-care-schedule.use-case';
+import { fakeCareAccess } from '../../test-support/fake-care-access';
 
 const NOW = new Date('2026-09-04T00:00:00.000Z');
 const clock: Clock = { now: () => NOW };
@@ -42,7 +43,7 @@ function repository(recipient: FakeRecipient | null): {
 }
 
 const command = {
-  ownerId: 'owner-1',
+  callerUserId: 'owner-1',
   careRecipientId: 'r1',
   frequency: 'WEEKLY',
   estimatedStartDate: '2026-08-20',
@@ -57,7 +58,7 @@ describe('ReviseCareScheduleUseCase', () => {
     const recipient = fakeRecipient('owner-1');
     const { repo, saved } = repository(recipient);
 
-    await new ReviseCareScheduleUseCase(repo, clock).execute(command);
+    await new ReviseCareScheduleUseCase(repo, clock, fakeCareAccess()).execute(command);
 
     expect(recipient.revised).not.toBeNull();
     expect(recipient.revised?.days).toEqual([Weekday.Monday, Weekday.Wednesday, Weekday.Friday]);
@@ -69,7 +70,7 @@ describe('ReviseCareScheduleUseCase', () => {
     const { repo } = repository(fakeRecipient('someone-else'));
 
     await expect(
-      new ReviseCareScheduleUseCase(repo, clock).execute(command),
+      new ReviseCareScheduleUseCase(repo, clock, fakeCareAccess()).execute(command),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 
@@ -77,7 +78,7 @@ describe('ReviseCareScheduleUseCase', () => {
     const { repo } = repository(null);
 
     await expect(
-      new ReviseCareScheduleUseCase(repo, clock).execute(command),
+      new ReviseCareScheduleUseCase(repo, clock, fakeCareAccess()).execute(command),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 });

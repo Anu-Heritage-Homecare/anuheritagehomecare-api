@@ -3,10 +3,12 @@ import { PassportModule } from '@nestjs/passport';
 import { BookingsModule } from '@modules/bookings/bookings.module';
 import { CarePlansModule } from '@modules/care-plans/care-plans.module';
 import { IdentityModule } from '@modules/identity/identity.module';
+import { CARE_ACCESS } from './application/ports/care-access.port';
 import {
   PROFILE_PLAN_DIRECTORY,
   PROFILE_USER_DIRECTORY,
 } from './application/ports/profile-directories.port';
+import { CareCircleAccessGuard } from './application/services/care-circle-access.guard';
 import {
   AcceptCareCircleInvitationUseCase,
   GetCareCircleUseCase,
@@ -61,6 +63,8 @@ import { ProfileController } from './presentation/profile.controller';
       provide: CARE_CIRCLE_INVITATION_REPOSITORY,
       useClass: CareCircleInvitationPrismaRepository,
     },
+    { provide: CARE_ACCESS, useClass: CareCircleAccessGuard },
   ],
+  exports: [CARE_ACCESS],
 })
 export class ProfileModule {}

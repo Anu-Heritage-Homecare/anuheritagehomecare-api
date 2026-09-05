@@ -8,6 +8,7 @@ import { Clock } from '@shared/application/ports/clock.port';
 import { VisitStatus } from '@modules/visits/domain/visit-status.enum';
 import { VitalsReading } from '@modules/visits/domain/value-objects/vitals-reading.vo';
 import { buildVisit } from '@modules/visits/test-support/doubles';
+import { fakeCareAccess } from '../../test-support/fake-care-access';
 import { FamilyPlanDirectory } from '../ports/family-plan-directory.port';
 import { GetCareOverviewUseCase } from './get-care-overview.use-case';
 import { GetCarePlanUseCase } from './get-care-plan.use-case';
@@ -121,9 +122,10 @@ describe('Care section reads', () => {
       users,
       plans,
       clock,
+      fakeCareAccess(),
     );
 
-    const result = await useCase.execute({ ownerId: 'owner-1', careRecipientId: 'r1' });
+    const result = await useCase.execute({ callerUserId: 'owner-1', careRecipientId: 'r1' });
 
     expect(result.carePlanName).toBe('Standard Care');
     expect(result.caregiver).toEqual({ id: 'cg1', name: 'Sarah Adams' });
@@ -137,9 +139,10 @@ describe('Care section reads', () => {
       recipients(recipientStub()),
       visitsRepo([todaysVisit]),
       clock,
+      fakeCareAccess(),
     );
 
-    const result = await useCase.execute({ ownerId: 'owner-1', careRecipientId: 'r1' });
+    const result = await useCase.execute({ callerUserId: 'owner-1', careRecipientId: 'r1' });
 
     expect(result.vitals.bloodPressure).toEqual({
       value: { systolic: 120, diastolic: 80 },
@@ -154,9 +157,10 @@ describe('Care section reads', () => {
       recipients(recipientStub()),
       plans,
       goalsRepo(sampleGoals),
+      fakeCareAccess(),
     );
 
-    const result = await useCase.execute({ ownerId: 'owner-1', careRecipientId: 'r1' });
+    const result = await useCase.execute({ callerUserId: 'owner-1', careRecipientId: 'r1' });
 
     expect(result.planName).toBe('Standard Care');
     expect(result.services).toEqual(['Meal Prep', 'Bathing', 'Laundry']);

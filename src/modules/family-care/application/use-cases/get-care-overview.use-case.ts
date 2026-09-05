@@ -8,13 +8,16 @@ import { VISIT_REPOSITORY, VisitRepository } from '@modules/visits/domain/visit.
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { Visit } from '@modules/visits/domain/visit.entity';
+import { CareAccessLevel } from '@modules/profile/domain/care-access-level.enum';
+import { CARE_ACCESS, CareAccessGuard } from '@modules/profile/application/ports/care-access.port';
 import { CareOverviewResult } from '../dto/care-section.result';
 import { ageInYears, startOfUtcDay } from '../family-care-date.util';
 import { pickCurrentVisit } from '../pick-current-visit.util';
 import { FAMILY_PLAN_DIRECTORY, FamilyPlanDirectory } from '../ports/family-plan-directory.port';
 
 export interface GetCareOverviewQuery {
-  ownerId: string;
+  /** The authenticated caller: the owner, or a care circle member. */
+  callerUserId: string;
   careRecipientId: string;
 }
 
@@ -32,13 +35,15 @@ export class GetCareOverviewUseCase {
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(FAMILY_PLAN_DIRECTORY) private readonly plans: FamilyPlanDirectory,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(CARE_ACCESS) private readonly access: CareAccessGuard,
   ) {}
 
   async execute(query: GetCareOverviewQuery): Promise<CareOverviewResult> {
     const recipient = await this.recipients.findById(query.careRecipientId);
-    if (recipient === null || recipient.ownerId !== query.ownerId) {
+    if (recipient === null) {
       throw new NotFoundDomainException('Care recipient not found');
     }
+    await this.access.assertAccess(query.callerUserId, recipient.ownerId, CareAccessLevel.Limited);
 
     const now = this.clock.now();
     const day = startOfUtcDay(now);
@@ -50,7 +55,7 @@ export class GetCareOverviewUseCase {
     const visit = pickCurrentVisit(todaysVisits);
 
     const [carePlanName, caregiver] = await Promise.all([
-      this.plans.planNameForRecipient(query.ownerId, query.careRecipientId),
+      this.plans.planNameForRecipient(recipient.ownerId, query.careRecipientId),
       this.resolveCaregiver(visit),
     ]);
 

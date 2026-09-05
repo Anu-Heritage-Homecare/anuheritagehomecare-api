@@ -60,7 +60,7 @@ export class FamilyCareController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CareOverviewResponseDto> {
     const result = await this.getOverview.execute({
-      ownerId: principal.userId,
+      callerUserId: principal.userId,
       careRecipientId: id,
     });
     return CareOverviewResponseDto.fromResult(result);
@@ -73,7 +73,10 @@ export class FamilyCareController {
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<RecipientHealthResponseDto> {
-    const result = await this.getHealth.execute({ ownerId: principal.userId, careRecipientId: id });
+    const result = await this.getHealth.execute({
+      callerUserId: principal.userId,
+      careRecipientId: id,
+    });
     return RecipientHealthResponseDto.fromResult(result);
   }
 
@@ -85,7 +88,7 @@ export class FamilyCareController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CarePlanResponseDto> {
     const result = await this.getCarePlan.execute({
-      ownerId: principal.userId,
+      callerUserId: principal.userId,
       careRecipientId: id,
     });
     return CarePlanResponseDto.fromResult(result);
@@ -101,7 +104,7 @@ export class FamilyCareController {
     @Body() body: ReviseScheduleRequestDto,
   ): Promise<CarePlanResponseDto> {
     await this.reviseSchedule.execute({
-      ownerId: principal.userId,
+      callerUserId: principal.userId,
       careRecipientId: id,
       frequency: body.frequency,
       estimatedStartDate: body.estimatedStartDate,
@@ -111,7 +114,7 @@ export class FamilyCareController {
       visitDurationMinutes: body.visitDurationMinutes,
     });
     const result = await this.getCarePlan.execute({
-      ownerId: principal.userId,
+      callerUserId: principal.userId,
       careRecipientId: id,
     });
     return CarePlanResponseDto.fromResult(result);
@@ -124,7 +127,10 @@ export class FamilyCareController {
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<FamilyVisitsResponseDto> {
-    const result = await this.getVisits.execute({ ownerId: principal.userId, careRecipientId: id });
+    const result = await this.getVisits.execute({
+      callerUserId: principal.userId,
+      careRecipientId: id,
+    });
     return FamilyVisitsResponseDto.fromResult(result);
   }
 
@@ -135,7 +141,10 @@ export class FamilyCareController {
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<FamilyVisitDetailResponseDto> {
-    const result = await this.getVisitDetail.execute({ ownerId: principal.userId, visitId: id });
+    const result = await this.getVisitDetail.execute({
+      callerUserId: principal.userId,
+      visitId: id,
+    });
     return FamilyVisitDetailResponseDto.fromResult(result);
   }
 
@@ -147,7 +156,10 @@ export class FamilyCareController {
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<StreamableFile> {
-    const result = await this.downloadPhotos.execute({ ownerId: principal.userId, visitId: id });
+    const result = await this.downloadPhotos.execute({
+      callerUserId: principal.userId,
+      visitId: id,
+    });
     const zip = buildZip(result.files);
     return new StreamableFile(zip, {
       type: 'application/zip',

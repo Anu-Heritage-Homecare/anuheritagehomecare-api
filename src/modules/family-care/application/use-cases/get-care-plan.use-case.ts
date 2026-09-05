@@ -10,11 +10,14 @@ import {
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
 import { WEEKDAY_SHORT_LABEL } from '@modules/care-recipients/domain/weekday.enum';
+import { CareAccessLevel } from '@modules/profile/domain/care-access-level.enum';
+import { CARE_ACCESS, CareAccessGuard } from '@modules/profile/application/ports/care-access.port';
 import { CarePlanResult } from '../dto/care-section.result';
 import { FAMILY_PLAN_DIRECTORY, FamilyPlanDirectory } from '../ports/family-plan-directory.port';
 
 export interface GetCarePlanQuery {
-  ownerId: string;
+  /** The authenticated caller: the owner, or a care circle member. */
+  callerUserId: string;
   careRecipientId: string;
 }
 
@@ -44,16 +47,18 @@ export class GetCarePlanUseCase {
     @Inject(CARE_RECIPIENT_REPOSITORY) private readonly recipients: CareRecipientRepository,
     @Inject(FAMILY_PLAN_DIRECTORY) private readonly plans: FamilyPlanDirectory,
     @Inject(CARE_GOAL_REPOSITORY) private readonly goals: CareGoalRepository,
+    @Inject(CARE_ACCESS) private readonly access: CareAccessGuard,
   ) {}
 
   async execute(query: GetCarePlanQuery): Promise<CarePlanResult> {
     const recipient = await this.recipients.findById(query.careRecipientId);
-    if (recipient === null || recipient.ownerId !== query.ownerId) {
+    if (recipient === null) {
       throw new NotFoundDomainException('Care recipient not found');
     }
+    await this.access.assertAccess(query.callerUserId, recipient.ownerId, CareAccessLevel.ViewOnly);
 
     const [planName, goals] = await Promise.all([
-      this.plans.planNameForRecipient(query.ownerId, query.careRecipientId),
+      this.plans.planNameForRecipient(recipient.ownerId, query.careRecipientId),
       this.goals.listForRecipient(query.careRecipientId),
     ]);
 

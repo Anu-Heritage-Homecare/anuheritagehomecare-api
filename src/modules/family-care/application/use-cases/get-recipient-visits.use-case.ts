@@ -7,10 +7,13 @@ import { USER_REPOSITORY, UserRepository } from '@modules/identity/domain/user.r
 import { VISIT_REPOSITORY, VisitRepository } from '@modules/visits/domain/visit.repository';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { Visit } from '@modules/visits/domain/visit.entity';
+import { CareAccessLevel } from '@modules/profile/domain/care-access-level.enum';
+import { CARE_ACCESS, CareAccessGuard } from '@modules/profile/application/ports/care-access.port';
 import { FamilyVisitsResult, FamilyVisitSummaryResult } from '../dto/family-visit.result';
 
 export interface GetRecipientVisitsQuery {
-  ownerId: string;
+  /** The authenticated caller: the owner, or a care circle member. */
+  callerUserId: string;
   careRecipientId: string;
 }
 
@@ -30,13 +33,15 @@ export class GetRecipientVisitsUseCase {
     @Inject(CARE_RECIPIENT_REPOSITORY) private readonly recipients: CareRecipientRepository,
     @Inject(VISIT_REPOSITORY) private readonly visits: VisitRepository,
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
+    @Inject(CARE_ACCESS) private readonly access: CareAccessGuard,
   ) {}
 
   async execute(query: GetRecipientVisitsQuery): Promise<FamilyVisitsResult> {
     const recipient = await this.recipients.findById(query.careRecipientId);
-    if (recipient === null || recipient.ownerId !== query.ownerId) {
+    if (recipient === null) {
       throw new NotFoundDomainException('Care recipient not found');
     }
+    await this.access.assertAccess(query.callerUserId, recipient.ownerId, CareAccessLevel.Limited);
 
     const visits = await this.visits.listForCareRecipientsInRange(
       [query.careRecipientId],

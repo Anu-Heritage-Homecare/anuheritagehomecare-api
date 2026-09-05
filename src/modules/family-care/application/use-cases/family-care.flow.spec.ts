@@ -14,6 +14,7 @@ import { VitalsReading } from '@modules/visits/domain/value-objects/vitals-readi
 import { buildVisit } from '@modules/visits/test-support/doubles';
 import { GetFamilyVisitDetailUseCase } from './get-family-visit-detail.use-case';
 import { GetRecipientVisitsUseCase } from './get-recipient-visits.use-case';
+import { fakeCareAccess } from '../../test-support/fake-care-access';
 
 const NOW = new Date('2026-11-12T13:00:00.000Z');
 const clock: Clock = { now: () => NOW };
@@ -98,9 +99,10 @@ describe('family Care reads', () => {
         usersRepo(),
         photoStorage,
         clock,
+        fakeCareAccess(),
       );
 
-      const result = await useCase.execute({ ownerId: 'owner-1', visitId: 'v1' });
+      const result = await useCase.execute({ callerUserId: 'owner-1', visitId: 'v1' });
 
       expect(result.recipient.name).toBe('Mrs Moses Rose');
       expect(result.caregiver).toEqual({
@@ -161,9 +163,10 @@ describe('family Care reads', () => {
         usersRepo(),
         photoStorage,
         clock,
+        fakeCareAccess(),
       );
 
-      const result = await useCase.execute({ ownerId: 'owner-1', visitId: 'v3' });
+      const result = await useCase.execute({ callerUserId: 'owner-1', visitId: 'v3' });
 
       const breaks = result.timeline.filter((event) => event.kind === 'BREAK');
       expect(breaks.map((event) => event.label)).toEqual(['Break started', 'Break ended']);
@@ -190,11 +193,12 @@ describe('family Care reads', () => {
         usersRepo(),
         photoStorage,
         clock,
+        fakeCareAccess(),
       );
 
-      await expect(useCase.execute({ ownerId: 'owner-1', visitId: 'v1' })).rejects.toBeInstanceOf(
-        NotFoundDomainException,
-      );
+      await expect(
+        useCase.execute({ callerUserId: 'owner-1', visitId: 'v1' }),
+      ).rejects.toBeInstanceOf(NotFoundDomainException);
     });
   });
 
@@ -214,9 +218,10 @@ describe('family Care reads', () => {
         recipientsRepo({ r1: recipient() }),
         visits,
         usersRepo(),
+        fakeCareAccess(),
       );
 
-      const result = await useCase.execute({ ownerId: 'owner-1', careRecipientId: 'r1' });
+      const result = await useCase.execute({ callerUserId: 'owner-1', careRecipientId: 'r1' });
 
       expect(result.currentVisit?.id).toBe('v2');
       expect(result.pastVisits.map((visit) => visit.id)).toEqual(['v1']);
@@ -232,10 +237,11 @@ describe('family Care reads', () => {
         recipientsRepo({ r1: recipient({ ownerId: 'someone-else' }) }),
         visits,
         usersRepo(),
+        fakeCareAccess(),
       );
 
       await expect(
-        useCase.execute({ ownerId: 'owner-1', careRecipientId: 'r1' }),
+        useCase.execute({ callerUserId: 'owner-1', careRecipientId: 'r1' }),
       ).rejects.toBeInstanceOf(NotFoundDomainException);
     });
   });

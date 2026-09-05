@@ -3,6 +3,7 @@ import { PassportModule } from '@nestjs/passport';
 import { BookingsModule } from '@modules/bookings/bookings.module';
 import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.module';
 import { IdentityModule } from '@modules/identity/identity.module';
+import { ProfileModule } from '@modules/profile/profile.module';
 import { VisitsModule } from '@modules/visits/visits.module';
 import { FAMILY_PLAN_DIRECTORY } from './application/ports/family-plan-directory.port';
 import { DownloadVisitPhotosUseCase } from './application/use-cases/download-visit-photos.use-case';
@@ -22,7 +23,14 @@ import { FamilyCareController } from './presentation/family-care.controller';
  * owner.
  */
 @Module({
-  imports: [PassportModule, VisitsModule, CareRecipientsModule, IdentityModule, BookingsModule],
+  imports: [
+    PassportModule,
+    VisitsModule,
+    CareRecipientsModule,
+    IdentityModule,
+    BookingsModule,
+    ProfileModule,
+  ],
   controllers: [FamilyCareController],
   providers: [
     GetCareOverviewUseCase,

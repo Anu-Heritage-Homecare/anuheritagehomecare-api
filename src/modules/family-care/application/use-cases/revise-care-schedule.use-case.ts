@@ -6,9 +6,12 @@ import {
   CareRecipientRepository,
 } from '@modules/care-recipients/domain/care-recipient.repository';
 import { CareSchedule } from '@modules/care-recipients/domain/value-objects/care-schedule.vo';
+import { CareAccessLevel } from '@modules/profile/domain/care-access-level.enum';
+import { CARE_ACCESS, CareAccessGuard } from '@modules/profile/application/ports/care-access.port';
 
 export interface ReviseCareScheduleCommand {
-  ownerId: string;
+  /** The authenticated caller: the owner, or a full access care circle member. */
+  callerUserId: string;
   careRecipientId: string;
   frequency: string;
   estimatedStartDate: string;
@@ -29,13 +32,15 @@ export class ReviseCareScheduleUseCase {
   constructor(
     @Inject(CARE_RECIPIENT_REPOSITORY) private readonly recipients: CareRecipientRepository,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(CARE_ACCESS) private readonly access: CareAccessGuard,
   ) {}
 
   async execute(command: ReviseCareScheduleCommand): Promise<void> {
     const recipient = await this.recipients.findById(command.careRecipientId);
-    if (recipient === null || recipient.ownerId !== command.ownerId) {
+    if (recipient === null) {
       throw new NotFoundDomainException('Care recipient not found');
     }
+    await this.access.assertAccess(command.callerUserId, recipient.ownerId, CareAccessLevel.Full);
 
     const schedule = CareSchedule.create({
       frequency: command.frequency,

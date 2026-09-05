@@ -8,12 +8,15 @@ import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { VitalsReading } from '@modules/visits/domain/value-objects/vitals-reading.vo';
 import { Visit } from '@modules/visits/domain/visit.entity';
+import { CareAccessLevel } from '@modules/profile/domain/care-access-level.enum';
+import { CARE_ACCESS, CareAccessGuard } from '@modules/profile/application/ports/care-access.port';
 import { RecipientHealthResult } from '../dto/care-section.result';
 import { startOfUtcDay } from '../family-care-date.util';
 import { pickCurrentVisit } from '../pick-current-visit.util';
 
 export interface GetRecipientHealthQuery {
-  ownerId: string;
+  /** The authenticated caller: the owner, or a care circle member. */
+  callerUserId: string;
   careRecipientId: string;
 }
 
@@ -30,13 +33,15 @@ export class GetRecipientHealthUseCase {
     @Inject(CARE_RECIPIENT_REPOSITORY) private readonly recipients: CareRecipientRepository,
     @Inject(VISIT_REPOSITORY) private readonly visits: VisitRepository,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(CARE_ACCESS) private readonly access: CareAccessGuard,
   ) {}
 
   async execute(query: GetRecipientHealthQuery): Promise<RecipientHealthResult> {
     const recipient = await this.recipients.findById(query.careRecipientId);
-    if (recipient === null || recipient.ownerId !== query.ownerId) {
+    if (recipient === null) {
       throw new NotFoundDomainException('Care recipient not found');
     }
+    await this.access.assertAccess(query.callerUserId, recipient.ownerId, CareAccessLevel.ViewOnly);
 
     const day = startOfUtcDay(this.clock.now());
     const visit = pickCurrentVisit(

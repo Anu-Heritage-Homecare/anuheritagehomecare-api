@@ -6,6 +6,7 @@ import { PhotoStorage } from '@shared/application/ports/photo-storage.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { VisitStatus } from '@modules/visits/domain/visit-status.enum';
 import { DownloadVisitPhotosUseCase } from './download-visit-photos.use-case';
+import { fakeCareAccess } from '../../test-support/fake-care-access';
 
 function visitsRepo(): VisitRepository {
   const visit = buildVisit({
@@ -38,9 +39,10 @@ describe('DownloadVisitPhotosUseCase', () => {
       visitsRepo(),
       recipientsRepo('owner-1'),
       photoStorage,
+      fakeCareAccess(),
     );
 
-    const result = await useCase.execute({ ownerId: 'owner-1', visitId: 'v1' });
+    const result = await useCase.execute({ callerUserId: 'owner-1', visitId: 'v1' });
 
     expect(result.filename).toBe('visit-v1-photos.zip');
     expect(result.files).toEqual([
@@ -54,10 +56,11 @@ describe('DownloadVisitPhotosUseCase', () => {
       visitsRepo(),
       recipientsRepo('someone-else'),
       photoStorage,
+      fakeCareAccess(),
     );
 
-    await expect(useCase.execute({ ownerId: 'owner-1', visitId: 'v1' })).rejects.toBeInstanceOf(
-      NotFoundDomainException,
-    );
+    await expect(
+      useCase.execute({ callerUserId: 'owner-1', visitId: 'v1' }),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 });

@@ -11,6 +11,8 @@ import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
 import { User } from '@modules/identity/domain/user.entity';
 import { Visit } from '@modules/visits/domain/visit.entity';
+import { CareAccessLevel } from '@modules/profile/domain/care-access-level.enum';
+import { CARE_ACCESS, CareAccessGuard } from '@modules/profile/application/ports/care-access.port';
 import { ageInYears } from '../family-care-date.util';
 import {
   FamilyTimelineEventResult,
@@ -20,7 +22,8 @@ import {
 } from '../dto/family-visit.result';
 
 export interface GetFamilyVisitDetailQuery {
-  ownerId: string;
+  /** The authenticated caller: the owner, or a care circle member. */
+  callerUserId: string;
   visitId: string;
 }
 
@@ -45,6 +48,7 @@ export class GetFamilyVisitDetailUseCase {
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(PHOTO_STORAGE) private readonly photoStorage: PhotoStorage,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(CARE_ACCESS) private readonly access: CareAccessGuard,
   ) {}
 
   async execute(query: GetFamilyVisitDetailQuery): Promise<FamilyVisitDetailResult> {
@@ -53,9 +57,10 @@ export class GetFamilyVisitDetailUseCase {
       throw new NotFoundDomainException('Visit not found');
     }
     const recipient = await this.recipients.findById(visit.careRecipientId);
-    if (recipient === null || recipient.ownerId !== query.ownerId) {
+    if (recipient === null) {
       throw new NotFoundDomainException('Visit not found');
     }
+    await this.access.assertAccess(query.callerUserId, recipient.ownerId, CareAccessLevel.ViewOnly);
 
     const userIds = [...new Set([visit.caregiverId, ...visit.notes.map((note) => note.authorId)])];
     const usersById = new Map((await this.users.findByIds(userIds)).map((user) => [user.id, user]));

@@ -6,9 +6,12 @@ import {
 import { VISIT_REPOSITORY, VisitRepository } from '@modules/visits/domain/visit.repository';
 import { PHOTO_STORAGE, PhotoStorage } from '@shared/application/ports/photo-storage.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
+import { CareAccessLevel } from '@modules/profile/domain/care-access-level.enum';
+import { CARE_ACCESS, CareAccessGuard } from '@modules/profile/application/ports/care-access.port';
 
 export interface DownloadVisitPhotosQuery {
-  ownerId: string;
+  /** The authenticated caller: the owner, or a care circle member. */
+  callerUserId: string;
   visitId: string;
 }
 
@@ -34,6 +37,7 @@ export class DownloadVisitPhotosUseCase {
     @Inject(VISIT_REPOSITORY) private readonly visits: VisitRepository,
     @Inject(CARE_RECIPIENT_REPOSITORY) private readonly recipients: CareRecipientRepository,
     @Inject(PHOTO_STORAGE) private readonly photoStorage: PhotoStorage,
+    @Inject(CARE_ACCESS) private readonly access: CareAccessGuard,
   ) {}
 
   async execute(query: DownloadVisitPhotosQuery): Promise<DownloadVisitPhotosResult> {
@@ -42,9 +46,10 @@ export class DownloadVisitPhotosUseCase {
       throw new NotFoundDomainException('Visit not found');
     }
     const recipient = await this.recipients.findById(visit.careRecipientId);
-    if (recipient === null || recipient.ownerId !== query.ownerId) {
+    if (recipient === null) {
       throw new NotFoundDomainException('Visit not found');
     }
+    await this.access.assertAccess(query.callerUserId, recipient.ownerId, CareAccessLevel.ViewOnly);
 
     const files = await Promise.all(
       visit.photoKeys.map(async (key, index) => ({
