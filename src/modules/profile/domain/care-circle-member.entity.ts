@@ -1,18 +1,20 @@
 import { Entity } from '@shared/domain/entity.base';
 import { ValidationException } from '@shared/domain/domain-exception';
+import { CareAccessLevel } from './care-access-level.enum';
 
 interface CareCircleMemberProps {
   ownerId: string;
-  name: string;
+  /** The app user who is this member; their name and avatar come from identity. */
+  memberUserId: string;
   relationship: string;
-  phone: string | null;
-  email: string | null;
+  accessLevel: CareAccessLevel;
   createdAt: Date;
 }
 
 /**
- * One person in a family owner's care circle: family and friends around the
- * recipient. A name and relationship are required; phone and email are optional.
+ * A member of a family owner's care circle: an app user granted access to the
+ * owner's care information at a level. The member's name and avatar are read from
+ * identity; this entity holds the relationship and the granted access level.
  */
 export class CareCircleMember extends Entity<string> {
   private readonly props: CareCircleMemberProps;
@@ -25,26 +27,20 @@ export class CareCircleMember extends Entity<string> {
   public static create(params: {
     id: string;
     ownerId: string;
-    name: string;
+    memberUserId: string;
     relationship: string;
-    phone: string | null;
-    email: string | null;
+    accessLevel: CareAccessLevel;
     createdAt: Date;
   }): CareCircleMember {
-    const name = params.name.trim();
     const relationship = params.relationship.trim();
-    if (name.length === 0) {
-      throw new ValidationException('A care circle member needs a name');
-    }
     if (relationship.length === 0) {
       throw new ValidationException('A care circle member needs a relationship');
     }
     return new CareCircleMember(params.id, {
       ownerId: params.ownerId,
-      name,
+      memberUserId: params.memberUserId,
       relationship,
-      phone: CareCircleMember.blankToNull(params.phone),
-      email: CareCircleMember.blankToNull(params.email),
+      accessLevel: params.accessLevel,
       createdAt: params.createdAt,
     });
   }
@@ -53,32 +49,20 @@ export class CareCircleMember extends Entity<string> {
     return new CareCircleMember(id, props);
   }
 
-  private static blankToNull(value: string | null): string | null {
-    if (value === null) {
-      return null;
-    }
-    const trimmed = value.trim();
-    return trimmed.length === 0 ? null : trimmed;
-  }
-
   public get ownerId(): string {
     return this.props.ownerId;
   }
 
-  public get name(): string {
-    return this.props.name;
+  public get memberUserId(): string {
+    return this.props.memberUserId;
   }
 
   public get relationship(): string {
     return this.props.relationship;
   }
 
-  public get phone(): string | null {
-    return this.props.phone;
-  }
-
-  public get email(): string | null {
-    return this.props.email;
+  public get accessLevel(): CareAccessLevel {
+    return this.props.accessLevel;
   }
 
   public get createdAt(): Date {

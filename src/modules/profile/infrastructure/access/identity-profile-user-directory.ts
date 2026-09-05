@@ -12,12 +12,30 @@ export class IdentityProfileUserDirectory implements ProfileUserDirectory {
 
   async findById(userId: string): Promise<ProfileUser | null> {
     const user = await this.users.findById(userId);
-    if (user === null) {
-      return null;
+    return user === null ? null : IdentityProfileUserDirectory.toView(user);
+  }
+
+  async findByIds(userIds: string[]): Promise<ProfileUser[]> {
+    if (userIds.length === 0) {
+      return [];
     }
+    const users = await this.users.findByIds(userIds);
+    return users.map((user) => IdentityProfileUserDirectory.toView(user));
+  }
+
+  private static toView(user: {
+    id: string;
+    name: { firstName: string; lastName: string };
+    email: { value: string };
+    userType: unknown;
+    isFamilyOwner: boolean;
+    photoKey: string | null;
+  }): ProfileUser {
     return {
+      id: user.id,
       firstName: user.name.firstName,
       lastName: user.name.lastName,
+      email: user.email.value,
       userType: String(user.userType),
       isFamilyOwner: user.isFamilyOwner,
       photoKey: user.photoKey,

@@ -1,52 +1,79 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { CareCircleMemberResult } from '../../application/use-cases/care-circle.use-cases';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsIn, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  CareCircleInvitationView,
+  CareCircleMemberView,
+  CareCircleView,
+} from '../../application/use-cases/care-circle.use-cases';
 
-/** Request to add a person to the owner's care circle. */
-export class AddCareCircleMemberRequestDto {
-  @ApiProperty({ example: 'John Pratama', maxLength: 200 })
-  @IsString()
-  @MinLength(1)
-  @MaxLength(200)
-  name!: string;
+const ACCESS_LEVELS = ['LIMITED', 'VIEW_ONLY', 'FULL'];
 
-  @ApiProperty({ example: 'Son', maxLength: 120 })
+/** Request to invite a person to the care circle by email at an access level. */
+export class InviteCareCircleMemberRequestDto {
+  @ApiProperty({ example: 'james.anderson@email.com', maxLength: 255 })
+  @IsEmail()
+  @MaxLength(255)
+  email!: string;
+
+  @ApiProperty({ example: 'Brother', maxLength: 120 })
   @IsString()
   @MinLength(1)
   @MaxLength(120)
   relationship!: string;
 
-  @ApiPropertyOptional({ example: '+2348012345678', maxLength: 20 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  phone?: string;
-
-  @ApiPropertyOptional({ example: 'john@example.com', maxLength: 255 })
-  @IsOptional()
-  @IsEmail()
-  @MaxLength(255)
-  email?: string;
+  @ApiProperty({ enum: ACCESS_LEVELS, example: 'VIEW_ONLY' })
+  @IsIn(ACCESS_LEVELS)
+  accessLevel!: string;
 }
 
-/** HTTP response for one care circle member. */
-export class CareCircleMemberResponseDto {
-  @ApiProperty({ format: 'uuid' })
-  id!: string;
+/** Request to accept a care circle invitation. */
+export class AcceptInvitationRequestDto {
+  @ApiProperty({ description: 'The invitation token from the invite' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  token!: string;
+}
 
-  @ApiProperty()
-  name!: string;
+class CareCircleMemberDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() relationship!: string;
+  @ApiProperty({ enum: ACCESS_LEVELS }) accessLevel!: string;
+  @ApiProperty({ nullable: true }) photoUrl!: string | null;
+  @ApiProperty() isOwner!: boolean;
 
-  @ApiProperty()
-  relationship!: string;
+  static from(view: CareCircleMemberView): CareCircleMemberDto {
+    return Object.assign(new CareCircleMemberDto(), view);
+  }
+}
 
-  @ApiProperty({ nullable: true })
-  phone!: string | null;
+export class CareCircleInvitationResponseDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() email!: string;
+  @ApiProperty() relationship!: string;
+  @ApiProperty({ enum: ACCESS_LEVELS }) accessLevel!: string;
+  @ApiProperty() invitedAt!: string;
 
-  @ApiProperty({ nullable: true })
-  email!: string | null;
+  static from(view: CareCircleInvitationView): CareCircleInvitationResponseDto {
+    return Object.assign(new CareCircleInvitationResponseDto(), view);
+  }
+}
 
-  static fromResult(result: CareCircleMemberResult): CareCircleMemberResponseDto {
-    return Object.assign(new CareCircleMemberResponseDto(), result);
+/** HTTP response for the care circle: members plus pending invitations. */
+export class CareCircleResponseDto {
+  @ApiProperty({ type: [CareCircleMemberDto] })
+  members!: CareCircleMemberDto[];
+
+  @ApiProperty({ type: [CareCircleInvitationResponseDto] })
+  pendingInvitations!: CareCircleInvitationResponseDto[];
+
+  static fromView(view: CareCircleView): CareCircleResponseDto {
+    const dto = new CareCircleResponseDto();
+    dto.members = view.members.map((m) => CareCircleMemberDto.from(m));
+    dto.pendingInvitations = view.pendingInvitations.map((i) =>
+      CareCircleInvitationResponseDto.from(i),
+    );
+    return dto;
   }
 }

@@ -629,19 +629,55 @@ model EmergencyContact {
   @@map("emergency_contacts")
 }
 
-// One person in the owner's care circle (Profile): family and friends around the
-// recipient. Owned by the profile context and ordered by when they were added.
+// One member of a family owner's care circle: an app user granted access to the
+// owner's care information at a level. Name and avatar come from the linked user
+// (identity). One membership per (owner, user). Owned by the profile context.
 model CareCircleMember {
-  id           String   @id @default(uuid()) @db.Uuid
-  ownerId      String   @db.Uuid
-  name         String   @db.VarChar(200)
-  relationship String   @db.VarChar(120)
-  phone        String?  @db.VarChar(20)
-  email        String?  @db.VarChar(255)
-  createdAt    DateTime @default(now())
+  id           String          @id @default(uuid()) @db.Uuid
+  ownerId      String          @db.Uuid
+  memberUserId String          @db.Uuid
+  relationship String          @db.VarChar(120)
+  accessLevel  CareAccessLevel
+  createdAt    DateTime        @default(now())
 
-  @@index([ownerId])
+  @@unique([ownerId, memberUserId])
+  @@index([memberUserId])
   @@map("care_circle_members")
+}
+
+// An invitation to join an owner's care circle, addressed to an email at an
+// access level. Pending until accepted (which links the accepting user as a
+// member) or revoked. Owned by the profile context.
+model CareCircleInvitation {
+  id               String           @id @default(uuid()) @db.Uuid
+  ownerId          String           @db.Uuid
+  email            String           @db.VarChar(255)
+  relationship     String           @db.VarChar(120)
+  accessLevel      CareAccessLevel
+  token            String           @unique @db.VarChar(200)
+  status           InvitationStatus @default(PENDING)
+  invitedAt        DateTime         @default(now())
+  acceptedAt       DateTime?
+  acceptedByUserId String?          @db.Uuid
+
+  @@index([ownerId, status])
+  @@map("care_circle_invitations")
+}
+
+enum CareAccessLevel {
+  LIMITED
+  VIEW_ONLY
+  FULL
+
+  @@map("care_access_level")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+
+  @@map("invitation_status")
 }
 
 // A family owner's notification and app preferences (the Profile Preferences and

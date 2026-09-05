@@ -8,7 +8,10 @@ import {
 import { GetProfileAccountUseCase } from './get-profile-account.use-case';
 
 function users(user: ProfileUser | null): ProfileUserDirectory {
-  return { findById: () => Promise.resolve(user) };
+  return {
+    findById: () => Promise.resolve(user),
+    findByIds: () => Promise.resolve(user === null ? [] : [user]),
+  };
 }
 
 function plans(name: string | null): ProfilePlanDirectory {
@@ -22,8 +25,10 @@ const photos: PhotoStorage = {
 };
 
 const owner: ProfileUser = {
+  id: 'owner-1',
   firstName: 'Andy',
   lastName: 'Pratama',
+  email: 'andy@example.com',
   userType: 'FAMILY_MEMBER',
   isFamilyOwner: true,
   photoKey: 'owner/photo',

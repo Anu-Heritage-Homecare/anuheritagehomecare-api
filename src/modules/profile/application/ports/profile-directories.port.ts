@@ -5,8 +5,10 @@
  */
 
 export interface ProfileUser {
+  id: string;
   firstName: string;
   lastName: string;
+  email: string;
   userType: string;
   isFamilyOwner: boolean;
   photoKey: string | null;
@@ -14,6 +16,7 @@ export interface ProfileUser {
 
 export interface ProfileUserDirectory {
   findById(userId: string): Promise<ProfileUser | null>;
+  findByIds(userIds: string[]): Promise<ProfileUser[]>;
 }
 
 export const PROFILE_USER_DIRECTORY = Symbol('PROFILE_USER_DIRECTORY');

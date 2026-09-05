@@ -8,9 +8,11 @@ import {
   PROFILE_USER_DIRECTORY,
 } from './application/ports/profile-directories.port';
 import {
-  AddCareCircleMemberUseCase,
-  ListCareCircleUseCase,
+  AcceptCareCircleInvitationUseCase,
+  GetCareCircleUseCase,
+  InviteCareCircleMemberUseCase,
   RemoveCareCircleMemberUseCase,
+  RevokeCareCircleInvitationUseCase,
 } from './application/use-cases/care-circle.use-cases';
 import {
   GetEmergencyContactUseCase,
@@ -19,11 +21,13 @@ import {
 import { GetPreferencesUseCase } from './application/use-cases/get-preferences.use-case';
 import { GetProfileAccountUseCase } from './application/use-cases/get-profile-account.use-case';
 import { UpdatePreferencesUseCase } from './application/use-cases/update-preferences.use-case';
+import { CARE_CIRCLE_INVITATION_REPOSITORY } from './domain/care-circle-invitation.repository';
 import { CARE_CIRCLE_REPOSITORY } from './domain/care-circle.repository';
 import { EMERGENCY_CONTACT_REPOSITORY } from './domain/emergency-contact.repository';
 import { PROFILE_PREFERENCES_REPOSITORY } from './domain/profile-preferences.repository';
 import { BookingsProfilePlanDirectory } from './infrastructure/access/bookings-profile-plan-directory';
 import { IdentityProfileUserDirectory } from './infrastructure/access/identity-profile-user-directory';
+import { CareCircleInvitationPrismaRepository } from './infrastructure/persistence/care-circle-invitation-prisma.repository';
 import { CareCirclePrismaRepository } from './infrastructure/persistence/care-circle-prisma.repository';
 import { EmergencyContactPrismaRepository } from './infrastructure/persistence/emergency-contact-prisma.repository';
 import { ProfilePreferencesPrismaRepository } from './infrastructure/persistence/profile-preferences-prisma.repository';
@@ -43,14 +47,20 @@ import { ProfileController } from './presentation/profile.controller';
     UpdatePreferencesUseCase,
     GetEmergencyContactUseCase,
     SetEmergencyContactUseCase,
-    ListCareCircleUseCase,
-    AddCareCircleMemberUseCase,
+    GetCareCircleUseCase,
+    InviteCareCircleMemberUseCase,
+    AcceptCareCircleInvitationUseCase,
     RemoveCareCircleMemberUseCase,
+    RevokeCareCircleInvitationUseCase,
     { provide: PROFILE_USER_DIRECTORY, useClass: IdentityProfileUserDirectory },
     { provide: PROFILE_PLAN_DIRECTORY, useClass: BookingsProfilePlanDirectory },
     { provide: PROFILE_PREFERENCES_REPOSITORY, useClass: ProfilePreferencesPrismaRepository },
     { provide: EMERGENCY_CONTACT_REPOSITORY, useClass: EmergencyContactPrismaRepository },
     { provide: CARE_CIRCLE_REPOSITORY, useClass: CareCirclePrismaRepository },
+    {
+      provide: CARE_CIRCLE_INVITATION_REPOSITORY,
+      useClass: CareCircleInvitationPrismaRepository,
+    },
   ],
 })
 export class ProfileModule {}

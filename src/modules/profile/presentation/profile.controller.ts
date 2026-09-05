@@ -23,9 +23,11 @@ import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-princ
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
 import {
-  AddCareCircleMemberUseCase,
-  ListCareCircleUseCase,
+  AcceptCareCircleInvitationUseCase,
+  GetCareCircleUseCase,
+  InviteCareCircleMemberUseCase,
   RemoveCareCircleMemberUseCase,
+  RevokeCareCircleInvitationUseCase,
 } from '../application/use-cases/care-circle.use-cases';
 import {
   GetEmergencyContactUseCase,
@@ -36,7 +38,12 @@ import { GetProfileAccountUseCase } from '../application/use-cases/get-profile-a
 import { UpdatePreferencesUseCase } from '../application/use-cases/update-preferences.use-case';
 import { ProfileAccountResponseDto } from './dto/profile-account-response.dto';
 import { PreferencesResponseDto, UpdatePreferencesRequestDto } from './dto/preferences.dto';
-import { AddCareCircleMemberRequestDto, CareCircleMemberResponseDto } from './dto/care-circle.dto';
+import {
+  AcceptInvitationRequestDto,
+  CareCircleInvitationResponseDto,
+  CareCircleResponseDto,
+  InviteCareCircleMemberRequestDto,
+} from './dto/care-circle.dto';
 import {
   EmergencyContactResponseDto,
   SetEmergencyContactRequestDto,
@@ -57,9 +64,11 @@ export class ProfileController {
     private readonly updatePreferences: UpdatePreferencesUseCase,
     private readonly getEmergencyContact: GetEmergencyContactUseCase,
     private readonly setEmergencyContact: SetEmergencyContactUseCase,
-    private readonly listCareCircle: ListCareCircleUseCase,
-    private readonly addCareCircleMember: AddCareCircleMemberUseCase,
+    private readonly getCareCircle: GetCareCircleUseCase,
+    private readonly inviteCareCircleMember: InviteCareCircleMemberUseCase,
+    private readonly acceptInvitation: AcceptCareCircleInvitationUseCase,
     private readonly removeCareCircleMember: RemoveCareCircleMemberUseCase,
+    private readonly revokeInvitation: RevokeCareCircleInvitationUseCase,
   ) {}
 
   @Get()
@@ -125,41 +134,66 @@ export class ProfileController {
   }
 
   @Get('care-circle')
-  @ApiOperation({ summary: "The owner's care circle" })
-  @ApiOkResponse({ type: [CareCircleMemberResponseDto] })
+  @ApiOperation({ summary: "The owner's care circle: members and pending invitations" })
+  @ApiOkResponse({ type: CareCircleResponseDto })
   async careCircle(
     @CurrentUser() principal: AuthenticatedPrincipal,
-  ): Promise<CareCircleMemberResponseDto[]> {
-    const results = await this.listCareCircle.execute({ ownerId: principal.userId });
-    return results.map((result) => CareCircleMemberResponseDto.fromResult(result));
+  ): Promise<CareCircleResponseDto> {
+    const view = await this.getCareCircle.execute({ ownerId: principal.userId });
+    return CareCircleResponseDto.fromView(view);
   }
 
-  @Post('care-circle')
+  @Post('care-circle/invitations')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Add a person to the care circle' })
-  @ApiCreatedResponse({ type: CareCircleMemberResponseDto })
-  async addCareCircle(
+  @ApiOperation({ summary: 'Invite a person to the care circle by email' })
+  @ApiCreatedResponse({ type: CareCircleInvitationResponseDto })
+  async inviteMember(
     @CurrentUser() principal: AuthenticatedPrincipal,
-    @Body() body: AddCareCircleMemberRequestDto,
-  ): Promise<CareCircleMemberResponseDto> {
-    const result = await this.addCareCircleMember.execute({
+    @Body() body: InviteCareCircleMemberRequestDto,
+  ): Promise<CareCircleInvitationResponseDto> {
+    const view = await this.inviteCareCircleMember.execute({
       ownerId: principal.userId,
-      name: body.name,
-      relationship: body.relationship,
-      phone: body.phone,
       email: body.email,
+      relationship: body.relationship,
+      accessLevel: body.accessLevel,
     });
-    return CareCircleMemberResponseDto.fromResult(result);
+    return CareCircleInvitationResponseDto.from(view);
   }
 
-  @Delete('care-circle/:id')
+  @Post('care-circle/accept')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove a person from the care circle' })
+  @ApiOperation({ summary: 'Accept a care circle invitation (the invited user)' })
   @ApiNoContentResponse()
-  async removeCareCircle(
+  async acceptCareCircleInvitation(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: AcceptInvitationRequestDto,
+  ): Promise<void> {
+    await this.acceptInvitation.execute({
+      userId: principal.userId,
+      email: principal.email,
+      token: body.token,
+    });
+  }
+
+  @Delete('care-circle/members/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove a member from the care circle' })
+  @ApiNoContentResponse()
+  async deleteCareCircleMember(
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     await this.removeCareCircleMember.execute({ ownerId: principal.userId, memberId: id });
+  }
+
+  @Delete('care-circle/invitations/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Revoke a pending care circle invitation' })
+  @ApiNoContentResponse()
+  async revokeCareCircleInvitation(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    await this.revokeInvitation.execute({ ownerId: principal.userId, invitationId: id });
   }
 }

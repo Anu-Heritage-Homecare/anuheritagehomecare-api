@@ -1,8 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { CareCircleMember as PrismaCareCircleMember } from '@prisma/client';
+import {
+  CareAccessLevel as PrismaAccessLevel,
+  CareCircleMember as PrismaCareCircleMember,
+} from '@prisma/client';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
+import { CareAccessLevel } from '../../domain/care-access-level.enum';
 import { CareCircleMember } from '../../domain/care-circle-member.entity';
 import { CareCircleRepository } from '../../domain/care-circle.repository';
+
+const TO_DOMAIN_LEVEL: Record<PrismaAccessLevel, CareAccessLevel> = {
+  LIMITED: CareAccessLevel.Limited,
+  VIEW_ONLY: CareAccessLevel.ViewOnly,
+  FULL: CareAccessLevel.Full,
+};
+
+const TO_PERSISTENCE_LEVEL: Record<CareAccessLevel, PrismaAccessLevel> = {
+  [CareAccessLevel.Limited]: 'LIMITED',
+  [CareAccessLevel.ViewOnly]: 'VIEW_ONLY',
+  [CareAccessLevel.Full]: 'FULL',
+};
 
 /** Prisma backed adapter for the CareCircleRepository port. */
 @Injectable()
@@ -22,13 +38,19 @@ export class CareCirclePrismaRepository implements CareCircleRepository {
     return row === null ? null : CareCirclePrismaRepository.toDomain(row);
   }
 
+  async findMembership(ownerId: string, memberUserId: string): Promise<CareCircleMember | null> {
+    const row = await this.prisma.careCircleMember.findUnique({
+      where: { ownerId_memberUserId: { ownerId, memberUserId } },
+    });
+    return row === null ? null : CareCirclePrismaRepository.toDomain(row);
+  }
+
   async save(member: CareCircleMember): Promise<void> {
     const data = {
       ownerId: member.ownerId,
-      name: member.name,
+      memberUserId: member.memberUserId,
       relationship: member.relationship,
-      phone: member.phone,
-      email: member.email,
+      accessLevel: TO_PERSISTENCE_LEVEL[member.accessLevel],
     };
     await this.prisma.careCircleMember.upsert({
       where: { id: member.id },
@@ -44,10 +66,9 @@ export class CareCirclePrismaRepository implements CareCircleRepository {
   private static toDomain(row: PrismaCareCircleMember): CareCircleMember {
     return CareCircleMember.rehydrate(row.id, {
       ownerId: row.ownerId,
-      name: row.name,
+      memberUserId: row.memberUserId,
       relationship: row.relationship,
-      phone: row.phone,
-      email: row.email,
+      accessLevel: TO_DOMAIN_LEVEL[row.accessLevel],
       createdAt: row.createdAt,
     });
   }
