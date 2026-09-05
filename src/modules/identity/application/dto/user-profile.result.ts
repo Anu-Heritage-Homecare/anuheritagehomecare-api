@@ -30,6 +30,10 @@ export interface UserProfileResult {
   isFamilyOwner: boolean;
   mustChangePassword: boolean;
   status: UserStatus;
+  /** Date of birth as an ISO calendar date, or null when not set. */
+  dateOfBirth: string | null;
+  /** The owner's relationship to the care recipient, or null when not set. */
+  relationshipToRecipient: string | null;
   /** Opaque object store key for the avatar; null when none is set. */
   photoKey: string | null;
   /** Signed delivery URL for the avatar, resolved by the reads that have storage. */
@@ -57,6 +61,8 @@ export function toUserProfile(user: User): UserProfileResult {
     isFamilyOwner: user.isFamilyOwner,
     mustChangePassword: user.mustChangePassword,
     status: user.status,
+    dateOfBirth: user.dateOfBirth === null ? null : user.dateOfBirth.toISOString().slice(0, 10),
+    relationshipToRecipient: user.relationshipToRecipient,
     photoKey: user.photoKey,
     photoUrl: null,
   };

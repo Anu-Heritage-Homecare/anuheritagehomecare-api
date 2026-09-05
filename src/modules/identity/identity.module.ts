@@ -11,6 +11,7 @@ import { ChangePasswordUseCase } from './application/use-cases/change-password.u
 import { DisableTwoFactorUseCase } from './application/use-cases/disable-two-factor.use-case';
 import { EnableTwoFactorUseCase } from './application/use-cases/enable-two-factor.use-case';
 import { CreateProfilePhotoTicketUseCase } from './application/use-cases/create-profile-photo-ticket.use-case';
+import { DeleteAccountUseCase } from './application/use-cases/delete-account.use-case';
 import { GetMyProfileUseCase } from './application/use-cases/get-my-profile.use-case';
 import { LoginUseCase } from './application/use-cases/login.use-case';
 import { SetProfilePhotoUseCase } from './application/use-cases/set-profile-photo.use-case';
@@ -68,6 +69,7 @@ import { AuthController } from './presentation/auth.controller';
     UpdateMyProfileUseCase,
     CreateProfilePhotoTicketUseCase,
     SetProfilePhotoUseCase,
+    DeleteAccountUseCase,
     SetupTwoFactorUseCase,
     EnableTwoFactorUseCase,
     DisableTwoFactorUseCase,

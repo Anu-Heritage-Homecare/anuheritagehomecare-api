@@ -10,6 +10,7 @@ import { ProfilePreferences } from '../../domain/profile-preferences.entity';
 export interface PreferencesResult {
   notifications: NotificationPreferences;
   language: string;
+  preferredContactMethod: string;
 }
 
 /**
@@ -28,6 +29,10 @@ export class GetPreferencesUseCase {
     const stored =
       (await this.preferences.findByUser(query.userId)) ??
       ProfilePreferences.default(query.userId, this.clock.now());
-    return { notifications: stored.notifications, language: stored.language };
+    return {
+      notifications: stored.notifications,
+      language: stored.language,
+      preferredContactMethod: stored.preferredContactMethod,
+    };
   }
 }

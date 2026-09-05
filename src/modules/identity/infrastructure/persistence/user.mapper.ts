@@ -34,6 +34,8 @@ export class UserMapper {
       }),
       passwordHash: row.passwordHash,
       photoKey: row.photoKey,
+      dateOfBirth: row.dateOfBirth,
+      relationshipToRecipient: row.relationshipToRecipient,
       emailVerified: row.emailVerified,
       phoneVerified: row.phoneVerified,
       isFamilyOwner: row.isFamilyOwner,
@@ -62,6 +64,8 @@ export class UserMapper {
       country: UserMapper.TO_PERSISTENCE_COUNTRY[user.address.country],
       passwordHash: user.passwordHash,
       photoKey: user.photoKey,
+      dateOfBirth: user.dateOfBirth,
+      relationshipToRecipient: user.relationshipToRecipient,
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneVerified,
       isFamilyOwner: user.isFamilyOwner,
@@ -88,12 +92,14 @@ export class UserMapper {
     PENDING_VERIFICATION: UserStatus.PendingVerification,
     ACTIVE: UserStatus.Active,
     SUSPENDED: UserStatus.Suspended,
+    CLOSED: UserStatus.Closed,
   };
 
   private static readonly TO_PERSISTENCE_STATUS: Record<UserStatus, PrismaUserStatus> = {
     [UserStatus.PendingVerification]: 'PENDING_VERIFICATION',
     [UserStatus.Active]: 'ACTIVE',
     [UserStatus.Suspended]: 'SUSPENDED',
+    [UserStatus.Closed]: 'CLOSED',
   };
 
   private static readonly TO_PERSISTENCE_COUNTRY: Record<Country, PrismaCountry> = {

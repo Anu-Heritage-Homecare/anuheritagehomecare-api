@@ -15,8 +15,13 @@ export class ProfilePreferencesMapper {
         messageAlerts: row.messageAlerts,
       },
       language: row.language,
+      preferredContactMethod: ProfilePreferencesMapper.toContactMethod(row.preferredContactMethod),
       updatedAt: row.updatedAt,
     });
+  }
+
+  private static toContactMethod(value: string): 'EMAIL' | 'PHONE' | 'SMS' {
+    return value === 'PHONE' || value === 'SMS' ? value : 'EMAIL';
   }
 
   static toPersistence(
@@ -33,6 +38,7 @@ export class ProfilePreferencesMapper {
       billingAlerts: notifications.billingAlerts,
       messageAlerts: notifications.messageAlerts,
       language: preferences.language,
+      preferredContactMethod: preferences.preferredContactMethod,
     };
   }
 }

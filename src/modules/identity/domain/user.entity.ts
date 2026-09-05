@@ -17,6 +17,8 @@ interface UserProps {
   address: PostalAddress;
   passwordHash: string;
   photoKey: string | null;
+  dateOfBirth: Date | null;
+  relationshipToRecipient: string | null;
   emailVerified: boolean;
   phoneVerified: boolean;
   isFamilyOwner: boolean;
@@ -64,6 +66,8 @@ export class User extends AggregateRoot<string> {
       address: params.address,
       passwordHash: params.passwordHash,
       photoKey: null,
+      dateOfBirth: null,
+      relationshipToRecipient: null,
       emailVerified: false,
       phoneVerified: false,
       isFamilyOwner: params.isFamilyOwner,
@@ -85,7 +89,11 @@ export class User extends AggregateRoot<string> {
 
   /** Whether the account may authenticate and receive tokens. */
   public get canLogIn(): boolean {
-    return this.props.emailVerified && this.props.status !== UserStatus.Suspended;
+    return (
+      this.props.emailVerified &&
+      this.props.status !== UserStatus.Suspended &&
+      this.props.status !== UserStatus.Closed
+    );
   }
 
   /**
@@ -115,22 +123,41 @@ export class User extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
-  /** Update the editable personal information (name, phone and postal address). */
-  public updateProfile(
-    name: PersonName,
-    phone: PhoneNumber,
-    address: PostalAddress,
-    now: Date,
-  ): void {
-    this.props.name = name;
-    this.props.phone = phone;
-    this.props.address = address;
-    this.props.updatedAt = now;
+  /**
+   * Update the editable personal information: name, phone, postal address and the
+   * optional date of birth and relationship to the care recipient.
+   */
+  public updateProfile(params: {
+    name: PersonName;
+    phone: PhoneNumber;
+    address: PostalAddress;
+    dateOfBirth: Date | null;
+    relationshipToRecipient: string | null;
+    now: Date;
+  }): void {
+    this.props.name = params.name;
+    this.props.phone = params.phone;
+    this.props.address = params.address;
+    this.props.dateOfBirth = params.dateOfBirth;
+    this.props.relationshipToRecipient =
+      params.relationshipToRecipient !== null && params.relationshipToRecipient.trim().length > 0
+        ? params.relationshipToRecipient.trim()
+        : null;
+    this.props.updatedAt = params.now;
   }
 
   /** Set (or clear) the profile photo, stored as an opaque object store key. */
   public setPhotoKey(photoKey: string | null, now: Date): void {
     this.props.photoKey = photoKey;
+    this.props.updatedAt = now;
+  }
+
+  /**
+   * Soft close the account: block login and mark it closed. Sessions are revoked
+   * by the application. The record and history are retained.
+   */
+  public closeAccount(now: Date): void {
+    this.props.status = UserStatus.Closed;
     this.props.updatedAt = now;
   }
 
@@ -193,6 +220,14 @@ export class User extends AggregateRoot<string> {
   /** Opaque storage key for the profile photo, or null when none is set. */
   public get photoKey(): string | null {
     return this.props.photoKey;
+  }
+
+  public get dateOfBirth(): Date | null {
+    return this.props.dateOfBirth;
+  }
+
+  public get relationshipToRecipient(): string | null {
+    return this.props.relationshipToRecipient;
   }
 
   public get emailVerified(): boolean {

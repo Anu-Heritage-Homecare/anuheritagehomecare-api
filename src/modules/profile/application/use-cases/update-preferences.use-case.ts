@@ -14,6 +14,7 @@ export interface UpdatePreferencesCommand {
   userId: string;
   notifications: NotificationPreferences;
   language: string;
+  preferredContactMethod: string;
 }
 
 /**
@@ -37,8 +38,13 @@ export class UpdatePreferencesUseCase {
 
     current.setNotifications(command.notifications, now);
     current.setLanguage(command.language, now);
+    current.setPreferredContactMethod(command.preferredContactMethod, now);
     await this.preferences.save(current);
 
-    return { notifications: current.notifications, language: current.language };
+    return {
+      notifications: current.notifications,
+      language: current.language,
+      preferredContactMethod: current.preferredContactMethod,
+    };
   }
 }

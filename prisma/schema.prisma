@@ -56,6 +56,10 @@ model User {
   state         String     @db.VarChar(120)
   postalCode    String     @db.VarChar(20)
   country       Country
+  // Optional personal details surfaced on the profile; not captured at
+  // registration, so nullable until the owner fills them in.
+  dateOfBirth            DateTime? @db.Date
+  relationshipToRecipient String?  @db.VarChar(120)
   passwordHash  String     @db.VarChar(255)
   emailVerified Boolean    @default(false)
   phoneVerified Boolean    @default(false)
@@ -144,6 +148,7 @@ enum UserStatus {
   PENDING_VERIFICATION
   ACTIVE
   SUSPENDED
+  CLOSED
 
   @@map("user_status")
 }
@@ -652,6 +657,8 @@ model ProfilePreferences {
   billingAlerts Boolean @default(true)
   messageAlerts Boolean @default(true)
   language      String  @default("en") @db.VarChar(10)
+  // Preferred contact method: EMAIL, PHONE or SMS.
+  preferredContactMethod String @default("EMAIL") @db.VarChar(10)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

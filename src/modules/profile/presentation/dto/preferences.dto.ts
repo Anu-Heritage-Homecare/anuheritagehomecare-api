@@ -24,6 +24,10 @@ export class UpdatePreferencesRequestDto {
   @ApiProperty({ example: 'en', enum: ['en'] })
   @IsIn(['en'])
   language!: string;
+
+  @ApiProperty({ example: 'EMAIL', enum: ['EMAIL', 'PHONE', 'SMS'] })
+  @IsIn(['EMAIL', 'PHONE', 'SMS'])
+  preferredContactMethod!: string;
 }
 
 /** HTTP response for the owner's preferences. */
@@ -33,6 +37,9 @@ export class PreferencesResponseDto {
 
   @ApiProperty({ example: 'en' })
   language!: string;
+
+  @ApiProperty({ example: 'EMAIL', enum: ['EMAIL', 'PHONE', 'SMS'] })
+  preferredContactMethod!: string;
 
   static fromResult(result: PreferencesResult): PreferencesResponseDto {
     return Object.assign(new PreferencesResponseDto(), result);

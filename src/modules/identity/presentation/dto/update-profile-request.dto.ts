@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsDateString, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 /**
  * Request to update the authenticated user's personal information. The email is
@@ -57,4 +57,15 @@ export class UpdateProfileRequestDto {
   @ApiProperty({ example: 'NG', enum: ['US', 'NG'] })
   @IsIn(['US', 'NG'])
   country!: string;
+
+  @ApiPropertyOptional({ example: '1990-03-15', description: 'Date of birth (ISO calendar date)' })
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
+  @ApiPropertyOptional({ example: 'Son', maxLength: 120 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  relationshipToRecipient?: string;
 }

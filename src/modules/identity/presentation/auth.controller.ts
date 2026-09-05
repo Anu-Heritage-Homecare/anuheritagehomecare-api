@@ -23,6 +23,7 @@ import { ChangePasswordUseCase } from '../application/use-cases/change-password.
 import { DisableTwoFactorUseCase } from '../application/use-cases/disable-two-factor.use-case';
 import { EnableTwoFactorUseCase } from '../application/use-cases/enable-two-factor.use-case';
 import { CreateProfilePhotoTicketUseCase } from '../application/use-cases/create-profile-photo-ticket.use-case';
+import { DeleteAccountUseCase } from '../application/use-cases/delete-account.use-case';
 import { GetMyProfileUseCase } from '../application/use-cases/get-my-profile.use-case';
 import { LoginUseCase } from '../application/use-cases/login.use-case';
 import { SetProfilePhotoUseCase } from '../application/use-cases/set-profile-photo.use-case';
@@ -49,6 +50,7 @@ import { RequestPasswordResetRequestDto } from './dto/request-password-reset-req
 import { ResendEmailVerificationRequestDto } from './dto/resend-email-verification-request.dto';
 import { ResetPasswordRequestDto } from './dto/reset-password-request.dto';
 import { ResetTokenResponseDto } from './dto/reset-token-response.dto';
+import { DeleteAccountRequestDto } from './dto/delete-account-request.dto';
 import { UpdateProfileRequestDto } from './dto/update-profile-request.dto';
 import { SetProfilePhotoRequestDto } from './dto/set-profile-photo-request.dto';
 import { PhotoUploadTicketResponseDto } from './dto/photo-upload-ticket-response.dto';
@@ -92,6 +94,7 @@ export class AuthController {
     private readonly updateMyProfile: UpdateMyProfileUseCase,
     private readonly createProfilePhotoTicket: CreateProfilePhotoTicketUseCase,
     private readonly setProfilePhoto: SetProfilePhotoUseCase,
+    private readonly deleteAccount: DeleteAccountUseCase,
     private readonly setupTwoFactor: SetupTwoFactorUseCase,
     private readonly enableTwoFactor: EnableTwoFactorUseCase,
     private readonly disableTwoFactor: DisableTwoFactorUseCase,
@@ -150,6 +153,21 @@ export class AuthController {
       photoKey: body.photoKey ?? null,
     });
     return UserProfileResponseDto.fromResult(result);
+  }
+
+  @Post('account/delete')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle(SENSITIVE_THROTTLE)
+  @ApiOperation({ summary: 'Close (soft delete) the account; requires the password' })
+  @ApiOkResponse({ type: MessageResponseDto })
+  async deleteMyAccount(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: DeleteAccountRequestDto,
+  ): Promise<MessageResponseDto> {
+    await this.deleteAccount.execute({ userId: principal.userId, password: body.password });
+    return MessageResponseDto.fromResult({ message: 'Your account has been closed' });
   }
 
   @Post('register')

@@ -10,4 +10,7 @@ export interface UpdateMyProfileCommand {
   state: string;
   postalCode: string;
   country: string;
+  /** ISO calendar date, or null/omitted to leave unset. */
+  dateOfBirth?: string | null;
+  relationshipToRecipient?: string | null;
 }

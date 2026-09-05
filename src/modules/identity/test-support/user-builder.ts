@@ -68,6 +68,8 @@ export function buildUser(options: BuildUserOptions = {}): User {
     address,
     passwordHash: user.passwordHash,
     photoKey: user.photoKey,
+    dateOfBirth: null,
+    relationshipToRecipient: null,
     emailVerified: user.emailVerified,
     phoneVerified: user.phoneVerified,
     isFamilyOwner: user.isFamilyOwner,

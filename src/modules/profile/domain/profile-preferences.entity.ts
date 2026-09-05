@@ -11,13 +11,17 @@ export interface NotificationPreferences {
   messageAlerts: boolean;
 }
 
+export type PreferredContactMethod = 'EMAIL' | 'PHONE' | 'SMS';
+
 interface ProfilePreferencesProps {
   notifications: NotificationPreferences;
   language: string;
+  preferredContactMethod: PreferredContactMethod;
   updatedAt: Date;
 }
 
 const SUPPORTED_LANGUAGES = ['en'];
+const CONTACT_METHODS: PreferredContactMethod[] = ['EMAIL', 'PHONE', 'SMS'];
 
 /**
  * A family owner's notification and app preferences, keyed by their user id. The
@@ -44,6 +48,7 @@ export class ProfilePreferences extends Entity<string> {
         messageAlerts: true,
       },
       language: 'en',
+      preferredContactMethod: 'EMAIL',
       updatedAt: now,
     });
   }
@@ -66,12 +71,25 @@ export class ProfilePreferences extends Entity<string> {
     this.props.updatedAt = now;
   }
 
+  public setPreferredContactMethod(method: string, now: Date): void {
+    const normalised = method.trim().toUpperCase() as PreferredContactMethod;
+    if (!CONTACT_METHODS.includes(normalised)) {
+      throw new ValidationException('Preferred contact method must be EMAIL, PHONE or SMS');
+    }
+    this.props.preferredContactMethod = normalised;
+    this.props.updatedAt = now;
+  }
+
   public get notifications(): NotificationPreferences {
     return { ...this.props.notifications };
   }
 
   public get language(): string {
     return this.props.language;
+  }
+
+  public get preferredContactMethod(): PreferredContactMethod {
+    return this.props.preferredContactMethod;
   }
 
   public get updatedAt(): Date {

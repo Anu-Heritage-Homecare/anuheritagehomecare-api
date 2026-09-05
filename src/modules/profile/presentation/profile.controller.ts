@@ -93,6 +93,7 @@ export class ProfileController {
       userId: principal.userId,
       notifications: body.notifications,
       language: body.language,
+      preferredContactMethod: body.preferredContactMethod,
     });
     return PreferencesResponseDto.fromResult(result);
   }

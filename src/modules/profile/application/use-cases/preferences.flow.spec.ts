@@ -47,11 +47,13 @@ describe('profile preferences', () => {
       userId: 'user-1',
       notifications: { ...allOn, sms: false, billingAlerts: false },
       language: 'en',
+      preferredContactMethod: 'PHONE',
     });
 
     const result = await new GetPreferencesUseCase(repo, clock).execute({ userId: 'user-1' });
     expect(result.notifications.sms).toBe(false);
     expect(result.notifications.billingAlerts).toBe(false);
+    expect(result.preferredContactMethod).toBe('PHONE');
   });
 
   it('rejects an unsupported language', async () => {
@@ -60,6 +62,7 @@ describe('profile preferences', () => {
         userId: 'user-1',
         notifications: allOn,
         language: 'fr',
+        preferredContactMethod: 'EMAIL',
       }),
     ).rejects.toBeInstanceOf(ValidationException);
   });

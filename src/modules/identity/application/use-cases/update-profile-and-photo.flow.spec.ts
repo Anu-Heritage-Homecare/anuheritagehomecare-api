@@ -25,6 +25,8 @@ const profileInput = {
   state: 'Lagos',
   postalCode: '101233',
   country: 'NG',
+  dateOfBirth: '1990-03-15',
+  relationshipToRecipient: 'Son',
 };
 
 describe('profile edit and photo', () => {
@@ -45,6 +47,8 @@ describe('profile edit and photo', () => {
     expect(result.lastName).toBe('Pratama');
     expect(result.phone).toBe('+2348012345678');
     expect(result.address.line1).toBe('9 Broad Street');
+    expect(result.dateOfBirth).toBe('1990-03-15');
+    expect(result.relationshipToRecipient).toBe('Son');
   });
 
   it('issues an upload ticket namespaced to the user', () => {

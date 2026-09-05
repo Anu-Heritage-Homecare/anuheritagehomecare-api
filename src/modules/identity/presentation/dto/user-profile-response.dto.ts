@@ -76,6 +76,12 @@ export class UserProfileResponseDto {
   @ApiProperty({ enum: UserStatus, enumName: 'UserStatus' })
   status!: UserStatus;
 
+  @ApiProperty({ nullable: true, example: '1990-03-15' })
+  dateOfBirth!: string | null;
+
+  @ApiProperty({ nullable: true, example: 'Son' })
+  relationshipToRecipient!: string | null;
+
   @ApiProperty({ nullable: true, description: 'Signed avatar URL, or null when none is set' })
   photoUrl!: string | null;
 
@@ -93,6 +99,8 @@ export class UserProfileResponseDto {
     dto.isFamilyOwner = result.isFamilyOwner;
     dto.mustChangePassword = result.mustChangePassword;
     dto.status = result.status;
+    dto.dateOfBirth = result.dateOfBirth;
+    dto.relationshipToRecipient = result.relationshipToRecipient;
     dto.photoUrl = result.photoUrl;
     return dto;
   }
