@@ -20,6 +20,8 @@ import {
 import { DeviceContext } from '../application/dto/device-context';
 import { DeviceSession } from '../domain/device-session.entity';
 import { DeviceSessionRepository } from '../domain/device-session.repository';
+import { LoginEvent } from '../domain/login-event.entity';
+import { LoginEventRepository } from '../domain/login-event.repository';
 import { User } from '../domain/user.entity';
 import { UserRepository } from '../domain/user.repository';
 import { VerificationPurpose } from '../domain/verification-purpose.enum';
@@ -314,5 +316,22 @@ export class InMemoryDeviceSessionRepository implements DeviceSessionRepository 
       }
     }
     return Promise.resolve();
+  }
+}
+
+export class InMemoryLoginEventRepository implements LoginEventRepository {
+  public readonly store: LoginEvent[] = [];
+
+  save(event: LoginEvent): Promise<void> {
+    this.store.push(event);
+    return Promise.resolve();
+  }
+
+  listRecentForUser(userId: string, limit: number): Promise<LoginEvent[]> {
+    const recent = this.store
+      .filter((event) => event.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+    return Promise.resolve(recent);
   }
 }

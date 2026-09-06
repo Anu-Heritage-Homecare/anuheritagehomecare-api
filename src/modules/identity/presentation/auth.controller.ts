@@ -30,6 +30,7 @@ import {
 } from '../application/use-cases/device-session.use-cases';
 import { DisableTwoFactorUseCase } from '../application/use-cases/disable-two-factor.use-case';
 import { EnableTwoFactorUseCase } from '../application/use-cases/enable-two-factor.use-case';
+import { GetLoginActivityUseCase } from '../application/use-cases/get-login-activity.use-case';
 import { CreateProfilePhotoTicketUseCase } from '../application/use-cases/create-profile-photo-ticket.use-case';
 import { DeleteAccountUseCase } from '../application/use-cases/delete-account.use-case';
 import { GetMyProfileUseCase } from '../application/use-cases/get-my-profile.use-case';
@@ -49,6 +50,7 @@ import { VerifyPasswordResetOtpUseCase } from '../application/use-cases/verify-p
 import { AuthTokensResponseDto } from './dto/auth-tokens-response.dto';
 import { ChangePasswordRequestDto } from './dto/change-password-request.dto';
 import { DevicesResponseDto } from './dto/devices-response.dto';
+import { LoginActivityResponseDto } from './dto/login-activity-response.dto';
 import { DeviceContext } from '../application/dto/device-context';
 import { RequestDevice } from './request-device.decorator';
 import { LoginRequestDto } from './dto/login-request.dto';
@@ -113,6 +115,7 @@ export class AuthController {
     private readonly listDevices: ListDevicesUseCase,
     private readonly revokeDevice: RevokeDeviceUseCase,
     private readonly logoutAllDevices: LogoutAllDevicesUseCase,
+    private readonly getLoginActivity: GetLoginActivityUseCase,
   ) {}
 
   @Get('me')
@@ -406,5 +409,17 @@ export class AuthController {
   async logOutAll(@CurrentUser() principal: AuthenticatedPrincipal): Promise<MessageResponseDto> {
     const result = await this.logoutAllDevices.execute({ userId: principal.userId });
     return MessageResponseDto.fromResult(result);
+  }
+
+  @Get('login-activity')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Recent login activity (successful and failed attempts)' })
+  @ApiOkResponse({ type: LoginActivityResponseDto })
+  async loginActivity(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): Promise<LoginActivityResponseDto> {
+    const views = await this.getLoginActivity.execute({ userId: principal.userId });
+    return LoginActivityResponseDto.fromViews(views);
   }
 }

@@ -7,12 +7,14 @@ import {
   FakeTwoFactorAuthenticator,
   FixedOtpGenerator,
   InMemoryDeviceSessionRepository,
+  InMemoryLoginEventRepository,
   InMemoryTwoFactorRecoveryCodeRepository,
   InMemoryUserRepository,
   fixedClock,
   sequentialIds,
 } from '../../test-support/doubles';
 import { buildUser } from '../../test-support/user-builder';
+import { LoginEventRecorder } from '../services/login-event-recorder.service';
 import { TokenIssuerService } from '../services/token-issuer.service';
 import { DisableTwoFactorUseCase } from './disable-two-factor.use-case';
 import { EnableTwoFactorUseCase } from './enable-two-factor.use-case';
@@ -73,6 +75,7 @@ describe('two factor authentication flow', () => {
       recoveryCodes,
       fixedClock,
       tokenIssuer,
+      new LoginEventRecorder(new InMemoryLoginEventRepository(), sequentialIds('le'), fixedClock),
     );
   });
 

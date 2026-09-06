@@ -5,6 +5,7 @@ import { EMAIL_SENDER } from './application/ports/email-sender.port';
 import { OTP_GENERATOR } from './application/ports/otp-generator.port';
 import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
 import { TOKEN_SERVICE } from './application/ports/token-service.port';
+import { LoginEventRecorder } from './application/services/login-event-recorder.service';
 import { OtpService } from './application/services/otp.service';
 import { TokenIssuerService } from './application/services/token-issuer.service';
 import { ChangePasswordUseCase } from './application/use-cases/change-password.use-case';
@@ -24,6 +25,7 @@ import {
   LogoutAllDevicesUseCase,
   RevokeDeviceUseCase,
 } from './application/use-cases/device-session.use-cases';
+import { GetLoginActivityUseCase } from './application/use-cases/get-login-activity.use-case';
 import { RefreshTokenUseCase } from './application/use-cases/refresh-token.use-case';
 import { RegisterFamilyOwnerUseCase } from './application/use-cases/register-family-owner.use-case';
 import { RequestPasswordResetUseCase } from './application/use-cases/request-password-reset.use-case';
@@ -32,6 +34,7 @@ import { ResetPasswordUseCase } from './application/use-cases/reset-password.use
 import { VerifyEmailUseCase } from './application/use-cases/verify-email.use-case';
 import { VerifyPasswordResetOtpUseCase } from './application/use-cases/verify-password-reset-otp.use-case';
 import { DEVICE_SESSION_REPOSITORY } from './domain/device-session.repository';
+import { LOGIN_EVENT_REPOSITORY } from './domain/login-event.repository';
 import { TWO_FACTOR_RECOVERY_CODE_REPOSITORY } from './domain/two-factor-recovery-code.repository';
 import { USER_REPOSITORY } from './domain/user.repository';
 import { VERIFICATION_CODE_REPOSITORY } from './domain/verification-code.repository';
@@ -39,6 +42,7 @@ import { SECRET_CIPHER } from './application/ports/secret-cipher.port';
 import { TWO_FACTOR_AUTHENTICATOR } from './application/ports/two-factor-authenticator.port';
 import { NodemailerEmailSender } from './infrastructure/email/nodemailer-email-sender';
 import { DeviceSessionPrismaRepository } from './infrastructure/persistence/device-session-prisma.repository';
+import { LoginEventPrismaRepository } from './infrastructure/persistence/login-event-prisma.repository';
 import { TwoFactorRecoveryCodePrismaRepository } from './infrastructure/persistence/two-factor-recovery-code-prisma.repository';
 import { UserPrismaRepository } from './infrastructure/persistence/user-prisma.repository';
 import { VerificationCodePrismaRepository } from './infrastructure/persistence/verification-code-prisma.repository';
@@ -82,12 +86,15 @@ import { AuthController } from './presentation/auth.controller';
     ListDevicesUseCase,
     RevokeDeviceUseCase,
     LogoutAllDevicesUseCase,
+    GetLoginActivityUseCase,
     OtpService,
     TokenIssuerService,
+    LoginEventRecorder,
     JwtAccessStrategy,
     { provide: USER_REPOSITORY, useClass: UserPrismaRepository },
     { provide: VERIFICATION_CODE_REPOSITORY, useClass: VerificationCodePrismaRepository },
     { provide: DEVICE_SESSION_REPOSITORY, useClass: DeviceSessionPrismaRepository },
+    { provide: LOGIN_EVENT_REPOSITORY, useClass: LoginEventPrismaRepository },
     {
       provide: TWO_FACTOR_RECOVERY_CODE_REPOSITORY,
       useClass: TwoFactorRecoveryCodePrismaRepository,

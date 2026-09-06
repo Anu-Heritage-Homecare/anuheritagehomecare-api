@@ -7,10 +7,12 @@ import {
 import { UserStatus } from '../../domain/user-status.enum';
 import { USER_REPOSITORY, UserRepository } from '../../domain/user.repository';
 import { EmailAddress } from '../../domain/value-objects/email-address.vo';
+import { LoginOutcome } from '../../domain/login-event.entity';
 import { LoginCommand } from '../commands/login.command';
 import { LoginResult } from '../dto/login.result';
 import { PASSWORD_HASHER, PasswordHasher } from '../ports/password-hasher.port';
 import { TOKEN_SERVICE, TokenService } from '../ports/token-service.port';
+import { LoginEventRecorder } from '../services/login-event-recorder.service';
 import { TokenIssuerService } from '../services/token-issuer.service';
 
 /**
@@ -30,6 +32,7 @@ export class LoginUseCase {
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
     @Inject(TOKEN_SERVICE) private readonly tokens: TokenService,
     private readonly tokenIssuer: TokenIssuerService,
+    private readonly loginEvents: LoginEventRecorder,
   ) {}
 
   async execute(command: LoginCommand): Promise<LoginResult> {
@@ -42,6 +45,8 @@ export class LoginUseCase {
 
     const passwordMatches = await this.hasher.compare(command.password, user.passwordHash);
     if (!passwordMatches) {
+      // An attributable failed attempt: someone tried this account's password.
+      await this.loginEvents.record(user.id, LoginOutcome.Failure, command.device);
       throw new UnauthorizedDomainException();
     }
 
@@ -58,6 +63,7 @@ export class LoginUseCase {
     }
 
     const tokens = await this.tokenIssuer.issueForNewSession(user, command.device);
+    await this.loginEvents.record(user.id, LoginOutcome.Success, command.device);
     return { status: 'AUTHENTICATED', tokens };
   }
 }

@@ -7,33 +7,39 @@ import {
   FakePasswordHasher,
   FakeTokenService,
   InMemoryDeviceSessionRepository,
+  InMemoryLoginEventRepository,
   InMemoryUserRepository,
   fixedClock,
   sequentialIds,
 } from '../../test-support/doubles';
 import { buildUser } from '../../test-support/user-builder';
+import { LoginEventRecorder } from '../services/login-event-recorder.service';
 import { TokenIssuerService } from '../services/token-issuer.service';
 import { LoginUseCase } from './login.use-case';
 
 describe('LoginUseCase', () => {
   let users: InMemoryUserRepository;
   let sessions: InMemoryDeviceSessionRepository;
+  let loginEvents: InMemoryLoginEventRepository;
   let useCase: LoginUseCase;
 
   beforeEach(() => {
     users = new InMemoryUserRepository();
     sessions = new InMemoryDeviceSessionRepository();
+    loginEvents = new InMemoryLoginEventRepository();
     const tokenIssuer = new TokenIssuerService(
       new FakeTokenService(),
       sessions,
       fixedClock,
       sequentialIds('sid'),
     );
+    const recorder = new LoginEventRecorder(loginEvents, sequentialIds('le'), fixedClock);
     useCase = new LoginUseCase(
       users,
       new FakePasswordHasher(),
       new FakeTokenService(),
       tokenIssuer,
+      recorder,
     );
   });
 
@@ -54,6 +60,9 @@ describe('LoginUseCase', () => {
     expect(result.tokens.refreshToken).toContain('refresh:user-1');
     expect(result.tokens.user.email).toBe('ada.obi@example.com');
     expect(sessions.store.size).toBe(1);
+    // A successful login is recorded in the audit log.
+    expect(loginEvents.store).toHaveLength(1);
+    expect(loginEvents.store[0].outcome).toBe('SUCCESS');
   });
 
   it('surfaces mustChangePassword so the client can force a password change', async () => {
@@ -111,11 +120,16 @@ describe('LoginUseCase', () => {
         device: FAKE_DEVICE,
       }),
     ).rejects.toBeInstanceOf(UnauthorizedDomainException);
+    // The failed attempt is recorded against the known account.
+    expect(loginEvents.store).toHaveLength(1);
+    expect(loginEvents.store[0].outcome).toBe('FAILURE');
   });
 
   it('rejects an unknown email identically to a wrong password', async () => {
     await expect(
       useCase.execute({ email: 'nobody@example.com', password: 'S3curePass', device: FAKE_DEVICE }),
     ).rejects.toBeInstanceOf(UnauthorizedDomainException);
+    // An unknown email cannot be attributed, so nothing is logged.
+    expect(loginEvents.store).toHaveLength(0);
   });
 });

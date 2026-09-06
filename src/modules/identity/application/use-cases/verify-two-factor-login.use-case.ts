@@ -18,6 +18,8 @@ import {
   TWO_FACTOR_AUTHENTICATOR,
   TwoFactorAuthenticator,
 } from '../ports/two-factor-authenticator.port';
+import { LoginOutcome } from '../../domain/login-event.entity';
+import { LoginEventRecorder } from '../services/login-event-recorder.service';
 import { TokenIssuerService } from '../services/token-issuer.service';
 
 export interface VerifyTwoFactorLoginCommand {
@@ -43,6 +45,7 @@ export class VerifyTwoFactorLoginUseCase {
     private readonly recoveryCodes: TwoFactorRecoveryCodeRepository,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly tokenIssuer: TokenIssuerService,
+    private readonly loginEvents: LoginEventRecorder,
   ) {}
 
   async execute(command: VerifyTwoFactorLoginCommand): Promise<AuthTokensResult> {
@@ -63,11 +66,14 @@ export class VerifyTwoFactorLoginUseCase {
     if (!totpValid) {
       const consumed = await this.consumeRecoveryCode(user.id, command.code, now);
       if (!consumed) {
+        await this.loginEvents.record(user.id, LoginOutcome.Failure, command.device);
         throw new UnauthorizedDomainException('Invalid authentication code');
       }
     }
 
-    return this.tokenIssuer.issueForNewSession(user, command.device);
+    const tokens = await this.tokenIssuer.issueForNewSession(user, command.device);
+    await this.loginEvents.record(user.id, LoginOutcome.Success, command.device);
+    return tokens;
   }
 
   private async consumeRecoveryCode(userId: string, code: string, now: Date): Promise<boolean> {
