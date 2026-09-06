@@ -207,17 +207,34 @@ bundle). The repository lives at `Documents/Others/anuheritagehomecare-api`. Git
 remote is `github.com/Anu-Heritage-Homecare/anuheritagehomecare-api` (token was
 scrubbed from the remote URL; rotate any token that was shared in chat).
 
-**Uncommitted work (important for anyone resuming).** Commits through
-`4a38a44` (KYC face match) are the last committed state on branch
-`feat/care-recipient-onboarding`. Everything in the "added later" bullets above is
-present on disk but NOT yet committed: the caregiver active shift (SOS, breaks,
-care logging, observations, temperature, review and submit), structured
-medications, tracking `EMERGENCY` mode, identity two factor and the `GET /auth/me`
-profile, and the earnings, availability, family-dashboard, family-care and
-care-requests contexts. It all builds, lints clean and tests green. When asked to
-commit, split into logical per feature commits; per the owner's global rules use
-`--no-verify`, never add a Claude/Anthropic co author, and push only when
-explicitly asked (to `origin-mattie HEAD:dev`).
+**Committed state and current focus (read first when resuming).** The entire
+mobile app backend (family owner app and caregiver app) is now built and
+committed on branch `feat/care-recipient-onboarding`, screen by screen against
+the mockups. That includes everything in the "added later" bullets above plus the
+later review screens: the caregiver active shift, structured medications, tracking
+`EMERGENCY` mode, identity two factor and `GET /auth/me`, earnings, availability
+(with the single day picker that greys out booked slots), the family dashboard and
+Care section, billing and invoices, and the full profile account area
+(notifications, care circle care codes, account security with device sessions and
+login activity, display preferences, and the read only calendar feed). It all
+builds, lints clean and tests green (373 unit tests at the last screen).
+
+The **mobile app is feature complete for now and parked. The current focus is the
+admin module** (owner: "that's all for the mobile app for now, so switching to the
+admin"). Nothing admin is built yet. Several mobile features explicitly deferred
+work into it: caregiver provisioning (issues the temporary password and sets
+`mustChangePassword`), admin users, how visits get created and assigned from
+bookings and subscriptions, the office set care plan data (care goals,
+primary/backup/coordinator caregiver roles, care instructions), actioning
+`AdditionalCareRequest`s, the caregiver movement audit read model over
+`LocationPing`, capturing real `CaregiverPayRate` figures, and the KYC audit
+review of stored mismatches.
+
+The only local working tree changes are two long standing unrelated edits left
+untouched every commit (`prisma/seed.ts` and the visits photo ticket spec).
+Nothing is pushed. When asked to commit, split into logical per feature commits;
+per the owner's global rules use `--no-verify`, never add a Claude/Anthropic co
+author, and push only when explicitly asked (to `origin-mattie HEAD:dev`).
 
 ## Prime directive: enterprise grade, always
 
@@ -344,16 +361,20 @@ persist it in the repo.
 ## Open items / next
 
 - **Resume checklist (read first when continuing in a new conversation).** The
-  four Care section slices, the family dashboard, identity two factor, the
-  `GET /auth/me` profile, earnings and availability are all built, tested and on
-  disk but uncommitted (see the Status note above). Immediate open decisions the
-  owner has not yet resolved: (1) commit the uncommitted work as per feature
-  commits; (2) confirm the real earnings pay rule figures and the pay period
-  anchor (currently placeholders); (3) whether the family Care plan tab needs the
-  office set data (care goals, primary/backup/coordinator caregiver roles, care
-  instructions) modelled now, which needs the admin module; (4) a real care notes
-  feed (a visit holds one care team note and one family note today, no unread
-  count) and real photo storage with signed URLs for "Download All".
+  mobile app backend is feature complete and committed (see the committed state
+  note above); the mobile screen by screen review is done. **The current focus is
+  the admin module**, which is not built yet. Start there. The admin work that
+  earlier slices deferred into it: caregiver provisioning (issues the temporary
+  password and sets `mustChangePassword`) and admin users; how visits are created
+  and assigned from bookings and subscriptions; the office set care plan data
+  (care goals, primary/backup/coordinator caregiver roles, care instructions);
+  actioning `AdditionalCareRequest`s; the caregiver movement audit read model over
+  `LocationPing`; capturing real `CaregiverPayRate` figures; and the KYC audit
+  review of stored mismatches. Open owner owned decisions still pending: the real
+  earnings pay rule figures and pay period anchor (placeholders), real catalog
+  prices in `prisma/seed.ts`, and provider credentials plus a database to verify
+  payments and KYC end to end. The only unbuilt mobile area is the Messages tab /
+  chat context, which was flagged but never requested.
 - The `clients` context is a reference pattern; real bounded contexts (for
   example care workers, scheduling) beyond what exists are not built yet. How
   visits are created and assigned to caregivers (from bookings and subscriptions,
