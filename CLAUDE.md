@@ -220,15 +220,40 @@ login activity, display preferences, and the read only calendar feed). It all
 builds, lints clean and tests green (373 unit tests at the last screen).
 
 The **mobile app is feature complete for now and parked. The current focus is the
-admin module** (owner: "that's all for the mobile app for now, so switching to the
-admin"). Nothing admin is built yet. Several mobile features explicitly deferred
-work into it: caregiver provisioning (issues the temporary password and sets
-`mustChangePassword`), admin users, how visits get created and assigned from
-bookings and subscriptions, the office set care plan data (care goals,
-primary/backup/coordinator caregiver roles, care instructions), actioning
-`AdditionalCareRequest`s, the caregiver movement audit read model over
-`LocationPing`, capturing real `CaregiverPayRate` figures, and the KYC audit
-review of stored mismatches.
+admin back office**, built screen by screen against its own mockups (owner: "that's
+all for the mobile app for now, so switching to the admin"). Admin has SEPARATE
+auth from the mobile app. The first admin screen, the operations **Dashboard**, is
+built end to end and committed (five commits, `1103536`..`61075f0`):
+
+- **`admin-identity`** context: separate back office auth with its own `AdminUser`
+  table, its own JWT secrets (`JWT_ADMIN_ACCESS_SECRET`/`JWT_ADMIN_REFRESH_SECRET`),
+  an `admin-jwt-access` passport strategy and rotating `AdminSession`s. Endpoints
+  under `/api/v1/admin/auth` (`login`, `refresh`, `logout`, `password/change`,
+  `me`). A mobile token can never authenticate an admin route or the reverse. The
+  shared admin guard, principal and `CurrentAdmin` decorator live in
+  `src/shared/presentation/`. Admins are provisioned out of band (seed deferred).
+- **`visits`**: added a care `type` and triage `priority`, and made the caregiver
+  optional (Unassigned visits) with `assignedAt` and an `assignCaregiver` domain
+  method; the family reads were guarded to tolerate a null caregiver.
+- **`admin-alerts`** and **`admin-tasks`**: full contexts with controllers
+  (`/api/v1/admin/alerts`, `/api/v1/admin/tasks`). **`care-ratings`** and
+  **`certifications`**: read model contexts (capture surfaces deferred to their
+  own screens).
+- **`admin-dashboard`**: `GET /api/v1/admin/dashboard` aggregates the whole home
+  screen, plus `POST /api/v1/admin/visits/:id/assign`. Reading the dashboard runs
+  an idempotent detection sweep that raises Late Caregiver, Missed Clock in and
+  Certification Expiring alerts. Revenue today is deliberately null (payments are
+  per currency and cannot be summed into one honest figure yet).
+
+Admin work still deferred (named by the slices above): caregiver provisioning
+(sets `mustChangePassword`, issues the temporary password) and admin user
+management; how visits get created and assigned from bookings and subscriptions
+(only the assign action exists); the office set care plan data (care goals,
+primary/backup/coordinator caregiver roles, care instructions); actioning
+`AdditionalCareRequest`s; the caregiver movement audit read model over
+`LocationPing`; capturing real `CaregiverPayRate` figures; the KYC mismatch audit;
+a real per market revenue-today read; and the ratings and certifications capture
+surfaces. The next admin screen drives the next work.
 
 The only local working tree changes are two long standing unrelated edits left
 untouched every commit (`prisma/seed.ts` and the visits photo ticket spec).
