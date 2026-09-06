@@ -1228,3 +1228,54 @@ enum AdminStatus {
 
   @@map("admin_status")
 }
+
+// An operations alert: a system flagged abnormality a coordinator must action
+// (a late caregiver, a missed clock in, an expiring certification, a medication
+// discrepancy). Raised by the operations subsystems, listed on the dashboard and
+// closed when a coordinator resolves or dismisses it.
+model OperationalAlert {
+  id                     String        @id @default(uuid()) @db.Uuid
+  type                   AlertType
+  severity               AlertSeverity
+  title                  String        @db.VarChar(160)
+  description            String        @db.VarChar(500)
+  coordinatorName        String?       @db.VarChar(120)
+  status                 AlertStatus   @default(OPEN)
+  relatedVisitId         String?       @db.Uuid
+  relatedCaregiverId     String?       @db.Uuid
+  relatedCareRecipientId String?       @db.Uuid
+  createdAt              DateTime      @default(now())
+  resolvedAt             DateTime?
+  resolvedByAdminId      String?       @db.Uuid
+
+  @@index([status, createdAt])
+  @@index([relatedVisitId])
+  @@map("operational_alerts")
+}
+
+enum AlertType {
+  LATE_CAREGIVER
+  MISSED_CLOCK_IN
+  CERTIFICATION_EXPIRING
+  MEDICATION_ISSUE
+  GENERAL
+
+  @@map("alert_type")
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@map("alert_severity")
+}
+
+enum AlertStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+
+  @@map("alert_status")
+}

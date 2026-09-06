@@ -5,10 +5,10 @@ import { AdminLogoutUseCase } from '../application/use-cases/admin-logout.use-ca
 import { ChangeAdminPasswordUseCase } from '../application/use-cases/change-admin-password.use-case';
 import { GetAdminProfileUseCase } from '../application/use-cases/get-admin-profile.use-case';
 import { RefreshAdminTokenUseCase } from '../application/use-cases/refresh-admin-token.use-case';
+import { AdminPrincipal } from '@shared/presentation/admin-principal';
+import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
+import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { DeviceContext } from '../application/dto/device-context';
-import { AdminPrincipal } from './admin-principal';
-import { CurrentAdmin } from './current-admin.decorator';
-import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 import { RequestAdminDevice } from './request-device.decorator';
 import { AdminAuthTokensResponseDto } from './dto/admin-auth-tokens-response.dto';
 import { AdminLoginRequestDto } from './dto/admin-login-request.dto';
