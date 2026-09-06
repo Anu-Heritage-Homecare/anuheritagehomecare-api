@@ -31,6 +31,13 @@ export interface AuthConfig {
   readonly bcryptSaltRounds: number;
 }
 
+export interface AdminAuthConfig {
+  readonly accessSecret: string;
+  readonly accessTtl: string;
+  readonly refreshSecret: string;
+  readonly refreshTtl: string;
+}
+
 export interface TwoFactorConfig {
   readonly encryptionKey: string;
   readonly issuer: string;
@@ -97,6 +104,7 @@ export interface BillingConfig {
 export function buildConfig(env: Env): {
   app: AppConfig;
   auth: AuthConfig;
+  adminAuth: AdminAuthConfig;
   twoFactor: TwoFactorConfig;
   otp: OtpConfig;
   mail: MailConfig;
@@ -134,6 +142,12 @@ export function buildConfig(env: Env): {
       mfaSecret: env.JWT_MFA_SECRET,
       mfaTtl: env.JWT_MFA_TTL,
       bcryptSaltRounds: env.BCRYPT_SALT_ROUNDS,
+    },
+    adminAuth: {
+      accessSecret: env.JWT_ADMIN_ACCESS_SECRET,
+      accessTtl: env.JWT_ADMIN_ACCESS_TTL,
+      refreshSecret: env.JWT_ADMIN_REFRESH_SECRET,
+      refreshTtl: env.JWT_ADMIN_REFRESH_TTL,
     },
     twoFactor: {
       encryptionKey: env.TWO_FACTOR_ENCRYPTION_KEY,

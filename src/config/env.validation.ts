@@ -39,6 +39,18 @@ export const envSchema = z.object({
   JWT_MFA_TTL: z.string().min(1).default('5m'),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
 
+  // Admin back office authentication. Entirely separate secrets from the mobile
+  // app tokens above, so an admin token can never authenticate a mobile route (or
+  // the reverse). Distinct per token purpose.
+  JWT_ADMIN_ACCESS_SECRET: z
+    .string()
+    .min(32, 'JWT_ADMIN_ACCESS_SECRET must be at least 32 characters'),
+  JWT_ADMIN_ACCESS_TTL: z.string().min(1).default('15m'),
+  JWT_ADMIN_REFRESH_SECRET: z
+    .string()
+    .min(32, 'JWT_ADMIN_REFRESH_SECRET must be at least 32 characters'),
+  JWT_ADMIN_REFRESH_TTL: z.string().min(1).default('12h'),
+
   // Two factor authentication (TOTP). The encryption key protects the stored TOTP
   // secret at rest; the issuer is the label shown in the authenticator app.
   TWO_FACTOR_ENCRYPTION_KEY: z
