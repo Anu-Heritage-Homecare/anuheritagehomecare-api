@@ -22,3 +22,11 @@ export class AvailabilityQueryDto {
   @IsISO8601()
   to?: string;
 }
+
+/** Query for the single day availability picker. Defaults to today when omitted. */
+export class AvailabilityDayQueryDto {
+  @ApiPropertyOptional({ example: '2026-07-11', description: 'The calendar day (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsISO8601()
+  date?: string;
+}

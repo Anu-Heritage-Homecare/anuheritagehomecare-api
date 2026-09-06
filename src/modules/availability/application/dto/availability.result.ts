@@ -14,6 +14,17 @@ export interface AvailabilityResult {
   slots: AvailabilitySlotResult[];
 }
 
+/**
+ * The availability picker's view of one day: the caregiver's declared available
+ * windows plus the windows already booked by scheduled visits (which the UI greys
+ * out). Both are minutes from midnight.
+ */
+export interface DayAvailabilityResult {
+  date: string;
+  availableSlots: AvailabilitySlotResult[];
+  bookedSlots: AvailabilitySlotResult[];
+}
+
 export function toAvailabilityResult(availability: CaregiverAvailability): AvailabilityResult {
   return {
     caregiverId: availability.caregiverId,

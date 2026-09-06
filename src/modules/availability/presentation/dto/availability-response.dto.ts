@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   AvailabilityResult,
   AvailabilitySlotResult,
+  DayAvailabilityResult,
 } from '../../application/dto/availability.result';
 
 /** One available window within a day, as minutes from midnight. */
@@ -36,6 +37,36 @@ export class AvailabilityDayResponseDto {
     dto.caregiverId = result.caregiverId;
     dto.date = result.date;
     dto.slots = result.slots.map((slot) => AvailabilitySlotResponseDto.fromResult(slot));
+    return dto;
+  }
+}
+
+/**
+ * The availability picker's view of one day: declared available windows plus the
+ * windows already booked by scheduled visits (the UI greys these out).
+ */
+export class DayAvailabilityResponseDto {
+  @ApiProperty({ example: '2026-07-11' })
+  date!: string;
+
+  @ApiProperty({ type: [AvailabilitySlotResponseDto] })
+  availableSlots!: AvailabilitySlotResponseDto[];
+
+  @ApiProperty({
+    type: [AvailabilitySlotResponseDto],
+    description: 'Windows already booked by a scheduled visit; not selectable',
+  })
+  bookedSlots!: AvailabilitySlotResponseDto[];
+
+  static fromResult(result: DayAvailabilityResult): DayAvailabilityResponseDto {
+    const dto = new DayAvailabilityResponseDto();
+    dto.date = result.date;
+    dto.availableSlots = result.availableSlots.map((slot) =>
+      AvailabilitySlotResponseDto.fromResult(slot),
+    );
+    dto.bookedSlots = result.bookedSlots.map((slot) =>
+      AvailabilitySlotResponseDto.fromResult(slot),
+    );
     return dto;
   }
 }

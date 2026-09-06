@@ -5,12 +5,14 @@ import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-princ
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
 import { UserType } from '@modules/identity/domain/user-type.enum';
+import { GetAvailabilityForDayUseCase } from '../application/use-cases/get-availability-for-day.use-case';
 import { GetCaregiverAvailabilityUseCase } from '../application/use-cases/get-caregiver-availability.use-case';
 import { SetCaregiverAvailabilityUseCase } from '../application/use-cases/set-caregiver-availability.use-case';
-import { AvailabilityQueryDto } from './dto/availability-query.dto';
+import { AvailabilityDayQueryDto, AvailabilityQueryDto } from './dto/availability-query.dto';
 import {
   AvailabilityDayResponseDto,
   AvailabilityListResponseDto,
+  DayAvailabilityResponseDto,
 } from './dto/availability-response.dto';
 import { SetAvailabilityRequestDto } from './dto/set-availability-request.dto';
 
@@ -28,8 +30,27 @@ import { SetAvailabilityRequestDto } from './dto/set-availability-request.dto';
 export class CaregiverAvailabilityController {
   constructor(
     private readonly getAvailability: GetCaregiverAvailabilityUseCase,
+    private readonly getAvailabilityForDay: GetAvailabilityForDayUseCase,
     private readonly setAvailability: SetCaregiverAvailabilityUseCase,
   ) {}
+
+  @Get('day')
+  @ApiOperation({
+    summary: 'The availability picker for one day: available windows plus booked slots',
+  })
+  @ApiOkResponse({ type: DayAvailabilityResponseDto })
+  async day(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Query() query: AvailabilityDayQueryDto,
+  ): Promise<DayAvailabilityResponseDto> {
+    this.assertCaregiver(principal);
+
+    const result = await this.getAvailabilityForDay.execute({
+      caregiverId: principal.userId,
+      date: query.date === undefined ? undefined : new Date(query.date),
+    });
+    return DayAvailabilityResponseDto.fromResult(result);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Fetch availability for a single day (default today) or a date range' })
