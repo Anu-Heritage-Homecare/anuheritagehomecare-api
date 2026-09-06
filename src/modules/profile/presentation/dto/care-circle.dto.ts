@@ -1,38 +1,35 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsIn, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import {
-  CareCircleInvitationView,
   CareCircleMemberView,
   CareCircleView,
+  CareCodeView,
+  RedeemCareCodeResult,
 } from '../../application/use-cases/care-circle.use-cases';
 
 const ACCESS_LEVELS = ['LIMITED', 'VIEW_ONLY', 'FULL'];
 
-/** Request to invite a person to the care circle by email at an access level. */
-export class InviteCareCircleMemberRequestDto {
-  @ApiProperty({ example: 'james.anderson@email.com', maxLength: 255 })
-  @IsEmail()
-  @MaxLength(255)
-  email!: string;
-
-  @ApiProperty({ example: 'Brother', maxLength: 120 })
+/** Request to redeem a care code and join the sharing owner's circle. */
+export class RedeemCareCodeRequestDto {
+  @ApiProperty({ example: 'CARE-7319-KLM2', maxLength: 40 })
   @IsString()
   @MinLength(1)
-  @MaxLength(120)
-  relationship!: string;
+  @MaxLength(40)
+  code!: string;
+}
 
+/** Request to set a member's permissions (and optionally their relationship). */
+export class SetMemberAccessRequestDto {
   @ApiProperty({ enum: ACCESS_LEVELS, example: 'VIEW_ONLY' })
   @IsIn(ACCESS_LEVELS)
   accessLevel!: string;
-}
 
-/** Request to accept a care circle invitation. */
-export class AcceptInvitationRequestDto {
-  @ApiProperty({ description: 'The invitation token from the invite' })
+  @ApiProperty({ required: false, example: 'Brother', maxLength: 120 })
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  @MaxLength(200)
-  token!: string;
+  @MaxLength(120)
+  relationship?: string;
 }
 
 class CareCircleMemberDto {
@@ -48,32 +45,40 @@ class CareCircleMemberDto {
   }
 }
 
-export class CareCircleInvitationResponseDto {
-  @ApiProperty() id!: string;
-  @ApiProperty() email!: string;
-  @ApiProperty() relationship!: string;
-  @ApiProperty({ enum: ACCESS_LEVELS }) accessLevel!: string;
-  @ApiProperty() invitedAt!: string;
-
-  static from(view: CareCircleInvitationView): CareCircleInvitationResponseDto {
-    return Object.assign(new CareCircleInvitationResponseDto(), view);
-  }
-}
-
-/** HTTP response for the care circle: members plus pending invitations. */
+/** HTTP response for the care circle: the owner plus accepted members. */
 export class CareCircleResponseDto {
   @ApiProperty({ type: [CareCircleMemberDto] })
   members!: CareCircleMemberDto[];
 
-  @ApiProperty({ type: [CareCircleInvitationResponseDto] })
-  pendingInvitations!: CareCircleInvitationResponseDto[];
-
   static fromView(view: CareCircleView): CareCircleResponseDto {
     const dto = new CareCircleResponseDto();
     dto.members = view.members.map((m) => CareCircleMemberDto.from(m));
-    dto.pendingInvitations = view.pendingInvitations.map((i) =>
-      CareCircleInvitationResponseDto.from(i),
-    );
     return dto;
+  }
+}
+
+/** HTTP response carrying the owner's shareable care code and its expiry. */
+export class CareCodeResponseDto {
+  @ApiProperty({ example: 'CARE-7319-KLM2' })
+  code!: string;
+
+  @ApiProperty({ example: '2026-09-13T00:00:00.000Z' })
+  expiresAt!: string;
+
+  static fromView(view: CareCodeView): CareCodeResponseDto {
+    return Object.assign(new CareCodeResponseDto(), view);
+  }
+}
+
+/** HTTP response after redeeming a code: whose circle was joined. */
+export class RedeemCareCodeResponseDto {
+  @ApiProperty({ example: 'Joseph Simon' })
+  ownerName!: string;
+
+  @ApiProperty({ description: 'True when the caller was already a member (idempotent redeem)' })
+  alreadyMember!: boolean;
+
+  static fromResult(result: RedeemCareCodeResult): RedeemCareCodeResponseDto {
+    return Object.assign(new RedeemCareCodeResponseDto(), result);
   }
 }

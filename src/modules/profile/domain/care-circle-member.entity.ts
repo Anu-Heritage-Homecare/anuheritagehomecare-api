@@ -49,6 +49,20 @@ export class CareCircleMember extends Entity<string> {
     return new CareCircleMember(id, props);
   }
 
+  /** Grant the member a different access level (the owner's permission choice). */
+  public changeAccessLevel(accessLevel: CareAccessLevel): void {
+    this.props.accessLevel = accessLevel;
+  }
+
+  /** Correct the member's relationship label. */
+  public changeRelationship(relationship: string): void {
+    const trimmed = relationship.trim();
+    if (trimmed.length === 0) {
+      throw new ValidationException('A care circle member needs a relationship');
+    }
+    this.props.relationship = trimmed;
+  }
+
   public get ownerId(): string {
     return this.props.ownerId;
   }

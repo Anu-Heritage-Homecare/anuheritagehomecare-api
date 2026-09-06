@@ -1,26 +1,24 @@
 import { Clock } from '@shared/application/ports/clock.port';
 import { IdGenerator } from '@shared/application/ports/id-generator.port';
 import { PhotoStorage } from '@shared/application/ports/photo-storage.port';
-import {
-  ConflictDomainException,
-  NotFoundDomainException,
-  ValidationException,
-} from '@shared/domain/domain-exception';
+import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
 import { CareAccessLevel } from '../../domain/care-access-level.enum';
-import { CareCircleInvitation, InvitationStatus } from '../../domain/care-circle-invitation.entity';
-import { CareCircleInvitationRepository } from '../../domain/care-circle-invitation.repository';
+import { CareCode, CareCodeStatus } from '../../domain/care-code.entity';
+import { CareCodeRepository } from '../../domain/care-code.repository';
 import { CareCircleMember } from '../../domain/care-circle-member.entity';
 import { CareCircleRepository } from '../../domain/care-circle.repository';
 import { ProfileUser, ProfileUserDirectory } from '../ports/profile-directories.port';
 import {
-  AcceptCareCircleInvitationUseCase,
   GetCareCircleUseCase,
-  InviteCareCircleMemberUseCase,
+  GetCareCodeUseCase,
+  RedeemCareCodeUseCase,
+  RegenerateCareCodeUseCase,
   RemoveCareCircleMemberUseCase,
-  RevokeCareCircleInvitationUseCase,
+  SetCareCircleMemberAccessUseCase,
 } from './care-circle.use-cases';
 
-const clock: Clock = { now: () => new Date('2026-09-05T00:00:00.000Z') };
+const NOW = new Date('2026-09-05T00:00:00.000Z');
+const clock: Clock = { now: () => NOW };
 function ids(prefix: string): IdGenerator {
   let n = 0;
   return { generate: () => `${prefix}-${(n += 1)}` };
@@ -83,63 +81,171 @@ class InMemoryMemberRepository implements CareCircleRepository {
   }
 }
 
-class InMemoryInvitationRepository implements CareCircleInvitationRepository {
-  public store = new Map<string, CareCircleInvitation>();
-  save(invitation: CareCircleInvitation): Promise<void> {
-    this.store.set(invitation.id, invitation);
+class InMemoryCareCodeRepository implements CareCodeRepository {
+  public store = new Map<string, CareCode>();
+  save(code: CareCode): Promise<void> {
+    this.store.set(code.id, code);
     return Promise.resolve();
   }
-  findById(id: string): Promise<CareCircleInvitation | null> {
+  findById(id: string): Promise<CareCode | null> {
     return Promise.resolve(this.store.get(id) ?? null);
   }
-  findByToken(token: string): Promise<CareCircleInvitation | null> {
-    return Promise.resolve([...this.store.values()].find((i) => i.token === token) ?? null);
+  findByCode(code: string): Promise<CareCode | null> {
+    return Promise.resolve([...this.store.values()].find((c) => c.code === code) ?? null);
   }
-  listPendingForOwner(ownerId: string): Promise<CareCircleInvitation[]> {
-    return Promise.resolve(
-      [...this.store.values()].filter(
-        (i) => i.ownerId === ownerId && i.status === InvitationStatus.Pending,
-      ),
-    );
+  findActiveForOwner(ownerId: string): Promise<CareCode | null> {
+    const active = [...this.store.values()]
+      .filter((c) => c.ownerId === ownerId && c.status === CareCodeStatus.Active)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return Promise.resolve(active[0] ?? null);
   }
 }
 
-describe('care circle', () => {
+describe('care circle: care codes', () => {
   let members: InMemoryMemberRepository;
-  let invitations: InMemoryInvitationRepository;
+  let codes: InMemoryCareCodeRepository;
 
   beforeEach(() => {
     members = new InMemoryMemberRepository();
-    invitations = new InMemoryInvitationRepository();
+    codes = new InMemoryCareCodeRepository();
   });
 
-  it('invites, accepts and then lists the owner plus the new member', async () => {
-    const invite = new InviteCareCircleMemberUseCase(invitations, ids('inv'), clock);
-    const invitation = await invite.execute({
-      ownerId: 'owner-1',
-      email: 'James.Anderson@Email.com',
-      relationship: 'Brother',
-      accessLevel: 'VIEW_ONLY',
-    });
-    expect(invitation.email).toBe('james.anderson@email.com');
+  it('mints a code, returns the same one on the next read, and dates its expiry 7 days out', async () => {
+    const getCode = new GetCareCodeUseCase(codes, ids('code'), clock);
 
-    const token = invitations.store.get(invitation.id)!.token;
-    await new AcceptCareCircleInvitationUseCase(invitations, members, ids('m'), clock).execute({
+    const first = await getCode.execute({ ownerId: 'owner-1' });
+    expect(first.code).toMatch(/^CARE-\d{4}-[A-Z2-9]{4}$/);
+    expect(first.expiresAt).toBe('2026-09-12T00:00:00.000Z');
+
+    const second = await getCode.execute({ ownerId: 'owner-1' });
+    expect(second.code).toBe(first.code);
+    expect(codes.store.size).toBe(1);
+  });
+
+  it('redeems a code as a bearer credential, joining at the limited level', async () => {
+    const code = (
+      await new GetCareCodeUseCase(codes, ids('code'), clock).execute({
+        ownerId: 'owner-1',
+      })
+    ).code;
+
+    const users = userDirectory([
+      user({ id: 'owner-1', firstName: 'Joseph', lastName: 'Simon', isFamilyOwner: true }),
+    ]);
+    const result = await new RedeemCareCodeUseCase(codes, members, users, ids('m'), clock).execute({
       userId: 'user-2',
-      email: 'james.anderson@email.com',
-      token,
+      // Spacing and case should not matter.
+      code: `  ${code.toLowerCase().replace(/-/g, ' - ')}  `,
     });
 
-    const view = await new GetCareCircleUseCase(
-      members,
-      invitations,
-      userDirectory([
-        user({ id: 'owner-1', firstName: 'Joseph', lastName: 'Simon', isFamilyOwner: true }),
-        user({ id: 'user-2', firstName: 'James', lastName: 'Anderson' }),
-      ]),
-      photos,
-    ).execute({ ownerId: 'owner-1' });
+    expect(result).toEqual({ ownerName: 'Joseph Simon', alreadyMember: false });
+    const membership = await members.findMembership('owner-1', 'user-2');
+    expect(membership?.accessLevel).toBe(CareAccessLevel.Limited);
+    expect(membership?.relationship).toBe('Family Member');
 
+    // Reusable: a second person can still redeem the same code.
+    const again = await new RedeemCareCodeUseCase(codes, members, users, ids('n'), clock).execute({
+      userId: 'user-3',
+      code,
+    });
+    expect(again.alreadyMember).toBe(false);
+    expect(members.store.size).toBe(2);
+  });
+
+  it('is idempotent when the caller is already a member', async () => {
+    const code = (
+      await new GetCareCodeUseCase(codes, ids('code'), clock).execute({
+        ownerId: 'owner-1',
+      })
+    ).code;
+    const users = userDirectory([user({ id: 'owner-1', firstName: 'Jo', lastName: 'Simon' })]);
+    const redeem = new RedeemCareCodeUseCase(codes, members, users, ids('m'), clock);
+
+    await redeem.execute({ userId: 'user-2', code });
+    const second = await redeem.execute({ userId: 'user-2', code });
+    expect(second.alreadyMember).toBe(true);
+    expect(members.store.size).toBe(1);
+  });
+
+  it('rejects an unknown, expired or own code', async () => {
+    const users = userDirectory([user({ id: 'owner-1' })]);
+    const redeem = new RedeemCareCodeUseCase(codes, members, users, ids('m'), clock);
+
+    await expect(
+      redeem.execute({ userId: 'user-2', code: 'CARE-0000-ZZZZ' }),
+    ).rejects.toBeInstanceOf(ValidationException);
+
+    const code = (
+      await new GetCareCodeUseCase(codes, ids('code'), clock).execute({
+        ownerId: 'owner-1',
+      })
+    ).code;
+    // The owner cannot join their own circle.
+    await expect(redeem.execute({ userId: 'owner-1', code })).rejects.toBeInstanceOf(
+      ValidationException,
+    );
+
+    // An expired code is not redeemable.
+    const later: Clock = { now: () => new Date('2026-09-20T00:00:00.000Z') };
+    await expect(
+      new RedeemCareCodeUseCase(codes, members, users, ids('m'), later).execute({
+        userId: 'user-2',
+        code,
+      }),
+    ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('regenerating retires the previous code so it can no longer be redeemed', async () => {
+    const getCode = new GetCareCodeUseCase(codes, ids('code'), clock);
+    const first = (await getCode.execute({ ownerId: 'owner-1' })).code;
+
+    const regenerated = (
+      await new RegenerateCareCodeUseCase(codes, ids('code2'), clock).execute({
+        ownerId: 'owner-1',
+      })
+    ).code;
+    expect(regenerated).not.toBe(first);
+
+    const users = userDirectory([user({ id: 'owner-1' })]);
+    await expect(
+      new RedeemCareCodeUseCase(codes, members, users, ids('m'), clock).execute({
+        userId: 'user-2',
+        code: first,
+      }),
+    ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('lets the owner set a member permissions and relationship, then lists them', async () => {
+    const code = (
+      await new GetCareCodeUseCase(codes, ids('code'), clock).execute({
+        ownerId: 'owner-1',
+      })
+    ).code;
+    const users = userDirectory([
+      user({ id: 'owner-1', firstName: 'Joseph', lastName: 'Simon', isFamilyOwner: true }),
+      user({ id: 'user-2', firstName: 'James', lastName: 'Anderson' }),
+    ]);
+    await new RedeemCareCodeUseCase(codes, members, users, ids('m'), clock).execute({
+      userId: 'user-2',
+      code,
+    });
+    const memberId = [...members.store.values()][0].id;
+
+    const setAccess = new SetCareCircleMemberAccessUseCase(members);
+    await setAccess.execute({
+      ownerId: 'owner-1',
+      memberId,
+      accessLevel: 'VIEW_ONLY',
+      relationship: 'Brother',
+    });
+    // Owner scoping: a stranger cannot touch the membership.
+    await expect(
+      setAccess.execute({ ownerId: 'someone-else', memberId, accessLevel: 'FULL' }),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+
+    const view = await new GetCareCircleUseCase(members, users, photos).execute({
+      ownerId: 'owner-1',
+    });
     expect(view.members[0]).toMatchObject({
       name: 'Joseph Simon',
       isOwner: true,
@@ -147,69 +253,22 @@ describe('care circle', () => {
     });
     expect(view.members[1]).toMatchObject({
       name: 'James Anderson',
-      isOwner: false,
       accessLevel: 'VIEW_ONLY',
       relationship: 'Brother',
     });
-    expect(view.pendingInvitations).toHaveLength(0);
   });
 
-  it('rejects a second pending invitation for the same email', async () => {
-    const invite = new InviteCareCircleMemberUseCase(invitations, ids('inv'), clock);
-    await invite.execute({
-      ownerId: 'owner-1',
-      email: 'a@b.com',
-      relationship: 'Son',
-      accessLevel: 'FULL',
-    });
-    await expect(
-      invite.execute({
-        ownerId: 'owner-1',
-        email: 'a@b.com',
-        relationship: 'Son',
-        accessLevel: 'FULL',
-      }),
-    ).rejects.toBeInstanceOf(ConflictDomainException);
-  });
-
-  it('refuses acceptance when the caller email does not match the invitation', async () => {
-    const invitation = await new InviteCareCircleMemberUseCase(
-      invitations,
-      ids('inv'),
-      clock,
-    ).execute({ ownerId: 'owner-1', email: 'a@b.com', relationship: 'Son', accessLevel: 'FULL' });
-    const token = invitations.store.get(invitation.id)!.token;
-
-    await expect(
-      new AcceptCareCircleInvitationUseCase(invitations, members, ids('m'), clock).execute({
-        userId: 'user-9',
-        email: 'someone-else@b.com',
-        token,
-      }),
-    ).rejects.toBeInstanceOf(ValidationException);
-  });
-
-  it('revokes a pending invitation and removes a member, owner scoped', async () => {
-    const invitation = await new InviteCareCircleMemberUseCase(
-      invitations,
-      ids('inv'),
-      clock,
-    ).execute({ ownerId: 'owner-1', email: 'a@b.com', relationship: 'Son', accessLevel: 'FULL' });
-    await new RevokeCareCircleInvitationUseCase(invitations).execute({
-      ownerId: 'owner-1',
-      invitationId: invitation.id,
-    });
-    expect(invitations.store.get(invitation.id)?.status).toBe('REVOKED');
-
+  it('removes a member, owner scoped', async () => {
     const member = CareCircleMember.create({
       id: 'mem-1',
       ownerId: 'owner-1',
       memberUserId: 'user-2',
       relationship: 'Brother',
       accessLevel: CareAccessLevel.ViewOnly,
-      createdAt: clock.now(),
+      createdAt: NOW,
     });
     await members.save(member);
+
     await expect(
       new RemoveCareCircleMemberUseCase(members).execute({ ownerId: 'other', memberId: 'mem-1' }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);

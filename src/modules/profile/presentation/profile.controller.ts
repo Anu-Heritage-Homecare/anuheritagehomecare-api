@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Put,
   UseGuards,
@@ -23,11 +24,12 @@ import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-princ
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
 import {
-  AcceptCareCircleInvitationUseCase,
   GetCareCircleUseCase,
-  InviteCareCircleMemberUseCase,
+  GetCareCodeUseCase,
+  RedeemCareCodeUseCase,
+  RegenerateCareCodeUseCase,
   RemoveCareCircleMemberUseCase,
-  RevokeCareCircleInvitationUseCase,
+  SetCareCircleMemberAccessUseCase,
 } from '../application/use-cases/care-circle.use-cases';
 import {
   GetEmergencyContactUseCase,
@@ -39,10 +41,11 @@ import { UpdatePreferencesUseCase } from '../application/use-cases/update-prefer
 import { ProfileAccountResponseDto } from './dto/profile-account-response.dto';
 import { PreferencesResponseDto, UpdatePreferencesRequestDto } from './dto/preferences.dto';
 import {
-  AcceptInvitationRequestDto,
-  CareCircleInvitationResponseDto,
   CareCircleResponseDto,
-  InviteCareCircleMemberRequestDto,
+  CareCodeResponseDto,
+  RedeemCareCodeRequestDto,
+  RedeemCareCodeResponseDto,
+  SetMemberAccessRequestDto,
 } from './dto/care-circle.dto';
 import {
   EmergencyContactResponseDto,
@@ -65,10 +68,11 @@ export class ProfileController {
     private readonly getEmergencyContact: GetEmergencyContactUseCase,
     private readonly setEmergencyContact: SetEmergencyContactUseCase,
     private readonly getCareCircle: GetCareCircleUseCase,
-    private readonly inviteCareCircleMember: InviteCareCircleMemberUseCase,
-    private readonly acceptInvitation: AcceptCareCircleInvitationUseCase,
+    private readonly getCareCode: GetCareCodeUseCase,
+    private readonly regenerateCareCode: RegenerateCareCodeUseCase,
+    private readonly redeemCareCode: RedeemCareCodeUseCase,
+    private readonly setMemberAccess: SetCareCircleMemberAccessUseCase,
     private readonly removeCareCircleMember: RemoveCareCircleMemberUseCase,
-    private readonly revokeInvitation: RevokeCareCircleInvitationUseCase,
   ) {}
 
   @Get()
@@ -134,7 +138,7 @@ export class ProfileController {
   }
 
   @Get('care-circle')
-  @ApiOperation({ summary: "The owner's care circle: members and pending invitations" })
+  @ApiOperation({ summary: "The owner's care circle: the owner plus members" })
   @ApiOkResponse({ type: CareCircleResponseDto })
   async careCircle(
     @CurrentUser() principal: AuthenticatedPrincipal,
@@ -143,35 +147,54 @@ export class ProfileController {
     return CareCircleResponseDto.fromView(view);
   }
 
-  @Post('care-circle/invitations')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Invite a person to the care circle by email' })
-  @ApiCreatedResponse({ type: CareCircleInvitationResponseDto })
-  async inviteMember(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Body() body: InviteCareCircleMemberRequestDto,
-  ): Promise<CareCircleInvitationResponseDto> {
-    const view = await this.inviteCareCircleMember.execute({
-      ownerId: principal.userId,
-      email: body.email,
-      relationship: body.relationship,
-      accessLevel: body.accessLevel,
-    });
-    return CareCircleInvitationResponseDto.from(view);
+  @Get('care-circle/code')
+  @ApiOperation({ summary: 'The owner shareable care code, minted on demand' })
+  @ApiOkResponse({ type: CareCodeResponseDto })
+  async careCode(@CurrentUser() principal: AuthenticatedPrincipal): Promise<CareCodeResponseDto> {
+    const view = await this.getCareCode.execute({ ownerId: principal.userId });
+    return CareCodeResponseDto.fromView(view);
   }
 
-  @Post('care-circle/accept')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Accept a care circle invitation (the invited user)' })
-  @ApiNoContentResponse()
-  async acceptCareCircleInvitation(
+  @Post('care-circle/code/regenerate')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Retire the current care code and issue a fresh one' })
+  @ApiCreatedResponse({ type: CareCodeResponseDto })
+  async regenerateCode(
     @CurrentUser() principal: AuthenticatedPrincipal,
-    @Body() body: AcceptInvitationRequestDto,
-  ): Promise<void> {
-    await this.acceptInvitation.execute({
+  ): Promise<CareCodeResponseDto> {
+    const view = await this.regenerateCareCode.execute({ ownerId: principal.userId });
+    return CareCodeResponseDto.fromView(view);
+  }
+
+  @Post('care-circle/redeem')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Redeem a care code to join the sharing owner circle' })
+  @ApiOkResponse({ type: RedeemCareCodeResponseDto })
+  async redeemCode(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: RedeemCareCodeRequestDto,
+  ): Promise<RedeemCareCodeResponseDto> {
+    const result = await this.redeemCareCode.execute({
       userId: principal.userId,
-      email: principal.email,
-      token: body.token,
+      code: body.code,
+    });
+    return RedeemCareCodeResponseDto.fromResult(result);
+  }
+
+  @Patch('care-circle/members/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Set a member permissions and relationship (step three)' })
+  @ApiNoContentResponse()
+  async setMemberPermissions(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetMemberAccessRequestDto,
+  ): Promise<void> {
+    await this.setMemberAccess.execute({
+      ownerId: principal.userId,
+      memberId: id,
+      accessLevel: body.accessLevel,
+      relationship: body.relationship,
     });
   }
 
@@ -184,16 +207,5 @@ export class ProfileController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     await this.removeCareCircleMember.execute({ ownerId: principal.userId, memberId: id });
-  }
-
-  @Delete('care-circle/invitations/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Revoke a pending care circle invitation' })
-  @ApiNoContentResponse()
-  async revokeCareCircleInvitation(
-    @CurrentUser() principal: AuthenticatedPrincipal,
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<void> {
-    await this.revokeInvitation.execute({ ownerId: principal.userId, invitationId: id });
   }
 }
