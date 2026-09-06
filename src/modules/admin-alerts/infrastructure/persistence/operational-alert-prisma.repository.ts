@@ -47,4 +47,11 @@ export class OperationalAlertPrismaRepository implements OperationalAlertReposit
     });
     return count > 0;
   }
+
+  async existsOpenForCaregiver(type: string, caregiverId: string): Promise<boolean> {
+    const count = await this.prisma.operationalAlert.count({
+      where: { status: AlertStatus.OPEN, type: type as AlertType, relatedCaregiverId: caregiverId },
+    });
+    return count > 0;
+  }
 }

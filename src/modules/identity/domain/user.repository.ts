@@ -1,3 +1,4 @@
+import { UserType } from './user-type.enum';
 import { User } from './user.entity';
 
 /**
@@ -12,6 +13,8 @@ export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
   existsByEmail(email: string): Promise<boolean>;
   existsByPhone(phone: string): Promise<boolean>;
+  /** How many accounts of a given type exist. Backs the admin caregiver roster count. */
+  countByType(userType: UserType): Promise<number>;
 }
 
 /** Injection token, since TypeScript interfaces do not exist at runtime. */

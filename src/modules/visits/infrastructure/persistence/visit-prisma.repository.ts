@@ -105,4 +105,13 @@ export class VisitPrismaRepository implements VisitRepository {
     });
     return rows.map((row) => VisitMapper.toDomain(row));
   }
+
+  async listForDateRange(from: Date, to: Date): Promise<Visit[]> {
+    const rows = await this.prisma.visit.findMany({
+      where: { scheduledDate: { gte: from, lte: to } },
+      include: VISIT_INCLUDE,
+      orderBy: [{ scheduledDate: 'asc' }, { startMinute: 'asc' }],
+    });
+    return rows.map((row) => VisitMapper.toDomain(row));
+  }
 }

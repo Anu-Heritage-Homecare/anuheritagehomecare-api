@@ -184,6 +184,20 @@ export class InMemoryVisitRepository implements VisitRepository {
       });
     return Promise.resolve(matches);
   }
+
+  listForDateRange(from: Date, to: Date): Promise<Visit[]> {
+    const matches = [...this.store.values()]
+      .filter(
+        (visit) =>
+          visit.scheduledDate.getTime() >= from.getTime() &&
+          visit.scheduledDate.getTime() <= to.getTime(),
+      )
+      .sort((a, b) => {
+        const byDate = a.scheduledDate.getTime() - b.scheduledDate.getTime();
+        return byDate !== 0 ? byDate : a.window.startMinute - b.window.startMinute;
+      });
+    return Promise.resolve(matches);
+  }
 }
 
 export class FakeCareRecipientDirectory implements CareRecipientDirectory {

@@ -55,6 +55,17 @@ class InMemoryAlertRepository implements OperationalAlertRepository {
       ),
     );
   }
+
+  existsOpenForCaregiver(type: string, caregiverId: string): Promise<boolean> {
+    return Promise.resolve(
+      [...this.store.values()].some(
+        (a) =>
+          a.status === AlertStatus.Open &&
+          String(a.type) === type &&
+          a.relatedCaregiverId === caregiverId,
+      ),
+    );
+  }
 }
 
 describe('operational alerts', () => {

@@ -1,8 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { UserType as PrismaUserType } from '@prisma/client';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
+import { UserType } from '../../domain/user-type.enum';
 import { User } from '../../domain/user.entity';
 import { UserRepository } from '../../domain/user.repository';
 import { UserMapper } from './user.mapper';
+
+const TO_PRISMA_USER_TYPE: Record<UserType, PrismaUserType> = {
+  [UserType.Caregiver]: 'CAREGIVER',
+  [UserType.FamilyMember]: 'FAMILY_MEMBER',
+};
 
 /**
  * Prisma backed adapter for the UserRepository port. The only class in the
@@ -72,5 +79,9 @@ export class UserPrismaRepository implements UserRepository {
   async existsByPhone(phone: string): Promise<boolean> {
     const count = await this.prisma.user.count({ where: { phone } });
     return count > 0;
+  }
+
+  async countByType(userType: UserType): Promise<number> {
+    return this.prisma.user.count({ where: { userType: TO_PRISMA_USER_TYPE[userType] } });
   }
 }

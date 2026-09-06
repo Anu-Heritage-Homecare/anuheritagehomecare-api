@@ -15,6 +15,12 @@ export interface VisitRepository {
    * visits for the recipients they own in one query (no query per recipient).
    */
   listForCareRecipientsInRange(careRecipientIds: string[], from: Date, to: Date): Promise<Visit[]>;
+  /**
+   * Every visit within a date range, across all caregivers and recipients, ordered
+   * chronologically. Backs the admin operations dashboard, which reads the whole
+   * day's schedule in one query.
+   */
+  listForDateRange(from: Date, to: Date): Promise<Visit[]>;
 }
 
 /** Injection token, since TypeScript interfaces do not exist at runtime. */

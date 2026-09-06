@@ -15,6 +15,11 @@ export interface OperationalAlertRepository {
    * derived detectors to avoid raising duplicates for the same problem.
    */
   existsOpenForVisit(type: string, visitId: string): Promise<boolean>;
+  /**
+   * Whether an open alert of a given type already exists for a caregiver. Used by
+   * the certification watch to avoid re raising the same expiry alert.
+   */
+  existsOpenForCaregiver(type: string, caregiverId: string): Promise<boolean>;
 }
 
 export const OPERATIONAL_ALERT_REPOSITORY = Symbol('OPERATIONAL_ALERT_REPOSITORY');

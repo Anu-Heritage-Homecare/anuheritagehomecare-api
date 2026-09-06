@@ -23,6 +23,7 @@ import { DeviceSessionRepository } from '../domain/device-session.repository';
 import { LoginEvent } from '../domain/login-event.entity';
 import { LoginEventRepository } from '../domain/login-event.repository';
 import { User } from '../domain/user.entity';
+import { UserType } from '../domain/user-type.enum';
 import { UserRepository } from '../domain/user.repository';
 import { VerificationPurpose } from '../domain/verification-purpose.enum';
 import { VerificationCode } from '../domain/verification-code.entity';
@@ -240,6 +241,10 @@ export class InMemoryUserRepository implements UserRepository {
 
   existsByPhone(phone: string): Promise<boolean> {
     return Promise.resolve([...this.store.values()].some((u) => u.phone.value === phone));
+  }
+
+  countByType(userType: UserType): Promise<number> {
+    return Promise.resolve([...this.store.values()].filter((u) => u.userType === userType).length);
   }
 }
 

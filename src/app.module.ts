@@ -6,6 +6,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, buildConfig } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
+import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { AdminIdentityModule } from './modules/admin-identity/admin-identity.module';
 import { AdminTasksModule } from './modules/admin-tasks/admin-tasks.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
@@ -136,6 +137,7 @@ import { SharedModule } from './shared/shared.module';
     AdminTasksModule,
     CareRatingsModule,
     CertificationsModule,
+    AdminDashboardModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
