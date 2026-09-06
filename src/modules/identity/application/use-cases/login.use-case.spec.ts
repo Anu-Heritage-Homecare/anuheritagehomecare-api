@@ -3,9 +3,10 @@ import {
   UnauthorizedDomainException,
 } from '@shared/domain/domain-exception';
 import {
+  FAKE_DEVICE,
   FakePasswordHasher,
   FakeTokenService,
-  InMemoryRefreshTokenRepository,
+  InMemoryDeviceSessionRepository,
   InMemoryUserRepository,
   fixedClock,
   sequentialIds,
@@ -16,17 +17,17 @@ import { LoginUseCase } from './login.use-case';
 
 describe('LoginUseCase', () => {
   let users: InMemoryUserRepository;
-  let refreshTokens: InMemoryRefreshTokenRepository;
+  let sessions: InMemoryDeviceSessionRepository;
   let useCase: LoginUseCase;
 
   beforeEach(() => {
     users = new InMemoryUserRepository();
-    refreshTokens = new InMemoryRefreshTokenRepository();
+    sessions = new InMemoryDeviceSessionRepository();
     const tokenIssuer = new TokenIssuerService(
       new FakeTokenService(),
-      refreshTokens,
+      sessions,
       fixedClock,
-      sequentialIds('rt'),
+      sequentialIds('sid'),
     );
     useCase = new LoginUseCase(
       users,
@@ -42,6 +43,7 @@ describe('LoginUseCase', () => {
     const result = await useCase.execute({
       email: 'ada.obi@example.com',
       password: 'S3curePass',
+      device: FAKE_DEVICE,
     });
 
     if (result.status !== 'AUTHENTICATED') {
@@ -51,7 +53,7 @@ describe('LoginUseCase', () => {
     expect(result.tokens.accessToken).toBe('access:user-1');
     expect(result.tokens.refreshToken).toContain('refresh:user-1');
     expect(result.tokens.user.email).toBe('ada.obi@example.com');
-    expect(refreshTokens.store.size).toBe(1);
+    expect(sessions.store.size).toBe(1);
   });
 
   it('surfaces mustChangePassword so the client can force a password change', async () => {
@@ -60,6 +62,7 @@ describe('LoginUseCase', () => {
     const result = await useCase.execute({
       email: 'ada.obi@example.com',
       password: 'S3curePass',
+      device: FAKE_DEVICE,
     });
 
     if (result.status !== 'AUTHENTICATED') {
@@ -74,6 +77,7 @@ describe('LoginUseCase', () => {
     const result = await useCase.execute({
       email: 'ada.obi@example.com',
       password: 'S3curePass',
+      device: FAKE_DEVICE,
     });
 
     expect(result.status).toBe('TWO_FACTOR_REQUIRED');
@@ -82,14 +86,18 @@ describe('LoginUseCase', () => {
     }
     expect(result.challengeToken).toBe('mfa:user-1');
     // No session is created until the second factor is proven.
-    expect(refreshTokens.store.size).toBe(0);
+    expect(sessions.store.size).toBe(0);
   });
 
   it('blocks login until the email is verified', async () => {
     await users.save(buildUser({ verified: false }));
 
     await expect(
-      useCase.execute({ email: 'ada.obi@example.com', password: 'S3curePass' }),
+      useCase.execute({
+        email: 'ada.obi@example.com',
+        password: 'S3curePass',
+        device: FAKE_DEVICE,
+      }),
     ).rejects.toBeInstanceOf(EmailNotVerifiedException);
   });
 
@@ -97,13 +105,17 @@ describe('LoginUseCase', () => {
     await users.save(buildUser({ verified: true }));
 
     await expect(
-      useCase.execute({ email: 'ada.obi@example.com', password: 'WrongPass1' }),
+      useCase.execute({
+        email: 'ada.obi@example.com',
+        password: 'WrongPass1',
+        device: FAKE_DEVICE,
+      }),
     ).rejects.toBeInstanceOf(UnauthorizedDomainException);
   });
 
   it('rejects an unknown email identically to a wrong password', async () => {
     await expect(
-      useCase.execute({ email: 'nobody@example.com', password: 'S3curePass' }),
+      useCase.execute({ email: 'nobody@example.com', password: 'S3curePass', device: FAKE_DEVICE }),
     ).rejects.toBeInstanceOf(UnauthorizedDomainException);
   });
 });

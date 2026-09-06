@@ -9,4 +9,6 @@ export interface AuthenticatedPrincipal {
   /** ISO country code of the owner's market (for example US or NG). */
   country: string;
   email: string;
+  /** The device session this token was issued to (flags the current device). */
+  sessionId: string;
 }

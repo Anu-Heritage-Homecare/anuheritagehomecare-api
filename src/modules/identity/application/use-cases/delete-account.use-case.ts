@@ -2,9 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { UnauthorizedDomainException } from '@shared/domain/domain-exception';
 import {
-  REFRESH_TOKEN_REPOSITORY,
-  RefreshTokenRepository,
-} from '../../domain/refresh-token.repository';
+  DEVICE_SESSION_REPOSITORY,
+  DeviceSessionRepository,
+} from '../../domain/device-session.repository';
 import { USER_REPOSITORY, UserRepository } from '../../domain/user.repository';
 import { PASSWORD_HASHER, PasswordHasher } from '../ports/password-hasher.port';
 
@@ -25,7 +25,7 @@ export class DeleteAccountUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
-    @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokens: RefreshTokenRepository,
+    @Inject(DEVICE_SESSION_REPOSITORY) private readonly sessions: DeviceSessionRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -43,6 +43,6 @@ export class DeleteAccountUseCase {
     const now = this.clock.now();
     user.closeAccount(now);
     await this.users.save(user);
-    await this.refreshTokens.revokeAllForUser(user.id, now);
+    await this.sessions.revokeAllForUser(user.id, now);
   }
 }

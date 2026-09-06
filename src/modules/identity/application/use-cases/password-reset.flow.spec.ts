@@ -1,10 +1,10 @@
 import { UnauthorizedDomainException, ValidationException } from '@shared/domain/domain-exception';
-import { RefreshToken } from '../../domain/refresh-token.entity';
+import { DeviceSession } from '../../domain/device-session.entity';
 import {
   FakePasswordHasher,
   FakeTokenService,
   FixedOtpGenerator,
-  InMemoryRefreshTokenRepository,
+  InMemoryDeviceSessionRepository,
   InMemoryUserRepository,
   InMemoryVerificationCodeRepository,
   RecordingEmailSender,
@@ -21,7 +21,7 @@ import { VerifyPasswordResetOtpUseCase } from './verify-password-reset-otp.use-c
 describe('Password reset flow', () => {
   let users: InMemoryUserRepository;
   let codes: InMemoryVerificationCodeRepository;
-  let refreshTokens: InMemoryRefreshTokenRepository;
+  let sessions: InMemoryDeviceSessionRepository;
   let email: RecordingEmailSender;
   let request: RequestPasswordResetUseCase;
   let verify: VerifyPasswordResetOtpUseCase;
@@ -30,7 +30,7 @@ describe('Password reset flow', () => {
   beforeEach(async () => {
     users = new InMemoryUserRepository();
     codes = new InMemoryVerificationCodeRepository();
-    refreshTokens = new InMemoryRefreshTokenRepository();
+    sessions = new InMemoryDeviceSessionRepository();
     email = new RecordingEmailSender();
     const hasher = new FakePasswordHasher();
     const tokens = new FakeTokenService();
@@ -53,18 +53,23 @@ describe('Password reset flow', () => {
       fixedClock,
       fakeOtpConfig(),
     );
-    reset = new ResetPasswordUseCase(users, hasher, tokens, refreshTokens, fixedClock);
+    reset = new ResetPasswordUseCase(users, hasher, tokens, sessions, fixedClock);
 
     await users.save(buildUser({ verified: true }));
-    await refreshTokens.save(
-      RefreshToken.issue({
-        id: 'rt-1',
-        userId: 'user-1',
-        tokenHash: 'h:refresh:user-1:1',
-        expiresAt: new Date(fixedClock.now().getTime() + 86_400_000),
-        now: fixedClock.now(),
-      }),
+    const session = DeviceSession.start({
+      id: 'session-1',
+      userId: 'user-1',
+      deviceLabel: 'Seed device',
+      ipAddress: null,
+      userAgent: null,
+      now: fixedClock.now(),
+    });
+    session.rotateToken(
+      'h:refresh:user-1:1',
+      new Date(fixedClock.now().getTime() + 86_400_000),
+      fixedClock.now(),
     );
+    await sessions.save(session);
   });
 
   it('resets the password and revokes existing sessions end to end', async () => {
@@ -80,7 +85,7 @@ describe('Password reset flow', () => {
     const user = await users.findById('user-1');
     expect(user?.passwordHash).toBe('hashed:N3wSecure');
 
-    const stored = await refreshTokens.findByTokenHash('h:refresh:user-1:1');
+    const stored = await sessions.findByCurrentTokenHash('h:refresh:user-1:1');
     expect(stored?.isActive(fixedClock.now())).toBe(false);
   });
 

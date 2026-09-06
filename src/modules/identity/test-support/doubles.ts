@@ -17,8 +17,9 @@ import {
   ResetTokenClaims,
   TokenService,
 } from '../application/ports/token-service.port';
-import { RefreshToken } from '../domain/refresh-token.entity';
-import { RefreshTokenRepository } from '../domain/refresh-token.repository';
+import { DeviceContext } from '../application/dto/device-context';
+import { DeviceSession } from '../domain/device-session.entity';
+import { DeviceSessionRepository } from '../domain/device-session.repository';
 import { User } from '../domain/user.entity';
 import { UserRepository } from '../domain/user.repository';
 import { VerificationPurpose } from '../domain/verification-purpose.enum';
@@ -34,6 +35,13 @@ import { VerificationCodeRepository } from '../domain/verification-code.reposito
 export const FIXED_NOW = new Date('2026-01-01T00:00:00.000Z');
 
 export const fixedClock: Clock = { now: () => FIXED_NOW };
+
+/** A stand in device context for use case specs that issue tokens. */
+export const FAKE_DEVICE: DeviceContext = {
+  deviceLabel: 'Test device',
+  ipAddress: '127.0.0.1',
+  userAgent: 'jest',
+};
 
 export function sequentialIds(prefix = 'id'): IdGenerator {
   let counter = 0;
@@ -268,23 +276,41 @@ export class InMemoryVerificationCodeRepository implements VerificationCodeRepos
   }
 }
 
-export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
-  public readonly store = new Map<string, RefreshToken>();
+export class InMemoryDeviceSessionRepository implements DeviceSessionRepository {
+  public readonly store = new Map<string, DeviceSession>();
 
-  save(token: RefreshToken): Promise<void> {
-    this.store.set(token.id, token);
+  save(session: DeviceSession): Promise<void> {
+    this.store.set(session.id, session);
     return Promise.resolve();
   }
 
-  findByTokenHash(tokenHash: string): Promise<RefreshToken | null> {
-    const found = [...this.store.values()].find((t) => t.tokenHash === tokenHash);
+  findById(id: string): Promise<DeviceSession | null> {
+    return Promise.resolve(this.store.get(id) ?? null);
+  }
+
+  findByCurrentTokenHash(tokenHash: string): Promise<DeviceSession | null> {
+    const found = [...this.store.values()].find((s) => s.currentTokenHash === tokenHash);
     return Promise.resolve(found ?? null);
   }
 
+  listActiveForUser(userId: string, now: Date): Promise<DeviceSession[]> {
+    const active = [...this.store.values()]
+      .filter((s) => s.userId === userId && s.isActive(now))
+      .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
+    return Promise.resolve(active);
+  }
+
+  countActiveForUser(userId: string, now: Date): Promise<number> {
+    const count = [...this.store.values()].filter(
+      (s) => s.userId === userId && s.isActive(now),
+    ).length;
+    return Promise.resolve(count);
+  }
+
   revokeAllForUser(userId: string, now: Date): Promise<void> {
-    for (const token of this.store.values()) {
-      if (token.userId === userId) {
-        token.revoke(now);
+    for (const session of this.store.values()) {
+      if (session.userId === userId) {
+        session.revoke(now);
       }
     }
     return Promise.resolve();

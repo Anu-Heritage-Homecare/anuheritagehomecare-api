@@ -80,7 +80,7 @@ model User {
   updatedAt     DateTime   @updatedAt
 
   verificationCodes  VerificationCode[]
-  refreshTokens      RefreshToken[]
+  deviceSessions     DeviceSession[]
   twoFactorRecoveryCodes TwoFactorRecoveryCode[]
 
   @@index([status])
@@ -124,17 +124,24 @@ model VerificationCode {
 }
 
 // Persisted refresh token (stored hashed) enabling rotation and revocation.
-model RefreshToken {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @db.Uuid
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique @db.VarChar(255)
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
+// A signed in device (a session). The rotating refresh token hash lives here and
+// is rotated in place on every refresh, so the session keeps one identity for the
+// life of the device. Backs the Trusted Devices screen and "log out everywhere".
+model DeviceSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceLabel      String    @db.VarChar(120)
+  ipAddress        String?   @db.VarChar(64)
+  userAgent        String?   @db.VarChar(400)
+  currentTokenHash String?   @unique @db.VarChar(255)
+  expiresAt        DateTime?
+  createdAt        DateTime  @default(now())
+  lastUsedAt       DateTime
+  revokedAt        DateTime?
 
   @@index([userId])
-  @@map("refresh_tokens")
+  @@map("device_sessions")
 }
 
 enum UserType {

@@ -13,6 +13,8 @@ export interface AuthenticatedUser {
   userType: UserType;
   country: Country;
   email: string;
+  /** The device session id from the token, used to flag the current device. */
+  sessionId: string;
 }
 
 /**
@@ -39,6 +41,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt-access') 
       userType: payload.userType,
       country: payload.country,
       email: payload.email,
+      sessionId: payload.sid,
     };
   }
 }

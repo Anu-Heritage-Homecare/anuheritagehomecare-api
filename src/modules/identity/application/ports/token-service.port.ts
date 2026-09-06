@@ -6,6 +6,8 @@ export interface AccessTokenClaims {
   userType: UserType;
   country: Country;
   email: string;
+  /** The device session this token was issued to, so the current device is identifiable. */
+  sid: string;
   typ: 'access';
 }
 

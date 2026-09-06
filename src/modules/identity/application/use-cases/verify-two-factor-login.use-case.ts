@@ -11,6 +11,7 @@ import {
 } from '../../domain/two-factor-recovery-code.repository';
 import { USER_REPOSITORY, UserRepository } from '../../domain/user.repository';
 import { AuthTokensResult } from '../dto/auth-tokens.result';
+import { DeviceContext } from '../dto/device-context';
 import { SECRET_CIPHER, SecretCipher } from '../ports/secret-cipher.port';
 import { TOKEN_SERVICE, TokenService } from '../ports/token-service.port';
 import {
@@ -22,6 +23,7 @@ import { TokenIssuerService } from '../services/token-issuer.service';
 export interface VerifyTwoFactorLoginCommand {
   challengeToken: string;
   code: string;
+  device: DeviceContext;
 }
 
 /**
@@ -65,7 +67,7 @@ export class VerifyTwoFactorLoginUseCase {
       }
     }
 
-    return this.tokenIssuer.issueFor(user);
+    return this.tokenIssuer.issueForNewSession(user, command.device);
   }
 
   private async consumeRecoveryCode(userId: string, code: string, now: Date): Promise<boolean> {

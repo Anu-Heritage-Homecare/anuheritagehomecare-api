@@ -19,6 +19,11 @@ import { UpdateMyProfileUseCase } from './application/use-cases/update-my-profil
 import { SetupTwoFactorUseCase } from './application/use-cases/setup-two-factor.use-case';
 import { VerifyTwoFactorLoginUseCase } from './application/use-cases/verify-two-factor-login.use-case';
 import { LogoutUseCase } from './application/use-cases/logout.use-case';
+import {
+  ListDevicesUseCase,
+  LogoutAllDevicesUseCase,
+  RevokeDeviceUseCase,
+} from './application/use-cases/device-session.use-cases';
 import { RefreshTokenUseCase } from './application/use-cases/refresh-token.use-case';
 import { RegisterFamilyOwnerUseCase } from './application/use-cases/register-family-owner.use-case';
 import { RequestPasswordResetUseCase } from './application/use-cases/request-password-reset.use-case';
@@ -26,14 +31,14 @@ import { ResendEmailVerificationUseCase } from './application/use-cases/resend-e
 import { ResetPasswordUseCase } from './application/use-cases/reset-password.use-case';
 import { VerifyEmailUseCase } from './application/use-cases/verify-email.use-case';
 import { VerifyPasswordResetOtpUseCase } from './application/use-cases/verify-password-reset-otp.use-case';
-import { REFRESH_TOKEN_REPOSITORY } from './domain/refresh-token.repository';
+import { DEVICE_SESSION_REPOSITORY } from './domain/device-session.repository';
 import { TWO_FACTOR_RECOVERY_CODE_REPOSITORY } from './domain/two-factor-recovery-code.repository';
 import { USER_REPOSITORY } from './domain/user.repository';
 import { VERIFICATION_CODE_REPOSITORY } from './domain/verification-code.repository';
 import { SECRET_CIPHER } from './application/ports/secret-cipher.port';
 import { TWO_FACTOR_AUTHENTICATOR } from './application/ports/two-factor-authenticator.port';
 import { NodemailerEmailSender } from './infrastructure/email/nodemailer-email-sender';
-import { RefreshTokenPrismaRepository } from './infrastructure/persistence/refresh-token-prisma.repository';
+import { DeviceSessionPrismaRepository } from './infrastructure/persistence/device-session-prisma.repository';
 import { TwoFactorRecoveryCodePrismaRepository } from './infrastructure/persistence/two-factor-recovery-code-prisma.repository';
 import { UserPrismaRepository } from './infrastructure/persistence/user-prisma.repository';
 import { VerificationCodePrismaRepository } from './infrastructure/persistence/verification-code-prisma.repository';
@@ -74,12 +79,15 @@ import { AuthController } from './presentation/auth.controller';
     EnableTwoFactorUseCase,
     DisableTwoFactorUseCase,
     VerifyTwoFactorLoginUseCase,
+    ListDevicesUseCase,
+    RevokeDeviceUseCase,
+    LogoutAllDevicesUseCase,
     OtpService,
     TokenIssuerService,
     JwtAccessStrategy,
     { provide: USER_REPOSITORY, useClass: UserPrismaRepository },
     { provide: VERIFICATION_CODE_REPOSITORY, useClass: VerificationCodePrismaRepository },
-    { provide: REFRESH_TOKEN_REPOSITORY, useClass: RefreshTokenPrismaRepository },
+    { provide: DEVICE_SESSION_REPOSITORY, useClass: DeviceSessionPrismaRepository },
     {
       provide: TWO_FACTOR_RECOVERY_CODE_REPOSITORY,
       useClass: TwoFactorRecoveryCodePrismaRepository,

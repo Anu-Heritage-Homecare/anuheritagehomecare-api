@@ -57,7 +57,7 @@ export class LoginUseCase {
       return { status: 'TWO_FACTOR_REQUIRED', challengeToken };
     }
 
-    const tokens = await this.tokenIssuer.issueFor(user);
+    const tokens = await this.tokenIssuer.issueForNewSession(user, command.device);
     return { status: 'AUTHENTICATED', tokens };
   }
 }

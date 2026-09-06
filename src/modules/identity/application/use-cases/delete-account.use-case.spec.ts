@@ -2,7 +2,7 @@ import { UnauthorizedDomainException } from '@shared/domain/domain-exception';
 import { UserStatus } from '../../domain/user-status.enum';
 import {
   FakePasswordHasher,
-  InMemoryRefreshTokenRepository,
+  InMemoryDeviceSessionRepository,
   InMemoryUserRepository,
   fixedClock,
 } from '../../test-support/doubles';
@@ -11,13 +11,13 @@ import { DeleteAccountUseCase } from './delete-account.use-case';
 
 describe('DeleteAccountUseCase', () => {
   let users: InMemoryUserRepository;
-  let refreshTokens: InMemoryRefreshTokenRepository;
+  let sessions: InMemoryDeviceSessionRepository;
   let useCase: DeleteAccountUseCase;
 
   beforeEach(async () => {
     users = new InMemoryUserRepository();
-    refreshTokens = new InMemoryRefreshTokenRepository();
-    useCase = new DeleteAccountUseCase(users, new FakePasswordHasher(), refreshTokens, fixedClock);
+    sessions = new InMemoryDeviceSessionRepository();
+    useCase = new DeleteAccountUseCase(users, new FakePasswordHasher(), sessions, fixedClock);
     // The builder's default password hash corresponds to 'S3curePass'.
     await users.save(buildUser({ id: 'user-1', verified: true }));
   });

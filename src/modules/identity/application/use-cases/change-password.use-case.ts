@@ -2,9 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { UnauthorizedDomainException, ValidationException } from '@shared/domain/domain-exception';
 import {
-  REFRESH_TOKEN_REPOSITORY,
-  RefreshTokenRepository,
-} from '../../domain/refresh-token.repository';
+  DEVICE_SESSION_REPOSITORY,
+  DeviceSessionRepository,
+} from '../../domain/device-session.repository';
 import { USER_REPOSITORY, UserRepository } from '../../domain/user.repository';
 import { Password } from '../../domain/value-objects/password.vo';
 import { ChangePasswordCommand } from '../commands/change-password.command';
@@ -28,7 +28,7 @@ export class ChangePasswordUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
-    @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokens: RefreshTokenRepository,
+    @Inject(DEVICE_SESSION_REPOSITORY) private readonly sessions: DeviceSessionRepository,
     @Inject(CLOCK) private readonly clock: Clock,
     private readonly tokenIssuer: TokenIssuerService,
   ) {}
@@ -55,8 +55,9 @@ export class ChangePasswordUseCase {
 
     user.changePassword(passwordHash, now);
     await this.users.save(user);
-    await this.refreshTokens.revokeAllForUser(user.id, now);
+    // Log out every device, then sign the caller back in on a fresh session.
+    await this.sessions.revokeAllForUser(user.id, now);
 
-    return this.tokenIssuer.issueFor(user);
+    return this.tokenIssuer.issueForNewSession(user, command.device);
   }
 }

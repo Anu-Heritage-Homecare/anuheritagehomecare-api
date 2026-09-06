@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Put,
@@ -20,6 +23,11 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-principal';
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { ChangePasswordUseCase } from '../application/use-cases/change-password.use-case';
+import {
+  ListDevicesUseCase,
+  LogoutAllDevicesUseCase,
+  RevokeDeviceUseCase,
+} from '../application/use-cases/device-session.use-cases';
 import { DisableTwoFactorUseCase } from '../application/use-cases/disable-two-factor.use-case';
 import { EnableTwoFactorUseCase } from '../application/use-cases/enable-two-factor.use-case';
 import { CreateProfilePhotoTicketUseCase } from '../application/use-cases/create-profile-photo-ticket.use-case';
@@ -40,6 +48,9 @@ import { VerifyEmailUseCase } from '../application/use-cases/verify-email.use-ca
 import { VerifyPasswordResetOtpUseCase } from '../application/use-cases/verify-password-reset-otp.use-case';
 import { AuthTokensResponseDto } from './dto/auth-tokens-response.dto';
 import { ChangePasswordRequestDto } from './dto/change-password-request.dto';
+import { DevicesResponseDto } from './dto/devices-response.dto';
+import { DeviceContext } from '../application/dto/device-context';
+import { RequestDevice } from './request-device.decorator';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { LogoutRequestDto } from './dto/logout-request.dto';
 import { MessageResponseDto } from './dto/message-response.dto';
@@ -99,6 +110,9 @@ export class AuthController {
     private readonly enableTwoFactor: EnableTwoFactorUseCase,
     private readonly disableTwoFactor: DisableTwoFactorUseCase,
     private readonly verifyTwoFactorLogin: VerifyTwoFactorLoginUseCase,
+    private readonly listDevices: ListDevicesUseCase,
+    private readonly revokeDevice: RevokeDeviceUseCase,
+    private readonly logoutAllDevices: LogoutAllDevicesUseCase,
   ) {}
 
   @Get('me')
@@ -184,8 +198,11 @@ export class AuthController {
   @Throttle(SENSITIVE_THROTTLE)
   @ApiOperation({ summary: 'Log in with email and password (may require a second factor)' })
   @ApiOkResponse({ type: LoginResponseDto })
-  async logIn(@Body() body: LoginRequestDto): Promise<LoginResponseDto> {
-    const result = await this.login.execute(body);
+  async logIn(
+    @Body() body: LoginRequestDto,
+    @RequestDevice() device: DeviceContext,
+  ): Promise<LoginResponseDto> {
+    const result = await this.login.execute({ ...body, device });
     return LoginResponseDto.fromResult(result);
   }
 
@@ -198,10 +215,12 @@ export class AuthController {
   @ApiOkResponse({ type: AuthTokensResponseDto })
   async twoFactorLogin(
     @Body() body: VerifyTwoFactorLoginRequestDto,
+    @RequestDevice() device: DeviceContext,
   ): Promise<AuthTokensResponseDto> {
     const result = await this.verifyTwoFactorLogin.execute({
       challengeToken: body.challengeToken,
       code: body.code,
+      device,
     });
     return AuthTokensResponseDto.fromResult(result);
   }
@@ -293,11 +312,13 @@ export class AuthController {
   async changeUserPassword(
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Body() body: ChangePasswordRequestDto,
+    @RequestDevice() device: DeviceContext,
   ): Promise<AuthTokensResponseDto> {
     const result = await this.changePassword.execute({
       userId: principal.userId,
       currentPassword: body.currentPassword,
       newPassword: body.newPassword,
+      device,
     });
     return AuthTokensResponseDto.fromResult(result);
   }
@@ -348,6 +369,42 @@ export class AuthController {
       userId: principal.userId,
       password: body.password,
     });
+    return MessageResponseDto.fromResult(result);
+  }
+
+  @Get('devices')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List the trusted (active) devices, flagging the current one' })
+  @ApiOkResponse({ type: DevicesResponseDto })
+  async devices(@CurrentUser() principal: AuthenticatedPrincipal): Promise<DevicesResponseDto> {
+    const views = await this.listDevices.execute({
+      userId: principal.userId,
+      currentSessionId: principal.sessionId,
+    });
+    return DevicesResponseDto.fromViews(views);
+  }
+
+  @Delete('devices/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Sign out a single device' })
+  async removeDevice(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    await this.revokeDevice.execute({ userId: principal.userId, sessionId: id });
+  }
+
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Log out of all devices (end every active session)' })
+  @ApiOkResponse({ type: MessageResponseDto })
+  async logOutAll(@CurrentUser() principal: AuthenticatedPrincipal): Promise<MessageResponseDto> {
+    const result = await this.logoutAllDevices.execute({ userId: principal.userId });
     return MessageResponseDto.fromResult(result);
   }
 }

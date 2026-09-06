@@ -1,11 +1,12 @@
 import { UnauthorizedDomainException, ValidationException } from '@shared/domain/domain-exception';
 import {
+  FAKE_DEVICE,
   FakePasswordHasher,
   FakeSecretCipher,
   FakeTokenService,
   FakeTwoFactorAuthenticator,
   FixedOtpGenerator,
-  InMemoryRefreshTokenRepository,
+  InMemoryDeviceSessionRepository,
   InMemoryTwoFactorRecoveryCodeRepository,
   InMemoryUserRepository,
   fixedClock,
@@ -23,7 +24,7 @@ const VALID_CODE = '123456';
 describe('two factor authentication flow', () => {
   let users: InMemoryUserRepository;
   let recoveryCodes: InMemoryTwoFactorRecoveryCodeRepository;
-  let refreshTokens: InMemoryRefreshTokenRepository;
+  let sessions: InMemoryDeviceSessionRepository;
   let authenticator: FakeTwoFactorAuthenticator;
   let cipher: FakeSecretCipher;
   let tokens: FakeTokenService;
@@ -35,16 +36,16 @@ describe('two factor authentication flow', () => {
   beforeEach(() => {
     users = new InMemoryUserRepository();
     recoveryCodes = new InMemoryTwoFactorRecoveryCodeRepository();
-    refreshTokens = new InMemoryRefreshTokenRepository();
+    sessions = new InMemoryDeviceSessionRepository();
     authenticator = new FakeTwoFactorAuthenticator(VALID_CODE);
     cipher = new FakeSecretCipher();
     tokens = new FakeTokenService();
     const otp = new FixedOtpGenerator();
     const tokenIssuer = new TokenIssuerService(
       new FakeTokenService(),
-      refreshTokens,
+      sessions,
       fixedClock,
-      sequentialIds('rt'),
+      sequentialIds('sid'),
     );
 
     setup = new SetupTwoFactorUseCase(users, authenticator, cipher, fixedClock);
@@ -93,9 +94,13 @@ describe('two factor authentication flow', () => {
     expect(recoveryCodes.store).toHaveLength(10);
 
     // Completing a challenged login with a valid code issues tokens.
-    const login = await verifyLogin.execute({ challengeToken: 'mfa:user-1', code: VALID_CODE });
+    const login = await verifyLogin.execute({
+      challengeToken: 'mfa:user-1',
+      code: VALID_CODE,
+      device: FAKE_DEVICE,
+    });
     expect(login.accessToken).toBe('access:user-1');
-    expect(refreshTokens.store.size).toBe(1);
+    expect(sessions.store.size).toBe(1);
 
     // Disabling clears the factor and every recovery code.
     await disable.execute({ userId: 'user-1', password: 'S3curePass' });
@@ -109,12 +114,16 @@ describe('two factor authentication flow', () => {
     const { recoveryCodes: codes } = await enable.execute({ userId: 'user-1', code: VALID_CODE });
     const oneCode = codes[0];
 
-    const login = await verifyLogin.execute({ challengeToken: 'mfa:user-1', code: oneCode });
+    const login = await verifyLogin.execute({
+      challengeToken: 'mfa:user-1',
+      code: oneCode,
+      device: FAKE_DEVICE,
+    });
     expect(login.accessToken).toBe('access:user-1');
 
     // The same recovery code cannot be reused.
     await expect(
-      verifyLogin.execute({ challengeToken: 'mfa:user-1', code: oneCode }),
+      verifyLogin.execute({ challengeToken: 'mfa:user-1', code: oneCode, device: FAKE_DEVICE }),
     ).rejects.toBeInstanceOf(UnauthorizedDomainException);
   });
 
@@ -124,7 +133,7 @@ describe('two factor authentication flow', () => {
     await enable.execute({ userId: 'user-1', code: VALID_CODE });
 
     await expect(
-      verifyLogin.execute({ challengeToken: 'mfa:user-1', code: '000000' }),
+      verifyLogin.execute({ challengeToken: 'mfa:user-1', code: '000000', device: FAKE_DEVICE }),
     ).rejects.toBeInstanceOf(UnauthorizedDomainException);
   });
 

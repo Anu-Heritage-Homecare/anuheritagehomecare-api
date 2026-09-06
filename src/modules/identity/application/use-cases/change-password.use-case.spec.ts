@@ -1,10 +1,11 @@
 import { UnauthorizedDomainException, ValidationException } from '@shared/domain/domain-exception';
 import { UserType } from '../../domain/user-type.enum';
 import {
+  FAKE_DEVICE,
   FIXED_NOW,
   FakePasswordHasher,
   FakeTokenService,
-  InMemoryRefreshTokenRepository,
+  InMemoryDeviceSessionRepository,
   InMemoryUserRepository,
   fixedClock,
   sequentialIds,
@@ -15,23 +16,23 @@ import { ChangePasswordUseCase } from './change-password.use-case';
 
 describe('ChangePasswordUseCase', () => {
   let users: InMemoryUserRepository;
-  let refreshTokens: InMemoryRefreshTokenRepository;
+  let sessions: InMemoryDeviceSessionRepository;
   let tokenIssuer: TokenIssuerService;
   let useCase: ChangePasswordUseCase;
 
   beforeEach(() => {
     users = new InMemoryUserRepository();
-    refreshTokens = new InMemoryRefreshTokenRepository();
+    sessions = new InMemoryDeviceSessionRepository();
     tokenIssuer = new TokenIssuerService(
       new FakeTokenService(),
-      refreshTokens,
+      sessions,
       fixedClock,
-      sequentialIds('rt'),
+      sequentialIds('sid'),
     );
     useCase = new ChangePasswordUseCase(
       users,
       new FakePasswordHasher(),
-      refreshTokens,
+      sessions,
       fixedClock,
       tokenIssuer,
     );
@@ -56,6 +57,7 @@ describe('ChangePasswordUseCase', () => {
       userId: 'user-1',
       currentPassword: 'TempPass1',
       newPassword: 'S3curePass',
+      device: FAKE_DEVICE,
     });
 
     expect(result.tokenType).toBe('Bearer');
@@ -70,15 +72,16 @@ describe('ChangePasswordUseCase', () => {
   it('revokes every existing session, leaving only the freshly issued token active', async () => {
     await seedProvisionedCaregiver();
     // An existing session from before the change.
-    await tokenIssuer.issueFor((await users.findById('user-1'))!);
+    await tokenIssuer.issueForNewSession((await users.findById('user-1'))!, FAKE_DEVICE);
 
     await useCase.execute({
       userId: 'user-1',
       currentPassword: 'TempPass1',
       newPassword: 'S3curePass',
+      device: FAKE_DEVICE,
     });
 
-    const active = [...refreshTokens.store.values()].filter((t) => t.isActive(FIXED_NOW));
+    const active = [...sessions.store.values()].filter((s) => s.isActive(FIXED_NOW));
     expect(active).toHaveLength(1);
   });
 
@@ -90,6 +93,7 @@ describe('ChangePasswordUseCase', () => {
         userId: 'user-1',
         currentPassword: 'WrongPass1',
         newPassword: 'S3curePass',
+        device: FAKE_DEVICE,
       }),
     ).rejects.toBeInstanceOf(UnauthorizedDomainException);
 
@@ -106,6 +110,7 @@ describe('ChangePasswordUseCase', () => {
         userId: 'user-1',
         currentPassword: 'TempPass1',
         newPassword: 'TempPass1',
+        device: FAKE_DEVICE,
       }),
     ).rejects.toBeInstanceOf(ValidationException);
   });
@@ -118,6 +123,7 @@ describe('ChangePasswordUseCase', () => {
         userId: 'user-1',
         currentPassword: 'TempPass1',
         newPassword: 'weak',
+        device: FAKE_DEVICE,
       }),
     ).rejects.toBeInstanceOf(ValidationException);
   });
@@ -128,6 +134,7 @@ describe('ChangePasswordUseCase', () => {
         userId: 'ghost',
         currentPassword: 'TempPass1',
         newPassword: 'S3curePass',
+        device: FAKE_DEVICE,
       }),
     ).rejects.toBeInstanceOf(UnauthorizedDomainException);
   });

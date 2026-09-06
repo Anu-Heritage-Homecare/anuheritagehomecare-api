@@ -2,9 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { UnauthorizedDomainException } from '@shared/domain/domain-exception';
 import {
-  REFRESH_TOKEN_REPOSITORY,
-  RefreshTokenRepository,
-} from '../../domain/refresh-token.repository';
+  DEVICE_SESSION_REPOSITORY,
+  DeviceSessionRepository,
+} from '../../domain/device-session.repository';
 import { USER_REPOSITORY, UserRepository } from '../../domain/user.repository';
 import { Password } from '../../domain/value-objects/password.vo';
 import { ResetPasswordCommand } from '../commands/reset-password.command';
@@ -23,7 +23,7 @@ export class ResetPasswordUseCase {
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
     @Inject(TOKEN_SERVICE) private readonly tokens: TokenService,
-    @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokens: RefreshTokenRepository,
+    @Inject(DEVICE_SESSION_REPOSITORY) private readonly sessions: DeviceSessionRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -41,7 +41,7 @@ export class ResetPasswordUseCase {
 
     user.changePassword(passwordHash, now);
     await this.users.save(user);
-    await this.refreshTokens.revokeAllForUser(user.id, now);
+    await this.sessions.revokeAllForUser(user.id, now);
 
     return { message: 'Password has been reset. Please log in with your new password.' };
   }
