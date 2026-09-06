@@ -10,7 +10,9 @@ import {
 } from '../application/ports/owner-contact-directory.port';
 import { SosAlert } from '../domain/sos-alert.entity';
 import { SosAlertRepository } from '../domain/sos-alert.repository';
+import { VisitPriority } from '../domain/visit-priority.enum';
 import { VisitStatus } from '../domain/visit-status.enum';
+import { VisitType } from '../domain/visit-type.enum';
 import { Visit } from '../domain/visit.entity';
 import { VisitRepository } from '../domain/visit.repository';
 import { MedicationAdministration } from '../domain/value-objects/medication-administration.vo';
@@ -36,6 +38,8 @@ interface BuildVisitOptions {
   date?: string;
   startMinute?: number;
   endMinute?: number;
+  type?: VisitType;
+  priority?: VisitPriority;
   status?: VisitStatus;
   tasks?: {
     label: string;
@@ -61,6 +65,8 @@ export function buildVisit(options: BuildVisitOptions = {}): Visit {
   const careRecipientId = options.careRecipientId ?? 'recipient-1';
   const scheduledDate = new Date(`${options.date ?? '2026-07-12'}T00:00:00.000Z`);
   const window = VisitWindow.create(options.startMinute ?? 9 * 60, options.endMinute ?? 10 * 60);
+  const type = options.type ?? VisitType.PersonalCare;
+  const priority = options.priority ?? VisitPriority.Normal;
   const tasks = (options.tasks ?? []).map((task) =>
     VisitTask.create(
       task.label,
@@ -76,6 +82,8 @@ export function buildVisit(options: BuildVisitOptions = {}): Visit {
     careRecipientId,
     scheduledDate,
     window,
+    type,
+    priority,
     tasks,
     specialInstructions: options.specialInstructions ?? [],
     now: FIXED_NOW,
@@ -91,6 +99,8 @@ export function buildVisit(options: BuildVisitOptions = {}): Visit {
     careRecipientId,
     scheduledDate,
     window,
+    type,
+    priority,
     status,
     tasks,
     specialInstructions: visit.specialInstructions,

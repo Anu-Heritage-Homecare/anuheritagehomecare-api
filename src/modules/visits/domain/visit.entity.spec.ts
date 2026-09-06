@@ -3,6 +3,7 @@ import { OutsideGeofenceException, ValidationException } from '@shared/domain/do
 import { MedicationAdministrationOutcome } from './medication-administration-outcome.enum';
 import { NoteAudience } from './note-audience.enum';
 import { VisitStatus } from './visit-status.enum';
+import { VisitType } from './visit-type.enum';
 import { Visit } from './visit.entity';
 import { VisitTask } from './value-objects/visit-task.vo';
 import { VisitWindow } from './value-objects/visit-window.vo';
@@ -17,12 +18,19 @@ function schedule(overrides: Partial<Parameters<typeof Visit.schedule>[0]> = {})
     careRecipientId: 'recipient-1',
     scheduledDate: new Date('2026-07-12T00:00:00.000Z'),
     window: VisitWindow.create(9 * 60, 10 * 60),
+    type: VisitType.PersonalCare,
     now: NOW,
     ...overrides,
   });
 }
 
 describe('Visit', () => {
+  it('carries its visit type and defaults an unspecified priority to Normal', () => {
+    const visit = schedule({ type: VisitType.WoundCare });
+    expect(visit.type).toBe(VisitType.WoundCare);
+    expect(visit.priority).toBe('NORMAL');
+  });
+
   it('schedules a new visit in the SCHEDULED status', () => {
     const visit = schedule();
     expect(visit.status).toBe(VisitStatus.Scheduled);

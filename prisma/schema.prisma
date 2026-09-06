@@ -450,6 +450,8 @@ model Visit {
   scheduledDate       DateTime    @db.Date
   startMinute         Int
   endMinute           Int
+  visitType           VisitType     @default(PERSONAL_CARE)
+  priority            VisitPriority @default(NORMAL)
   status              VisitStatus @default(SCHEDULED)
   specialInstructions String[]
   // Attendance, stamped server side when the caregiver clocks in and out. The
@@ -847,6 +849,26 @@ enum VisitStatus {
   MISSED
 
   @@map("visit_status")
+}
+
+enum VisitType {
+  PERSONAL_CARE
+  MORNING_CARE
+  MEDICATION
+  PHYSICAL_THERAPY
+  WOUND_CARE
+  COMPANIONSHIP
+
+  @@map("visit_type")
+}
+
+enum VisitPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@map("visit_priority")
 }
 
 // A single location breadcrumb reported by a caregiver's device. Append only and

@@ -3,7 +3,9 @@ import { Coordinates } from '@shared/domain/coordinates.vo';
 import { OutsideGeofenceException, ValidationException } from '@shared/domain/domain-exception';
 import { MedicationAdministrationOutcome } from './medication-administration-outcome.enum';
 import { NoteAudience } from './note-audience.enum';
+import { VisitPriority } from './visit-priority.enum';
 import { VisitStatus } from './visit-status.enum';
+import { VisitType } from './visit-type.enum';
 import { MedicationAdministration } from './value-objects/medication-administration.vo';
 import { VisitBreak } from './value-objects/visit-break.vo';
 import { VisitNote } from './value-objects/visit-note.vo';
@@ -17,6 +19,8 @@ interface VisitProps {
   careRecipientId: string;
   scheduledDate: Date;
   window: VisitWindow;
+  type: VisitType;
+  priority: VisitPriority;
   status: VisitStatus;
   tasks: VisitTask[];
   specialInstructions: string[];
@@ -88,6 +92,8 @@ export class Visit extends AggregateRoot<string> {
     careRecipientId: string;
     scheduledDate: Date;
     window: VisitWindow;
+    type: VisitType;
+    priority?: VisitPriority;
     tasks?: VisitTask[];
     specialInstructions?: string[];
     now: Date;
@@ -97,6 +103,8 @@ export class Visit extends AggregateRoot<string> {
       careRecipientId: params.careRecipientId,
       scheduledDate: Visit.assertValidDate(params.scheduledDate),
       window: params.window,
+      type: params.type,
+      priority: params.priority ?? VisitPriority.Normal,
       status: VisitStatus.Scheduled,
       tasks: params.tasks ?? [],
       specialInstructions: Visit.cleanInstructions(params.specialInstructions),
@@ -324,6 +332,14 @@ export class Visit extends AggregateRoot<string> {
 
   public get window(): VisitWindow {
     return this.props.window;
+  }
+
+  public get type(): VisitType {
+    return this.props.type;
+  }
+
+  public get priority(): VisitPriority {
+    return this.props.priority;
   }
 
   public get status(): VisitStatus {

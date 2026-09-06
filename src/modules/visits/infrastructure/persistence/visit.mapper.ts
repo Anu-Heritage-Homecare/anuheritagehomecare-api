@@ -5,15 +5,19 @@ import {
   Visit as PrismaVisit,
   VisitBreak as PrismaVisitBreak,
   VisitNote as PrismaVisitNote,
+  VisitPriority as PrismaVisitPriority,
   VisitStatus as PrismaVisitStatus,
   VisitTask as PrismaVisitTask,
+  VisitType as PrismaVisitType,
   VisitVitals as PrismaVisitVitals,
 } from '@prisma/client';
 import { Coordinates } from '@shared/domain/coordinates.vo';
 import { MedicationAdministrationOutcome } from '../../domain/medication-administration-outcome.enum';
 import { NoteAudience } from '../../domain/note-audience.enum';
 import { Visit } from '../../domain/visit.entity';
+import { VisitPriority } from '../../domain/visit-priority.enum';
 import { VisitStatus } from '../../domain/visit-status.enum';
+import { VisitType } from '../../domain/visit-type.enum';
 import { MedicationAdministration } from '../../domain/value-objects/medication-administration.vo';
 import { VisitBreak } from '../../domain/value-objects/visit-break.vo';
 import { VisitNote } from '../../domain/value-objects/visit-note.vo';
@@ -137,6 +141,8 @@ export class VisitMapper {
       careRecipientId: row.careRecipientId,
       scheduledDate: row.scheduledDate,
       window: VisitWindow.create(row.startMinute, row.endMinute),
+      type: VisitMapper.TO_DOMAIN_TYPE[row.visitType],
+      priority: VisitMapper.TO_DOMAIN_PRIORITY[row.priority],
       status: VisitMapper.TO_DOMAIN_STATUS[row.status],
       tasks,
       specialInstructions: row.specialInstructions,
@@ -167,6 +173,8 @@ export class VisitMapper {
       scheduledDate: visit.scheduledDate,
       startMinute: visit.window.startMinute,
       endMinute: visit.window.endMinute,
+      visitType: VisitMapper.TO_PERSISTENCE_TYPE[visit.type],
+      priority: VisitMapper.TO_PERSISTENCE_PRIORITY[visit.priority],
       status: VisitMapper.TO_PERSISTENCE_STATUS[visit.status],
       specialInstructions: visit.specialInstructions,
       photoKeys: visit.photoKeys,
@@ -229,6 +237,38 @@ export class VisitMapper {
       createdAt: note.createdAt,
     }));
   }
+
+  private static readonly TO_DOMAIN_TYPE: Record<PrismaVisitType, VisitType> = {
+    PERSONAL_CARE: VisitType.PersonalCare,
+    MORNING_CARE: VisitType.MorningCare,
+    MEDICATION: VisitType.Medication,
+    PHYSICAL_THERAPY: VisitType.PhysicalTherapy,
+    WOUND_CARE: VisitType.WoundCare,
+    COMPANIONSHIP: VisitType.Companionship,
+  };
+
+  private static readonly TO_PERSISTENCE_TYPE: Record<VisitType, PrismaVisitType> = {
+    [VisitType.PersonalCare]: 'PERSONAL_CARE',
+    [VisitType.MorningCare]: 'MORNING_CARE',
+    [VisitType.Medication]: 'MEDICATION',
+    [VisitType.PhysicalTherapy]: 'PHYSICAL_THERAPY',
+    [VisitType.WoundCare]: 'WOUND_CARE',
+    [VisitType.Companionship]: 'COMPANIONSHIP',
+  };
+
+  private static readonly TO_DOMAIN_PRIORITY: Record<PrismaVisitPriority, VisitPriority> = {
+    LOW: VisitPriority.Low,
+    NORMAL: VisitPriority.Normal,
+    HIGH: VisitPriority.High,
+    URGENT: VisitPriority.Urgent,
+  };
+
+  private static readonly TO_PERSISTENCE_PRIORITY: Record<VisitPriority, PrismaVisitPriority> = {
+    [VisitPriority.Low]: 'LOW',
+    [VisitPriority.Normal]: 'NORMAL',
+    [VisitPriority.High]: 'HIGH',
+    [VisitPriority.Urgent]: 'URGENT',
+  };
 
   private static readonly TO_DOMAIN_STATUS: Record<PrismaVisitStatus, VisitStatus> = {
     SCHEDULED: VisitStatus.Scheduled,
