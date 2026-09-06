@@ -62,9 +62,16 @@ export class GetFamilyVisitDetailUseCase {
     }
     await this.access.assertAccess(query.callerUserId, recipient.ownerId, CareAccessLevel.ViewOnly);
 
-    const userIds = [...new Set([visit.caregiverId, ...visit.notes.map((note) => note.authorId)])];
+    const caregiverId = visit.caregiverId;
+    const userIds = [
+      ...new Set(
+        [caregiverId, ...visit.notes.map((note) => note.authorId)].filter(
+          (id): id is string => id !== null,
+        ),
+      ),
+    ];
     const usersById = new Map((await this.users.findByIds(userIds)).map((user) => [user.id, user]));
-    const caregiver = usersById.get(visit.caregiverId) ?? null;
+    const caregiver = caregiverId === null ? null : (usersById.get(caregiverId) ?? null);
     const caregiverName =
       caregiver === null ? null : `${caregiver.name.firstName} ${caregiver.name.lastName}`.trim();
 
@@ -77,9 +84,9 @@ export class GetFamilyVisitDetailUseCase {
       clockInAt: visit.clockInAt === null ? null : visit.clockInAt.toISOString(),
       clockOutAt: visit.clockOutAt === null ? null : visit.clockOutAt.toISOString(),
       caregiver:
-        caregiver === null || caregiverName === null
+        caregiverId === null || caregiver === null || caregiverName === null
           ? null
-          : { id: visit.caregiverId, name: caregiverName, photoKey: caregiver.photoKey },
+          : { id: caregiverId, name: caregiverName, photoKey: caregiver.photoKey },
       recipient: {
         id: recipient.id,
         name: recipient.profile.name,

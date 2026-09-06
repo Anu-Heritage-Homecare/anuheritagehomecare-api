@@ -96,6 +96,7 @@ export function buildVisit(options: BuildVisitOptions = {}): Visit {
 
   return Visit.rehydrate(id, {
     caregiverId,
+    assignedAt: FIXED_NOW,
     careRecipientId,
     scheduledDate,
     window,

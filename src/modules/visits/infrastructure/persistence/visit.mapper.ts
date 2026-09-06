@@ -138,6 +138,7 @@ export class VisitMapper {
 
     return Visit.rehydrate(row.id, {
       caregiverId: row.caregiverId,
+      assignedAt: row.assignedAt,
       careRecipientId: row.careRecipientId,
       scheduledDate: row.scheduledDate,
       window: VisitWindow.create(row.startMinute, row.endMinute),
@@ -169,6 +170,7 @@ export class VisitMapper {
     return {
       id: visit.id,
       caregiverId: visit.caregiverId,
+      assignedAt: visit.assignedAt,
       careRecipientId: visit.careRecipientId,
       scheduledDate: visit.scheduledDate,
       startMinute: visit.window.startMinute,

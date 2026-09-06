@@ -31,6 +31,37 @@ describe('Visit', () => {
     expect(visit.priority).toBe('NORMAL');
   });
 
+  it('starts unassigned and takes a caregiver on assignment, stamping when', () => {
+    const visit = Visit.scheduleUnassigned({
+      id: 'visit-1',
+      careRecipientId: 'recipient-1',
+      scheduledDate: new Date('2026-07-12T00:00:00.000Z'),
+      window: VisitWindow.create(9 * 60, 10 * 60),
+      type: VisitType.MorningCare,
+      now: NOW,
+    });
+    expect(visit.isAssigned).toBe(false);
+    expect(visit.caregiverId).toBeNull();
+    expect(visit.assignedAt).toBeNull();
+
+    const assignedAt = new Date('2026-07-12T08:00:00.000Z');
+    visit.assignCaregiver('caregiver-9', assignedAt);
+    expect(visit.isAssigned).toBe(true);
+    expect(visit.caregiverId).toBe('caregiver-9');
+    expect(visit.assignedAt).toEqual(assignedAt);
+  });
+
+  it('refuses to assign a caregiver to a visit already under way', () => {
+    const visit = schedule();
+    visit.clockIn({
+      at: Coordinates.create(37.3861, -122.0839),
+      geofenceCenter: Coordinates.create(37.3861, -122.0839),
+      radiusMeters: 150,
+      now: NOW,
+    });
+    expect(() => visit.assignCaregiver('caregiver-9', NOW)).toThrow(ValidationException);
+  });
+
   it('schedules a new visit in the SCHEDULED status', () => {
     const visit = schedule();
     expect(visit.status).toBe(VisitStatus.Scheduled);

@@ -15,7 +15,8 @@ import { VisitObservation } from './value-objects/visit-observation.vo';
 import { VitalsReading } from './value-objects/vitals-reading.vo';
 
 interface VisitProps {
-  caregiverId: string;
+  caregiverId: string | null;
+  assignedAt: Date | null;
   careRecipientId: string;
   scheduledDate: Date;
   window: VisitWindow;
@@ -100,6 +101,48 @@ export class Visit extends AggregateRoot<string> {
   }): Visit {
     return new Visit(params.id, {
       caregiverId: params.caregiverId,
+      assignedAt: params.now,
+      careRecipientId: params.careRecipientId,
+      scheduledDate: Visit.assertValidDate(params.scheduledDate),
+      window: params.window,
+      type: params.type,
+      priority: params.priority ?? VisitPriority.Normal,
+      status: VisitStatus.Scheduled,
+      tasks: params.tasks ?? [],
+      specialInstructions: Visit.cleanInstructions(params.specialInstructions),
+      medicationAdministrations: [],
+      vitals: [],
+      breaks: [],
+      notes: [],
+      photoKeys: [],
+      observation: VisitObservation.empty(),
+      clockInAt: null,
+      clockOutAt: null,
+      arrivalLocation: null,
+      createdAt: params.now,
+      updatedAt: params.now,
+    });
+  }
+
+  /**
+   * Plan a new visit with no caregiver yet: the office schedules the session and
+   * an admin assigns a caregiver later. It appears as Unassigned on the operations
+   * schedule until then.
+   */
+  public static scheduleUnassigned(params: {
+    id: string;
+    careRecipientId: string;
+    scheduledDate: Date;
+    window: VisitWindow;
+    type: VisitType;
+    priority?: VisitPriority;
+    tasks?: VisitTask[];
+    specialInstructions?: string[];
+    now: Date;
+  }): Visit {
+    return new Visit(params.id, {
+      caregiverId: null,
+      assignedAt: null,
       careRecipientId: params.careRecipientId,
       scheduledDate: Visit.assertValidDate(params.scheduledDate),
       window: params.window,
@@ -125,6 +168,24 @@ export class Visit extends AggregateRoot<string> {
   /** Rehydrate an existing visit from persistence without emitting events. */
   public static rehydrate(id: string, props: VisitProps): Visit {
     return new Visit(id, props);
+  }
+
+  /**
+   * Assign (or reassign) the caregiver who will carry out this visit, stamping
+   * when the assignment was made. Only a visit that has not yet started can be
+   * assigned; once it is under way or finished the caregiver is fixed.
+   */
+  public assignCaregiver(caregiverId: string, now: Date): void {
+    if (this.props.status !== VisitStatus.Scheduled) {
+      throw new ValidationException('Only a scheduled visit can be assigned a caregiver');
+    }
+    const trimmed = caregiverId.trim();
+    if (trimmed.length === 0) {
+      throw new ValidationException('A caregiver is required');
+    }
+    this.props.caregiverId = trimmed;
+    this.props.assignedAt = now;
+    this.props.updatedAt = now;
   }
 
   /**
@@ -318,8 +379,19 @@ export class Visit extends AggregateRoot<string> {
     return cleaned;
   }
 
-  public get caregiverId(): string {
+  /** The assigned caregiver, or null while the visit is unassigned. */
+  public get caregiverId(): string | null {
     return this.props.caregiverId;
+  }
+
+  /** Whether a caregiver has been assigned to this visit. */
+  public get isAssigned(): boolean {
+    return this.props.caregiverId !== null;
+  }
+
+  /** When a caregiver was assigned, or null while the visit is unassigned. */
+  public get assignedAt(): Date | null {
+    return this.props.assignedAt;
   }
 
   public get careRecipientId(): string {

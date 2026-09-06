@@ -49,7 +49,11 @@ export class GetRecipientVisitsUseCase {
       FUTURE_TO,
     );
 
-    const caregiverIds = [...new Set(visits.map((visit) => visit.caregiverId))];
+    const caregiverIds = [
+      ...new Set(
+        visits.map((visit) => visit.caregiverId).filter((id): id is string => id !== null),
+      ),
+    ];
     const caregivers = await this.users.findByIds(caregiverIds);
     const caregiverById = new Map(
       caregivers.map((user) => [
@@ -74,7 +78,8 @@ export class GetRecipientVisitsUseCase {
     visit: Visit,
     caregiverById: Map<string, { name: string; photoKey: string | null }>,
   ): FamilyVisitSummaryResult {
-    const caregiver = caregiverById.get(visit.caregiverId);
+    const caregiverId = visit.caregiverId;
+    const caregiver = caregiverId === null ? undefined : caregiverById.get(caregiverId);
     return {
       id: visit.id,
       status: String(visit.status),
@@ -84,9 +89,9 @@ export class GetRecipientVisitsUseCase {
       clockInAt: visit.clockInAt === null ? null : visit.clockInAt.toISOString(),
       clockOutAt: visit.clockOutAt === null ? null : visit.clockOutAt.toISOString(),
       caregiver:
-        caregiver === undefined
+        caregiverId === null || caregiver === undefined
           ? null
-          : { id: visit.caregiverId, name: caregiver.name, photoKey: caregiver.photoKey },
+          : { id: caregiverId, name: caregiver.name, photoKey: caregiver.photoKey },
     };
   }
 

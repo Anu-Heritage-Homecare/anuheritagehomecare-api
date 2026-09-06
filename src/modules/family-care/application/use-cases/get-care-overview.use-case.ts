@@ -77,14 +77,15 @@ export class GetCareOverviewUseCase {
   private async resolveCaregiver(
     visit: Visit | null,
   ): Promise<{ id: string; name: string } | null> {
-    if (visit === null) {
+    if (visit === null || visit.caregiverId === null) {
       return null;
     }
-    const caregiver = await this.users.findById(visit.caregiverId);
+    const caregiverId = visit.caregiverId;
+    const caregiver = await this.users.findById(caregiverId);
     return caregiver === null
       ? null
       : {
-          id: visit.caregiverId,
+          id: caregiverId,
           name: `${caregiver.name.firstName} ${caregiver.name.lastName}`.trim(),
         };
   }

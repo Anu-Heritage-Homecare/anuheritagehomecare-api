@@ -60,7 +60,11 @@ export class GetFamilyDashboardUseCase {
     const visitByRecipient = this.pickTodaysVisitPerRecipient(visits);
 
     const caregiverIds = [
-      ...new Set([...visitByRecipient.values()].map((visit) => visit.caregiverId)),
+      ...new Set(
+        [...visitByRecipient.values()]
+          .map((visit) => visit.caregiverId)
+          .filter((id): id is string => id !== null),
+      ),
     ];
     const users = await this.users.findByIds([query.ownerId, ...caregiverIds]);
     const owner = users.get(query.ownerId);
@@ -130,7 +134,7 @@ export class GetFamilyDashboardUseCase {
 
     const completed = visit.tasks.filter((task) => task.completed).length;
     const total = visit.tasks.length;
-    const caregiver = users.get(visit.caregiverId);
+    const caregiver = visit.caregiverId === null ? undefined : users.get(visit.caregiverId);
 
     return {
       ...base,

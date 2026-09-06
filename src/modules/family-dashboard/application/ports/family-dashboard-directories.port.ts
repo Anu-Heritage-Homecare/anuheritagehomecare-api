@@ -50,7 +50,8 @@ export interface DashboardVitalsEventView {
 export interface DashboardVisitView {
   id: string;
   careRecipientId: string;
-  caregiverId: string;
+  /** The assigned caregiver, or null while the visit is unassigned. */
+  caregiverId: string | null;
   status: string;
   startMinute: number;
   endMinute: number;

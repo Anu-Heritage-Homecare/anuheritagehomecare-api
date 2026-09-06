@@ -38,6 +38,7 @@ export class VisitPrismaRepository implements VisitRepository {
         create: row,
         update: {
           caregiverId: row.caregiverId,
+          assignedAt: row.assignedAt,
           careRecipientId: row.careRecipientId,
           scheduledDate: row.scheduledDate,
           startMinute: row.startMinute,
