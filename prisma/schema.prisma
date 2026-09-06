@@ -75,6 +75,10 @@ model User {
   // rest (AES 256 GCM) and never leaves the application in the clear.
   twoFactorEnabled Boolean @default(false)
   twoFactorSecret  String? @db.VarChar(255)
+  // Account security preferences and the password age shown on the security screen.
+  passwordChangedAt     DateTime @default(now())
+  biometricEnabled      Boolean  @default(false)
+  sessionTimeoutMinutes Int      @default(15)
   status        UserStatus @default(PENDING_VERIFICATION)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt

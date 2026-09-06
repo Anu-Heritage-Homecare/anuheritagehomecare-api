@@ -26,6 +26,10 @@ import {
   RevokeDeviceUseCase,
 } from './application/use-cases/device-session.use-cases';
 import { GetLoginActivityUseCase } from './application/use-cases/get-login-activity.use-case';
+import {
+  GetSecurityOverviewUseCase,
+  UpdateSecurityPreferencesUseCase,
+} from './application/use-cases/security.use-cases';
 import { RefreshTokenUseCase } from './application/use-cases/refresh-token.use-case';
 import { RegisterFamilyOwnerUseCase } from './application/use-cases/register-family-owner.use-case';
 import { RequestPasswordResetUseCase } from './application/use-cases/request-password-reset.use-case';
@@ -87,6 +91,8 @@ import { AuthController } from './presentation/auth.controller';
     RevokeDeviceUseCase,
     LogoutAllDevicesUseCase,
     GetLoginActivityUseCase,
+    GetSecurityOverviewUseCase,
+    UpdateSecurityPreferencesUseCase,
     OtpService,
     TokenIssuerService,
     LoginEventRecorder,

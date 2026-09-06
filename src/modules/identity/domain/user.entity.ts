@@ -25,10 +25,18 @@ interface UserProps {
   mustChangePassword: boolean;
   twoFactorEnabled: boolean;
   twoFactorSecret: string | null;
+  passwordChangedAt: Date;
+  biometricEnabled: boolean;
+  sessionTimeoutMinutes: number;
   status: UserStatus;
   createdAt: Date;
   updatedAt: Date;
 }
+
+/** Default inactivity window (minutes) before the client should sign the user out. */
+export const DEFAULT_SESSION_TIMEOUT_MINUTES = 15;
+const MIN_SESSION_TIMEOUT_MINUTES = 1;
+const MAX_SESSION_TIMEOUT_MINUTES = 1440;
 
 /**
  * User aggregate root (a mobile app account: caregiver or family member).
@@ -74,6 +82,9 @@ export class User extends AggregateRoot<string> {
       mustChangePassword: false,
       twoFactorEnabled: false,
       twoFactorSecret: null,
+      passwordChangedAt: params.now,
+      biometricEnabled: false,
+      sessionTimeoutMinutes: DEFAULT_SESSION_TIMEOUT_MINUTES,
       status: UserStatus.PendingVerification,
       createdAt: params.now,
       updatedAt: params.now,
@@ -120,6 +131,28 @@ export class User extends AggregateRoot<string> {
   public changePassword(newPasswordHash: string, now: Date): void {
     this.props.passwordHash = newPasswordHash;
     this.props.mustChangePassword = false;
+    this.props.passwordChangedAt = now;
+    this.props.updatedAt = now;
+  }
+
+  /** Turn the biometric (Face ID) sign in preference on or off. */
+  public setBiometricEnabled(enabled: boolean, now: Date): void {
+    this.props.biometricEnabled = enabled;
+    this.props.updatedAt = now;
+  }
+
+  /** Set the inactivity window, in minutes, before the client should auto log out. */
+  public setSessionTimeoutMinutes(minutes: number, now: Date): void {
+    if (
+      !Number.isInteger(minutes) ||
+      minutes < MIN_SESSION_TIMEOUT_MINUTES ||
+      minutes > MAX_SESSION_TIMEOUT_MINUTES
+    ) {
+      throw new ValidationException(
+        `Session timeout must be a whole number of minutes between ${MIN_SESSION_TIMEOUT_MINUTES} and ${MAX_SESSION_TIMEOUT_MINUTES}`,
+      );
+    }
+    this.props.sessionTimeoutMinutes = minutes;
     this.props.updatedAt = now;
   }
 
@@ -255,6 +288,21 @@ export class User extends AggregateRoot<string> {
   /** The encrypted TOTP secret, or null when no setup is in progress. */
   public get twoFactorSecret(): string | null {
     return this.props.twoFactorSecret;
+  }
+
+  /** When the password was last set (registration, reset or change). */
+  public get passwordChangedAt(): Date {
+    return this.props.passwordChangedAt;
+  }
+
+  /** Whether biometric (Face ID) sign in is enabled on the account. */
+  public get biometricEnabled(): boolean {
+    return this.props.biometricEnabled;
+  }
+
+  /** Inactivity window in minutes before the client should sign the user out. */
+  public get sessionTimeoutMinutes(): number {
+    return this.props.sessionTimeoutMinutes;
   }
 
   public get status(): UserStatus {

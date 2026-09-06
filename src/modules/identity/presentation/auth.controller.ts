@@ -31,6 +31,10 @@ import {
 import { DisableTwoFactorUseCase } from '../application/use-cases/disable-two-factor.use-case';
 import { EnableTwoFactorUseCase } from '../application/use-cases/enable-two-factor.use-case';
 import { GetLoginActivityUseCase } from '../application/use-cases/get-login-activity.use-case';
+import {
+  GetSecurityOverviewUseCase,
+  UpdateSecurityPreferencesUseCase,
+} from '../application/use-cases/security.use-cases';
 import { CreateProfilePhotoTicketUseCase } from '../application/use-cases/create-profile-photo-ticket.use-case';
 import { DeleteAccountUseCase } from '../application/use-cases/delete-account.use-case';
 import { GetMyProfileUseCase } from '../application/use-cases/get-my-profile.use-case';
@@ -51,6 +55,11 @@ import { AuthTokensResponseDto } from './dto/auth-tokens-response.dto';
 import { ChangePasswordRequestDto } from './dto/change-password-request.dto';
 import { DevicesResponseDto } from './dto/devices-response.dto';
 import { LoginActivityResponseDto } from './dto/login-activity-response.dto';
+import {
+  SecurityOverviewResponseDto,
+  SecurityPreferencesResponseDto,
+  UpdateSecurityPreferencesRequestDto,
+} from './dto/security.dto';
 import { DeviceContext } from '../application/dto/device-context';
 import { RequestDevice } from './request-device.decorator';
 import { LoginRequestDto } from './dto/login-request.dto';
@@ -116,6 +125,8 @@ export class AuthController {
     private readonly revokeDevice: RevokeDeviceUseCase,
     private readonly logoutAllDevices: LogoutAllDevicesUseCase,
     private readonly getLoginActivity: GetLoginActivityUseCase,
+    private readonly getSecurityOverview: GetSecurityOverviewUseCase,
+    private readonly updateSecurityPreferences: UpdateSecurityPreferencesUseCase,
   ) {}
 
   @Get('me')
@@ -421,5 +432,34 @@ export class AuthController {
   ): Promise<LoginActivityResponseDto> {
     const views = await this.getLoginActivity.execute({ userId: principal.userId });
     return LoginActivityResponseDto.fromViews(views);
+  }
+
+  @Get('security')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Account security overview: 2FA, password age, devices, preferences' })
+  @ApiOkResponse({ type: SecurityOverviewResponseDto })
+  async securityOverview(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): Promise<SecurityOverviewResponseDto> {
+    const overview = await this.getSecurityOverview.execute({ userId: principal.userId });
+    return SecurityOverviewResponseDto.fromOverview(overview);
+  }
+
+  @Put('security/preferences')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update security preferences (biometrics and session timeout)' })
+  @ApiOkResponse({ type: SecurityPreferencesResponseDto })
+  async saveSecurityPreferences(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: UpdateSecurityPreferencesRequestDto,
+  ): Promise<SecurityPreferencesResponseDto> {
+    const preferences = await this.updateSecurityPreferences.execute({
+      userId: principal.userId,
+      biometricEnabled: body.biometricEnabled,
+      sessionTimeoutMinutes: body.sessionTimeoutMinutes,
+    });
+    return SecurityPreferencesResponseDto.fromPreferences(preferences);
   }
 }
