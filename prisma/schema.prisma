@@ -1279,3 +1279,42 @@ enum AlertStatus {
 
   @@map("alert_status")
 }
+
+// An operational task: a unit of back office work a coordinator tracks (chase a
+// document, follow up a complaint, arrange cover). The dashboard counts the tasks
+// that are not done as Open Tasks.
+model OperationalTask {
+  id                     String       @id @default(uuid()) @db.Uuid
+  title                  String       @db.VarChar(160)
+  description            String?      @db.VarChar(1000)
+  status                 TaskStatus   @default(OPEN)
+  priority               TaskPriority @default(MEDIUM)
+  assignedToAdminId      String?      @db.Uuid
+  createdByAdminId       String?      @db.Uuid
+  relatedCareRecipientId String?      @db.Uuid
+  dueAt                  DateTime?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  completedAt            DateTime?
+
+  @@index([status, createdAt])
+  @@index([assignedToAdminId])
+  @@map("operational_tasks")
+}
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+
+  @@map("task_status")
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+
+  @@map("task_priority")
+}

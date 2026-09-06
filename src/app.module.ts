@@ -7,6 +7,7 @@ import { AppConfig, buildConfig } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
 import { AdminIdentityModule } from './modules/admin-identity/admin-identity.module';
+import { AdminTasksModule } from './modules/admin-tasks/admin-tasks.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { CarePlansModule } from './modules/care-plans/care-plans.module';
@@ -130,6 +131,7 @@ import { SharedModule } from './shared/shared.module';
     ProfileModule,
     AdminIdentityModule,
     AdminAlertsModule,
+    AdminTasksModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
