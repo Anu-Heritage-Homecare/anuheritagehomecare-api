@@ -107,6 +107,11 @@ export class ProfileController {
       notifications: body.notifications,
       language: body.language,
       preferredContactMethod: body.preferredContactMethod,
+      theme: body.theme,
+      dateFormat: body.dateFormat,
+      timeFormat: body.timeFormat,
+      soundEnabled: body.soundEnabled,
+      textSize: body.textSize,
     });
     return PreferencesResponseDto.fromResult(result);
   }

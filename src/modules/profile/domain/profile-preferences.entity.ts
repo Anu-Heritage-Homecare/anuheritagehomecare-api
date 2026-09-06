@@ -40,15 +40,33 @@ export const NOTIFICATION_CATEGORY_KEYS: readonly (keyof NotificationPreferences
 
 export type PreferredContactMethod = 'EMAIL' | 'PHONE' | 'SMS';
 
+/** App display theme. SYSTEM follows the device setting. */
+export type Theme = 'LIGHT' | 'DARK' | 'SYSTEM';
+/** How dates are formatted in the app. */
+export type DateFormat = 'MMM_DD_YYYY' | 'DD_MM_YYYY' | 'MM_DD_YYYY' | 'YYYY_MM_DD';
+/** 12 hour (3:45 PM) or 24 hour (15:45) clock. */
+export type TimeFormat = 'TWELVE_HOUR' | 'TWENTY_FOUR_HOUR';
+/** Base text size for accessibility. */
+export type TextSize = 'SMALL' | 'MEDIUM' | 'LARGE';
+
 interface ProfilePreferencesProps {
   notifications: NotificationPreferences;
   language: string;
   preferredContactMethod: PreferredContactMethod;
+  theme: Theme;
+  dateFormat: DateFormat;
+  timeFormat: TimeFormat;
+  soundEnabled: boolean;
+  textSize: TextSize;
   updatedAt: Date;
 }
 
 const SUPPORTED_LANGUAGES = ['en'];
 const CONTACT_METHODS: PreferredContactMethod[] = ['EMAIL', 'PHONE', 'SMS'];
+const THEMES: Theme[] = ['LIGHT', 'DARK', 'SYSTEM'];
+const DATE_FORMATS: DateFormat[] = ['MMM_DD_YYYY', 'DD_MM_YYYY', 'MM_DD_YYYY', 'YYYY_MM_DD'];
+const TIME_FORMATS: TimeFormat[] = ['TWELVE_HOUR', 'TWENTY_FOUR_HOUR'];
+const TEXT_SIZES: TextSize[] = ['SMALL', 'MEDIUM', 'LARGE'];
 
 /**
  * A family owner's notification and app preferences, keyed by their user id. The
@@ -79,6 +97,11 @@ export class ProfilePreferences extends Entity<string> {
       },
       language: 'en',
       preferredContactMethod: 'EMAIL',
+      theme: 'LIGHT',
+      dateFormat: 'MMM_DD_YYYY',
+      timeFormat: 'TWELVE_HOUR',
+      soundEnabled: true,
+      textSize: 'MEDIUM',
       updatedAt: now,
     });
   }
@@ -110,6 +133,47 @@ export class ProfilePreferences extends Entity<string> {
     this.props.updatedAt = now;
   }
 
+  public setTheme(theme: string, now: Date): void {
+    const normalised = theme.trim().toUpperCase() as Theme;
+    if (!THEMES.includes(normalised)) {
+      throw new ValidationException('Theme must be LIGHT, DARK or SYSTEM');
+    }
+    this.props.theme = normalised;
+    this.props.updatedAt = now;
+  }
+
+  public setDateFormat(dateFormat: string, now: Date): void {
+    const normalised = dateFormat.trim().toUpperCase() as DateFormat;
+    if (!DATE_FORMATS.includes(normalised)) {
+      throw new ValidationException('Unsupported date format');
+    }
+    this.props.dateFormat = normalised;
+    this.props.updatedAt = now;
+  }
+
+  public setTimeFormat(timeFormat: string, now: Date): void {
+    const normalised = timeFormat.trim().toUpperCase() as TimeFormat;
+    if (!TIME_FORMATS.includes(normalised)) {
+      throw new ValidationException('Time format must be TWELVE_HOUR or TWENTY_FOUR_HOUR');
+    }
+    this.props.timeFormat = normalised;
+    this.props.updatedAt = now;
+  }
+
+  public setSoundEnabled(enabled: boolean, now: Date): void {
+    this.props.soundEnabled = enabled;
+    this.props.updatedAt = now;
+  }
+
+  public setTextSize(textSize: string, now: Date): void {
+    const normalised = textSize.trim().toUpperCase() as TextSize;
+    if (!TEXT_SIZES.includes(normalised)) {
+      throw new ValidationException('Text size must be SMALL, MEDIUM or LARGE');
+    }
+    this.props.textSize = normalised;
+    this.props.updatedAt = now;
+  }
+
   public get notifications(): NotificationPreferences {
     return { ...this.props.notifications };
   }
@@ -120,6 +184,26 @@ export class ProfilePreferences extends Entity<string> {
 
   public get preferredContactMethod(): PreferredContactMethod {
     return this.props.preferredContactMethod;
+  }
+
+  public get theme(): Theme {
+    return this.props.theme;
+  }
+
+  public get dateFormat(): DateFormat {
+    return this.props.dateFormat;
+  }
+
+  public get timeFormat(): TimeFormat {
+    return this.props.timeFormat;
+  }
+
+  public get soundEnabled(): boolean {
+    return this.props.soundEnabled;
+  }
+
+  public get textSize(): TextSize {
+    return this.props.textSize;
   }
 
   public get updatedAt(): Date {

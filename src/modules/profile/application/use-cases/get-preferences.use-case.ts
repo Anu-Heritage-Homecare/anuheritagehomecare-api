@@ -11,6 +11,11 @@ export interface PreferencesResult {
   notifications: NotificationPreferences;
   language: string;
   preferredContactMethod: string;
+  theme: string;
+  dateFormat: string;
+  timeFormat: string;
+  soundEnabled: boolean;
+  textSize: string;
 }
 
 /**
@@ -29,10 +34,20 @@ export class GetPreferencesUseCase {
     const stored =
       (await this.preferences.findByUser(query.userId)) ??
       ProfilePreferences.default(query.userId, this.clock.now());
-    return {
-      notifications: stored.notifications,
-      language: stored.language,
-      preferredContactMethod: stored.preferredContactMethod,
-    };
+    return toPreferencesResult(stored);
   }
+}
+
+/** Projects the aggregate into the result shape shared by the read and the write. */
+export function toPreferencesResult(stored: ProfilePreferences): PreferencesResult {
+  return {
+    notifications: stored.notifications,
+    language: stored.language,
+    preferredContactMethod: stored.preferredContactMethod,
+    theme: stored.theme,
+    dateFormat: stored.dateFormat,
+    timeFormat: stored.timeFormat,
+    soundEnabled: stored.soundEnabled,
+    textSize: stored.textSize,
+  };
 }

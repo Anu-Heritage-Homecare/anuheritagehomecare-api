@@ -8,13 +8,18 @@ import {
   PROFILE_PREFERENCES_REPOSITORY,
   ProfilePreferencesRepository,
 } from '../../domain/profile-preferences.repository';
-import { PreferencesResult } from './get-preferences.use-case';
+import { PreferencesResult, toPreferencesResult } from './get-preferences.use-case';
 
 export interface UpdatePreferencesCommand {
   userId: string;
   notifications: NotificationPreferences;
   language: string;
   preferredContactMethod: string;
+  theme: string;
+  dateFormat: string;
+  timeFormat: string;
+  soundEnabled: boolean;
+  textSize: string;
 }
 
 /**
@@ -39,12 +44,13 @@ export class UpdatePreferencesUseCase {
     current.setNotifications(command.notifications, now);
     current.setLanguage(command.language, now);
     current.setPreferredContactMethod(command.preferredContactMethod, now);
+    current.setTheme(command.theme, now);
+    current.setDateFormat(command.dateFormat, now);
+    current.setTimeFormat(command.timeFormat, now);
+    current.setSoundEnabled(command.soundEnabled, now);
+    current.setTextSize(command.textSize, now);
     await this.preferences.save(current);
 
-    return {
-      notifications: current.notifications,
-      language: current.language,
-      preferredContactMethod: current.preferredContactMethod,
-    };
+    return toPreferencesResult(current);
   }
 }

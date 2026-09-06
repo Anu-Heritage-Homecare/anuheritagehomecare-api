@@ -1,5 +1,20 @@
 import { ProfilePreferences as PrismaProfilePreferences } from '@prisma/client';
-import { ProfilePreferences } from '../../domain/profile-preferences.entity';
+import {
+  DateFormat,
+  ProfilePreferences,
+  TextSize,
+  Theme,
+  TimeFormat,
+} from '../../domain/profile-preferences.entity';
+
+const THEMES: Theme[] = ['LIGHT', 'DARK', 'SYSTEM'];
+const DATE_FORMATS: DateFormat[] = ['MMM_DD_YYYY', 'DD_MM_YYYY', 'MM_DD_YYYY', 'YYYY_MM_DD'];
+const TIME_FORMATS: TimeFormat[] = ['TWELVE_HOUR', 'TWENTY_FOUR_HOUR'];
+const TEXT_SIZES: TextSize[] = ['SMALL', 'MEDIUM', 'LARGE'];
+
+function oneOf<T extends string>(value: string, allowed: T[], fallback: T): T {
+  return (allowed as string[]).includes(value) ? (value as T) : fallback;
+}
 
 /** Translates between the Prisma profile preferences row and the aggregate. */
 export class ProfilePreferencesMapper {
@@ -19,6 +34,11 @@ export class ProfilePreferencesMapper {
       },
       language: row.language,
       preferredContactMethod: ProfilePreferencesMapper.toContactMethod(row.preferredContactMethod),
+      theme: oneOf(row.theme, THEMES, 'LIGHT'),
+      dateFormat: oneOf(row.dateFormat, DATE_FORMATS, 'MMM_DD_YYYY'),
+      timeFormat: oneOf(row.timeFormat, TIME_FORMATS, 'TWELVE_HOUR'),
+      soundEnabled: row.soundEnabled,
+      textSize: oneOf(row.textSize, TEXT_SIZES, 'MEDIUM'),
       updatedAt: row.updatedAt,
     });
   }
@@ -45,6 +65,11 @@ export class ProfilePreferencesMapper {
       marketingAndOffers: notifications.marketingAndOffers,
       language: preferences.language,
       preferredContactMethod: preferences.preferredContactMethod,
+      theme: preferences.theme,
+      dateFormat: preferences.dateFormat,
+      timeFormat: preferences.timeFormat,
+      soundEnabled: preferences.soundEnabled,
+      textSize: preferences.textSize,
     };
   }
 }

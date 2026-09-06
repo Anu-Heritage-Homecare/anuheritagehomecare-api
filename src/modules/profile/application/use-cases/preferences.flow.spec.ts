@@ -31,6 +31,14 @@ const allOn = {
   marketingAndOffers: true,
 };
 
+const appPrefs = {
+  theme: 'LIGHT',
+  dateFormat: 'MMM_DD_YYYY',
+  timeFormat: 'TWELVE_HOUR',
+  soundEnabled: true,
+  textSize: 'MEDIUM',
+};
+
 describe('profile preferences', () => {
   it('returns defaults for a user who has never set preferences', async () => {
     const result = await new GetPreferencesUseCase(
@@ -43,6 +51,11 @@ describe('profile preferences', () => {
     expect(result.notifications.visitUpdates).toBe(true);
     // Marketing is the one category off by default.
     expect(result.notifications.marketingAndOffers).toBe(false);
+    // App display defaults.
+    expect(result.theme).toBe('LIGHT');
+    expect(result.timeFormat).toBe('TWELVE_HOUR');
+    expect(result.textSize).toBe('MEDIUM');
+    expect(result.soundEnabled).toBe(true);
   });
 
   it('updates and then reads back the saved preferences', async () => {
@@ -52,6 +65,10 @@ describe('profile preferences', () => {
       notifications: { ...allOn, marketingAndOffers: false, invoicesAndPayments: false },
       language: 'en',
       preferredContactMethod: 'PHONE',
+      ...appPrefs,
+      theme: 'DARK',
+      textSize: 'LARGE',
+      soundEnabled: false,
     });
 
     const result = await new GetPreferencesUseCase(repo, clock).execute({ userId: 'user-1' });
@@ -59,6 +76,9 @@ describe('profile preferences', () => {
     expect(result.notifications.invoicesAndPayments).toBe(false);
     expect(result.notifications.healthAlerts).toBe(true);
     expect(result.preferredContactMethod).toBe('PHONE');
+    expect(result.theme).toBe('DARK');
+    expect(result.textSize).toBe('LARGE');
+    expect(result.soundEnabled).toBe(false);
   });
 
   it('rejects an unsupported language', async () => {
@@ -68,6 +88,20 @@ describe('profile preferences', () => {
         notifications: allOn,
         language: 'fr',
         preferredContactMethod: 'EMAIL',
+        ...appPrefs,
+      }),
+    ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('rejects an unsupported theme', async () => {
+    await expect(
+      new UpdatePreferencesUseCase(new InMemoryPreferencesRepository(), clock).execute({
+        userId: 'user-1',
+        notifications: allOn,
+        language: 'en',
+        preferredContactMethod: 'EMAIL',
+        ...appPrefs,
+        theme: 'NEON',
       }),
     ).rejects.toBeInstanceOf(ValidationException);
   });
