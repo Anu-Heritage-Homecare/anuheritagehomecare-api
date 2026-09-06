@@ -748,6 +748,17 @@ model ProfilePreferences {
   @@map("profile_preferences")
 }
 
+// A family owner's private, read only calendar feed. The token in the feed URL is
+// the only credential a calendar app can present, so it is a long random secret.
+// One per owner; regenerating rotates the token. Owned by the profile context.
+model CalendarFeed {
+  userId    String   @id @db.Uuid
+  token     String   @unique @db.VarChar(64)
+  createdAt DateTime @default(now())
+
+  @@map("calendar_feeds")
+}
+
 enum InvoiceStatus {
   ISSUED
   PAID

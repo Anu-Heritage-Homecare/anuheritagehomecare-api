@@ -10,6 +10,8 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   API_PREFIX: z.string().min(1).default('api'),
   API_DEFAULT_VERSION: z.string().min(1).default('1'),
+  // Public base URL of this API, used to build the absolute calendar feed link.
+  APP_PUBLIC_URL: z.string().url().default('http://localhost:3000'),
 
   CORS_ORIGINS: z.string().default('http://localhost:3000'),
   THROTTLE_TTL_SECONDS: z.coerce.number().int().positive().default(60),

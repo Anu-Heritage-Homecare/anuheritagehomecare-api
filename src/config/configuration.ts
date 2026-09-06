@@ -9,6 +9,8 @@ export interface AppConfig {
   readonly port: number;
   readonly apiPrefix: string;
   readonly apiDefaultVersion: string;
+  /** The public base URL of this API, used to build absolute links (calendar feed). */
+  readonly publicUrl: string;
   readonly corsOrigins: string[];
   readonly throttle: {
     readonly ttlSeconds: number;
@@ -112,6 +114,7 @@ export function buildConfig(env: Env): {
       port: env.PORT,
       apiPrefix: env.API_PREFIX,
       apiDefaultVersion: env.API_DEFAULT_VERSION,
+      publicUrl: env.APP_PUBLIC_URL,
       corsOrigins: env.CORS_ORIGINS.split(',')
         .map((origin) => origin.trim())
         .filter((origin) => origin.length > 0),

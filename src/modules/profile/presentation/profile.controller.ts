@@ -24,6 +24,10 @@ import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-princ
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
 import {
+  GetCalendarFeedUseCase,
+  RegenerateCalendarFeedUseCase,
+} from '../application/use-cases/calendar-feed.use-cases';
+import {
   GetCareCircleUseCase,
   GetCareCodeUseCase,
   RedeemCareCodeUseCase,
@@ -51,6 +55,7 @@ import {
   EmergencyContactResponseDto,
   SetEmergencyContactRequestDto,
 } from './dto/emergency-contact.dto';
+import { CalendarFeedResponseDto } from './dto/calendar-feed-response.dto';
 
 /**
  * Family owner Profile tab. Every route requires a valid access token and is
@@ -73,6 +78,8 @@ export class ProfileController {
     private readonly redeemCareCode: RedeemCareCodeUseCase,
     private readonly setMemberAccess: SetCareCircleMemberAccessUseCase,
     private readonly removeCareCircleMember: RemoveCareCircleMemberUseCase,
+    private readonly getCalendarFeed: GetCalendarFeedUseCase,
+    private readonly regenerateCalendarFeed: RegenerateCalendarFeedUseCase,
   ) {}
 
   @Get()
@@ -212,5 +219,26 @@ export class ProfileController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     await this.removeCareCircleMember.execute({ ownerId: principal.userId, memberId: id });
+  }
+
+  @Get('calendar-feed')
+  @ApiOperation({ summary: 'The private calendar feed URL (subscribe from a calendar app)' })
+  @ApiOkResponse({ type: CalendarFeedResponseDto })
+  async calendarFeed(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): Promise<CalendarFeedResponseDto> {
+    const view = await this.getCalendarFeed.execute({ userId: principal.userId });
+    return CalendarFeedResponseDto.fromView(view);
+  }
+
+  @Post('calendar-feed/regenerate')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Rotate the calendar feed token, invalidating the old URL' })
+  @ApiCreatedResponse({ type: CalendarFeedResponseDto })
+  async regenerateCalendar(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): Promise<CalendarFeedResponseDto> {
+    const view = await this.regenerateCalendarFeed.execute({ userId: principal.userId });
+    return CalendarFeedResponseDto.fromView(view);
   }
 }
