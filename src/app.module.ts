@@ -11,7 +11,9 @@ import { AdminTasksModule } from './modules/admin-tasks/admin-tasks.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { CarePlansModule } from './modules/care-plans/care-plans.module';
+import { CareRatingsModule } from './modules/care-ratings/care-ratings.module';
 import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
+import { CertificationsModule } from './modules/certifications/certifications.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { CareRequestsModule } from './modules/care-requests/care-requests.module';
@@ -132,6 +134,8 @@ import { SharedModule } from './shared/shared.module';
     AdminIdentityModule,
     AdminAlertsModule,
     AdminTasksModule,
+    CareRatingsModule,
+    CertificationsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

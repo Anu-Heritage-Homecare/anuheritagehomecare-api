@@ -1318,3 +1318,36 @@ enum TaskPriority {
 
   @@map("task_priority")
 }
+
+// A family member's satisfaction rating (1 to 5) for the care a recipient
+// received, optionally tied to a visit. The dashboard reads the average as the
+// Client Satisfaction figure. Capture surface (family rating screen) deferred.
+model CareRating {
+  id                String   @id @default(uuid()) @db.Uuid
+  careRecipientId   String   @db.Uuid
+  visitId           String?  @db.Uuid
+  submittedByUserId String   @db.Uuid
+  score             Int
+  comment           String?  @db.VarChar(1000)
+  createdAt         DateTime @default(now())
+
+  @@index([careRecipientId])
+  @@index([createdAt])
+  @@map("care_ratings")
+}
+
+// A caregiver credential with an expiry (for example a CPR certificate). The
+// operations dashboard watches these to raise a Certification Expiring alert.
+// Management surface (Caregivers screen) deferred.
+model Certification {
+  id          String    @id @default(uuid()) @db.Uuid
+  caregiverId String    @db.Uuid
+  name        String    @db.VarChar(120)
+  issuedAt    DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([expiresAt])
+  @@index([caregiverId])
+  @@map("certifications")
+}
