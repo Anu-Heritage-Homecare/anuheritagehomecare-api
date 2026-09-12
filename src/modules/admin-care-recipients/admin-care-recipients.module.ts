@@ -10,6 +10,9 @@ import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change
 import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from './application/use-cases/get-care-recipient-profile.use-case';
 import { ListCareRecipientsUseCase } from './application/use-cases/list-care-recipients.use-case';
+import { SetCarePlanGoalsUseCase } from './application/use-cases/set-care-plan-goals.use-case';
+import { SetCarePlanInstructionsUseCase } from './application/use-cases/set-care-plan-instructions.use-case';
+import { SetCarePlanScheduleUseCase } from './application/use-cases/set-care-plan-schedule.use-case';
 import { SetCareRecipientPriorityUseCase } from './application/use-cases/set-care-recipient-priority.use-case';
 import { SetPrimaryCaregiverUseCase } from './application/use-cases/set-primary-caregiver.use-case';
 import { CARE_ACTIVITY_DIRECTORY } from './application/ports/care-activity.port';
@@ -38,6 +41,9 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     ListCareRecipientsUseCase,
     GetCareRecipientProfileUseCase,
     GetCarePlanUseCase,
+    SetCarePlanGoalsUseCase,
+    SetCarePlanScheduleUseCase,
+    SetCarePlanInstructionsUseCase,
     AddCareRecipientUseCase,
     ChangeCareRecipientStatusUseCase,
     SetCareRecipientPriorityUseCase,

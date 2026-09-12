@@ -20,14 +20,24 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
+import { AdminPrincipal } from '@shared/presentation/admin-principal';
+import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { AddCareRecipientUseCase } from '../application/use-cases/add-care-recipient.use-case';
 import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/change-care-recipient-status.use-case';
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
 import { ListCareRecipientsUseCase } from '../application/use-cases/list-care-recipients.use-case';
+import { SetCarePlanGoalsUseCase } from '../application/use-cases/set-care-plan-goals.use-case';
+import { SetCarePlanInstructionsUseCase } from '../application/use-cases/set-care-plan-instructions.use-case';
+import { SetCarePlanScheduleUseCase } from '../application/use-cases/set-care-plan-schedule.use-case';
 import { SetCareRecipientPriorityUseCase } from '../application/use-cases/set-care-recipient-priority.use-case';
 import { SetPrimaryCaregiverUseCase } from '../application/use-cases/set-primary-caregiver.use-case';
 import { CarePlanResponseDto } from './dto/care-plan-response.dto';
+import {
+  SetGoalsRequestDto,
+  SetInstructionsRequestDto,
+  SetScheduleRequestDto,
+} from './dto/care-plan-write.dto';
 import { CareRecipientListResponseDto } from './dto/care-recipient-list-response.dto';
 import { CareRecipientProfileResponseDto } from './dto/care-recipient-profile-response.dto';
 import { ListCareRecipientsQueryDto } from './dto/list-care-recipients-query.dto';
@@ -52,6 +62,9 @@ export class AdminCareRecipientsController {
     private readonly list: ListCareRecipientsUseCase,
     private readonly profile: GetCareRecipientProfileUseCase,
     private readonly carePlan: GetCarePlanUseCase,
+    private readonly setGoals: SetCarePlanGoalsUseCase,
+    private readonly setSchedule: SetCarePlanScheduleUseCase,
+    private readonly setInstructions: SetCarePlanInstructionsUseCase,
     private readonly addRecipient: AddCareRecipientUseCase,
     private readonly changeStatus: ChangeCareRecipientStatusUseCase,
     private readonly setPriority: SetCareRecipientPriorityUseCase,
@@ -93,6 +106,54 @@ export class AdminCareRecipientsController {
   async getCarePlan(@Param('id', ParseUUIDPipe) id: string): Promise<CarePlanResponseDto> {
     const result = await this.carePlan.execute(id);
     return CarePlanResponseDto.fromResult(result);
+  }
+
+  @Put(':id/care-plan/goals')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Replace the care goals (records a revision)' })
+  async saveGoals(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetGoalsRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ goalCount: number }> {
+    return this.setGoals.execute({
+      recipientId: id,
+      adminId: principal.adminUserId,
+      revisionNote: body.revisionNote,
+      goals: body.goals,
+    });
+  }
+
+  @Put(':id/care-plan/schedule')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Replace the daily care schedule (records a revision)' })
+  async saveSchedule(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetScheduleRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ blockCount: number }> {
+    return this.setSchedule.execute({
+      recipientId: id,
+      adminId: principal.adminUserId,
+      revisionNote: body.revisionNote,
+      blocks: body.blocks,
+    });
+  }
+
+  @Put(':id/care-plan/instructions')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Replace the care instructions (records a revision)' })
+  async saveInstructions(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetInstructionsRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ instructionCount: number }> {
+    return this.setInstructions.execute({
+      recipientId: id,
+      adminId: principal.adminUserId,
+      revisionNote: body.revisionNote,
+      instructions: body.instructions,
+    });
   }
 
   @Post()
