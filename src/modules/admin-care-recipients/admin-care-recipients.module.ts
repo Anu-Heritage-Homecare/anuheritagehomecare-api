@@ -1,7 +1,12 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
+import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.module';
 import { IdentityModule } from '@modules/identity/identity.module';
+import { AddCareRecipientUseCase } from './application/use-cases/add-care-recipient.use-case';
+import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change-care-recipient-status.use-case';
 import { ListCareRecipientsUseCase } from './application/use-cases/list-care-recipients.use-case';
+import { SetCareRecipientPriorityUseCase } from './application/use-cases/set-care-recipient-priority.use-case';
+import { SetPrimaryCaregiverUseCase } from './application/use-cases/set-primary-caregiver.use-case';
 import { CARE_ACTIVITY_DIRECTORY } from './application/ports/care-activity.port';
 import { CARE_RECIPIENT_READ_MODEL } from './application/ports/care-recipient-read.port';
 import { VisitsCareActivityDirectory } from './infrastructure/access/visits-care-activity.directory';
@@ -15,10 +20,14 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
  * overdue counts from the visits context.
  */
 @Module({
-  imports: [PassportModule, IdentityModule],
+  imports: [PassportModule, IdentityModule, CareRecipientsModule],
   controllers: [AdminCareRecipientsController],
   providers: [
     ListCareRecipientsUseCase,
+    AddCareRecipientUseCase,
+    ChangeCareRecipientStatusUseCase,
+    SetCareRecipientPriorityUseCase,
+    SetPrimaryCaregiverUseCase,
     { provide: CARE_RECIPIENT_READ_MODEL, useClass: CareRecipientReadPrisma },
     { provide: CARE_ACTIVITY_DIRECTORY, useClass: VisitsCareActivityDirectory },
   ],
