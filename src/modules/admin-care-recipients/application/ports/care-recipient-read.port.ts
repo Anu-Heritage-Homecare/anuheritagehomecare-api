@@ -61,6 +61,8 @@ export interface CareRecipientCountsView {
 export interface CareRecipientReadModel {
   listPage(query: CareRecipientListQuery): Promise<CareRecipientPageView>;
   counts(monthStart: Date, newSince: Date): Promise<CareRecipientCountsView>;
+  /** The database assigned sequential number for one recipient, for the CR-001 code. */
+  recipientNumberById(id: string): Promise<number | null>;
 }
 
 export const CARE_RECIPIENT_READ_MODEL = Symbol('CARE_RECIPIENT_READ_MODEL');

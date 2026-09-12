@@ -123,6 +123,14 @@ export class CareRecipientReadPrisma implements CareRecipientReadModel {
     };
   }
 
+  async recipientNumberById(id: string): Promise<number | null> {
+    const row = await this.prisma.careRecipient.findUnique({
+      where: { id },
+      select: { recipientNumber: true },
+    });
+    return row?.recipientNumber ?? null;
+  }
+
   private whereForTab(query: CareRecipientListQuery): Prisma.CareRecipientWhereInput {
     const base: Prisma.CareRecipientWhereInput = { status: { not: PrismaStatus.DRAFT } };
     switch (query.tab) {

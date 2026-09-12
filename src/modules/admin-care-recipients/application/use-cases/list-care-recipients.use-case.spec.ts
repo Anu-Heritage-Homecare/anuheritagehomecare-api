@@ -48,6 +48,7 @@ function makeReadModel(page: CareRecipientPageView): CareRecipientReadModel {
   return {
     listPage: () => Promise.resolve(page),
     counts: () => Promise.resolve(counts),
+    recipientNumberById: () => Promise.resolve(1),
   };
 }
 

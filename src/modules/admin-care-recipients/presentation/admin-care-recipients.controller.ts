@@ -22,10 +22,12 @@ import {
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { AddCareRecipientUseCase } from '../application/use-cases/add-care-recipient.use-case';
 import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/change-care-recipient-status.use-case';
+import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
 import { ListCareRecipientsUseCase } from '../application/use-cases/list-care-recipients.use-case';
 import { SetCareRecipientPriorityUseCase } from '../application/use-cases/set-care-recipient-priority.use-case';
 import { SetPrimaryCaregiverUseCase } from '../application/use-cases/set-primary-caregiver.use-case';
 import { CareRecipientListResponseDto } from './dto/care-recipient-list-response.dto';
+import { CareRecipientProfileResponseDto } from './dto/care-recipient-profile-response.dto';
 import { ListCareRecipientsQueryDto } from './dto/list-care-recipients-query.dto';
 import {
   AddCareRecipientRequestDto,
@@ -46,6 +48,7 @@ import {
 export class AdminCareRecipientsController {
   constructor(
     private readonly list: ListCareRecipientsUseCase,
+    private readonly profile: GetCareRecipientProfileUseCase,
     private readonly addRecipient: AddCareRecipientUseCase,
     private readonly changeStatus: ChangeCareRecipientStatusUseCase,
     private readonly setPriority: SetCareRecipientPriorityUseCase,
@@ -67,6 +70,18 @@ export class AdminCareRecipientsController {
       pageSize: query.pageSize ?? 8,
     });
     return CareRecipientListResponseDto.fromResult(result);
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'The care recipient profile (Overview): summary, stats, visits and notes',
+  })
+  @ApiOkResponse({ type: CareRecipientProfileResponseDto })
+  async getProfile(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<CareRecipientProfileResponseDto> {
+    const result = await this.profile.execute(id);
+    return CareRecipientProfileResponseDto.fromResult(result);
   }
 
   @Post()
