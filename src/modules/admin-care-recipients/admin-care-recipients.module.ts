@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { AdminAlertsModule } from '@modules/admin-alerts/admin-alerts.module';
+import { AdminIdentityModule } from '@modules/admin-identity/admin-identity.module';
 import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.module';
 import { IdentityModule } from '@modules/identity/identity.module';
 import { VisitsModule } from '@modules/visits/visits.module';
 import { AddCareRecipientUseCase } from './application/use-cases/add-care-recipient.use-case';
 import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change-care-recipient-status.use-case';
+import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from './application/use-cases/get-care-recipient-profile.use-case';
 import { ListCareRecipientsUseCase } from './application/use-cases/list-care-recipients.use-case';
 import { SetCareRecipientPriorityUseCase } from './application/use-cases/set-care-recipient-priority.use-case';
@@ -23,11 +25,19 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
  * overdue counts from the visits context.
  */
 @Module({
-  imports: [PassportModule, IdentityModule, CareRecipientsModule, VisitsModule, AdminAlertsModule],
+  imports: [
+    PassportModule,
+    IdentityModule,
+    CareRecipientsModule,
+    VisitsModule,
+    AdminAlertsModule,
+    AdminIdentityModule,
+  ],
   controllers: [AdminCareRecipientsController],
   providers: [
     ListCareRecipientsUseCase,
     GetCareRecipientProfileUseCase,
+    GetCarePlanUseCase,
     AddCareRecipientUseCase,
     ChangeCareRecipientStatusUseCase,
     SetCareRecipientPriorityUseCase,
