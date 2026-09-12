@@ -1,6 +1,7 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root.base';
 import { ValidationException } from '@shared/domain/domain-exception';
 import { CareNeed } from './care-need.enum';
+import { CareRecipientPriority } from './care-recipient-priority.enum';
 import { CareRecipientStatus } from './care-recipient-status.enum';
 import { CareRecipientCompletedEvent } from './events/care-recipient-completed.event';
 import { CareRecipientDraftedEvent } from './events/care-recipient-drafted.event';
@@ -19,7 +20,12 @@ interface CareRecipientProps {
   health: HealthInformation | null;
   medications: Medication[];
   schedule: CareSchedule | null;
+  /** Office set clinical/operational priority, surfaced on the admin list. */
+  priority: CareRecipientPriority;
+  /** The office assigned primary caregiver, or null when none is assigned. */
+  primaryCaregiverId: string | null;
   completedAt: Date | null;
+  dischargedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,11 +64,47 @@ export class CareRecipient extends AggregateRoot<string> {
       health: null,
       medications: [],
       schedule: null,
+      priority: CareRecipientPriority.Normal,
+      primaryCaregiverId: null,
       completedAt: null,
+      dischargedAt: null,
       createdAt: params.now,
       updatedAt: params.now,
     });
     recipient.addDomainEvent(new CareRecipientDraftedEvent(params.id, params.ownerId));
+    return recipient;
+  }
+
+  /**
+   * Provision a care recipient directly from the admin back office, bypassing the
+   * family owner wizard. The record is created ACTIVE with its identity profile;
+   * care needs, health and the care schedule are captured later (until a schedule
+   * exists the recipient surfaces under the Missing Care Plan action trigger).
+   */
+  public static provisionByAdmin(params: {
+    id: string;
+    ownerId: string;
+    profile: RecipientProfile;
+    priority?: CareRecipientPriority;
+    now: Date;
+  }): CareRecipient {
+    const recipient = new CareRecipient(params.id, {
+      ownerId: params.ownerId,
+      status: CareRecipientStatus.Active,
+      onboardingStep: OnboardingStep.Completed,
+      profile: params.profile,
+      careNeeds: [],
+      health: null,
+      medications: [],
+      schedule: null,
+      priority: params.priority ?? CareRecipientPriority.Normal,
+      primaryCaregiverId: null,
+      completedAt: params.now,
+      dischargedAt: null,
+      createdAt: params.now,
+      updatedAt: params.now,
+    });
+    recipient.addDomainEvent(new CareRecipientCompletedEvent(params.id, params.ownerId));
     return recipient;
   }
 
@@ -162,8 +204,77 @@ export class CareRecipient extends AggregateRoot<string> {
     this.addDomainEvent(new CareRecipientCompletedEvent(this.id, this.props.ownerId));
   }
 
+  /** Set the office priority for triage on the admin list. */
+  public setPriority(priority: CareRecipientPriority, now: Date): void {
+    this.props.priority = priority;
+    this.props.updatedAt = now;
+  }
+
+  /** Assign (or reassign) the primary caregiver responsible for this recipient. */
+  public assignPrimaryCaregiver(caregiverId: string, now: Date): void {
+    const trimmed = caregiverId.trim();
+    if (trimmed.length === 0) {
+      throw new ValidationException('A caregiver is required');
+    }
+    this.props.primaryCaregiverId = trimmed;
+    this.props.updatedAt = now;
+  }
+
+  /** Clear the assigned primary caregiver. */
+  public unassignPrimaryCaregiver(now: Date): void {
+    this.props.primaryCaregiverId = null;
+    this.props.updatedAt = now;
+  }
+
+  /** Pause care while awaiting clinical clearance. Only an active record can be held. */
+  public placeOnHold(now: Date): void {
+    if (this.props.status !== CareRecipientStatus.Active) {
+      throw new ValidationException('Only an active care recipient can be placed on hold');
+    }
+    this.props.status = CareRecipientStatus.OnHold;
+    this.props.updatedAt = now;
+  }
+
+  /** Resume care for a recipient that is on hold or discharged, back to active. */
+  public reactivate(now: Date): void {
+    if (this.props.status === CareRecipientStatus.Draft) {
+      throw new ValidationException('A draft care recipient cannot be reactivated');
+    }
+    if (this.props.status === CareRecipientStatus.Active) {
+      return;
+    }
+    this.props.status = CareRecipientStatus.Active;
+    this.props.dischargedAt = null;
+    this.props.updatedAt = now;
+  }
+
+  /** Close the engagement. An active or on hold record can be discharged. */
+  public discharge(now: Date): void {
+    if (
+      this.props.status !== CareRecipientStatus.Active &&
+      this.props.status !== CareRecipientStatus.OnHold
+    ) {
+      throw new ValidationException('Only an active or on hold care recipient can be discharged');
+    }
+    this.props.status = CareRecipientStatus.Discharged;
+    this.props.dischargedAt = now;
+    this.props.updatedAt = now;
+  }
+
   public get ownerId(): string {
     return this.props.ownerId;
+  }
+
+  public get priority(): CareRecipientPriority {
+    return this.props.priority;
+  }
+
+  public get primaryCaregiverId(): string | null {
+    return this.props.primaryCaregiverId;
+  }
+
+  public get dischargedAt(): Date | null {
+    return this.props.dischargedAt;
   }
 
   public get status(): CareRecipientStatus {

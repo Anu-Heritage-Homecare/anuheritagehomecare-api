@@ -266,12 +266,24 @@ model CareRecipient {
   careStartMinute   Int?
   careVisitDurationMinutes Int?
 
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  // Human friendly sequential number, rendered as CR-001 on the admin list and
+  // searchable by ID. Database assigned; never surfaced into the domain aggregate.
+  recipientNumber Int @unique @default(autoincrement())
+
+  // Office set fields surfaced on the admin Care Recipients screen: a clinical
+  // priority and the assigned primary caregiver (references the caregiver User by
+  // id across contexts, no database foreign key).
+  priority           CareRecipientPriority @default(NORMAL)
+  primaryCaregiverId String?               @db.Uuid
+
+  completedAt  DateTime?
+  dischargedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([ownerId])
   @@index([ownerId, status])
+  @@index([status, priority])
   @@map("care_recipients")
 }
 
@@ -315,8 +327,21 @@ model CareGoal {
 enum CareRecipientStatus {
   DRAFT
   ACTIVE
+  ON_HOLD
+  DISCHARGED
 
   @@map("care_recipient_status")
+}
+
+enum CareRecipientPriority {
+  CRITICAL
+  URGENT
+  HIGH
+  MEDIUM
+  NORMAL
+  LOW
+
+  @@map("care_recipient_priority")
 }
 
 enum Gender {

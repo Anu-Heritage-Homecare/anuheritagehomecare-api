@@ -2,6 +2,7 @@ import { ValidationException } from '@shared/domain/domain-exception';
 import { buildProfile } from '../test-support/doubles';
 import { CareRecipient } from './care-recipient.entity';
 import { CareNeed } from './care-need.enum';
+import { CareRecipientPriority } from './care-recipient-priority.enum';
 import { CareRecipientStatus } from './care-recipient-status.enum';
 import { OnboardingStep } from './onboarding-step.enum';
 import { Medication } from './medication.entity';
@@ -112,5 +113,51 @@ describe('CareRecipient', () => {
     expect(recipient.completedAt).toEqual(NOW);
     expect(recipient.domainEvents).toHaveLength(1);
     expect(() => recipient.setCareNeeds([CareNeed.Shopping], NOW)).toThrow(ValidationException);
+  });
+});
+
+describe('CareRecipient admin lifecycle', () => {
+  function active(): CareRecipient {
+    return CareRecipient.provisionByAdmin({
+      id: 'care-1',
+      ownerId: 'owner-1',
+      profile: buildProfile(),
+      now: NOW,
+    });
+  }
+
+  it('provisions an active record directly, defaulting priority to Normal', () => {
+    const recipient = active();
+    expect(recipient.status).toBe(CareRecipientStatus.Active);
+    expect(recipient.priority).toBe(CareRecipientPriority.Normal);
+    expect(recipient.primaryCaregiverId).toBeNull();
+  });
+
+  it('sets priority and assigns a primary caregiver', () => {
+    const recipient = active();
+    recipient.setPriority(CareRecipientPriority.High, NOW);
+    recipient.assignPrimaryCaregiver('caregiver-9', NOW);
+    expect(recipient.priority).toBe(CareRecipientPriority.High);
+    expect(recipient.primaryCaregiverId).toBe('caregiver-9');
+  });
+
+  it('moves active to on hold, discharged and back to active', () => {
+    const recipient = active();
+    recipient.placeOnHold(NOW);
+    expect(recipient.status).toBe(CareRecipientStatus.OnHold);
+
+    recipient.discharge(NOW);
+    expect(recipient.status).toBe(CareRecipientStatus.Discharged);
+    expect(recipient.dischargedAt).toEqual(NOW);
+
+    recipient.reactivate(NOW);
+    expect(recipient.status).toBe(CareRecipientStatus.Active);
+    expect(recipient.dischargedAt).toBeNull();
+  });
+
+  it('rejects placing a non active recipient on hold', () => {
+    const recipient = active();
+    recipient.discharge(NOW);
+    expect(() => recipient.placeOnHold(NOW)).toThrow(ValidationException);
   });
 });

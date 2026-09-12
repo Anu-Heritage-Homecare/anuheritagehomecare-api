@@ -2,6 +2,7 @@ import {
   CareRecipient as PrismaCareRecipient,
   CareFrequency as PrismaCareFrequency,
   CareNeed as PrismaCareNeed,
+  CareRecipientPriority as PrismaPriority,
   CareRecipientStatus as PrismaStatus,
   Gender as PrismaGender,
   Medication as PrismaMedication,
@@ -11,6 +12,7 @@ import {
 import { CareRecipient } from '../../domain/care-recipient.entity';
 import { CareFrequency } from '../../domain/care-frequency.enum';
 import { CareNeed } from '../../domain/care-need.enum';
+import { CareRecipientPriority } from '../../domain/care-recipient-priority.enum';
 import { CareRecipientStatus } from '../../domain/care-recipient-status.enum';
 import { Gender } from '../../domain/gender.enum';
 import { Medication } from '../../domain/medication.entity';
@@ -94,13 +96,18 @@ export class CareRecipientMapper {
       health,
       medications,
       schedule,
+      priority: CareRecipientMapper.TO_DOMAIN_PRIORITY[row.priority],
+      primaryCaregiverId: row.primaryCaregiverId,
       completedAt: row.completedAt,
+      dischargedAt: row.dischargedAt,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
   }
 
-  static toPersistence(recipient: CareRecipient): PrismaCareRecipient {
+  // `recipientNumber` is database assigned (autoincrement) and never written from
+  // the domain, so it is omitted from the persistence shape.
+  static toPersistence(recipient: CareRecipient): Omit<PrismaCareRecipient, 'recipientNumber'> {
     const profile = recipient.profile;
     const health = recipient.health;
     const schedule = recipient.schedule;
@@ -134,7 +141,10 @@ export class CareRecipientMapper {
       ),
       careStartMinute: schedule?.startMinute ?? null,
       careVisitDurationMinutes: schedule?.visitDurationMinutes ?? null,
+      priority: CareRecipientMapper.TO_PERSISTENCE_PRIORITY[recipient.priority],
+      primaryCaregiverId: recipient.primaryCaregiverId,
       completedAt: recipient.completedAt,
+      dischargedAt: recipient.dischargedAt,
       createdAt: recipient.createdAt,
       updatedAt: recipient.updatedAt,
     };
@@ -153,11 +163,33 @@ export class CareRecipientMapper {
   private static readonly TO_DOMAIN_STATUS: Record<PrismaStatus, CareRecipientStatus> = {
     DRAFT: CareRecipientStatus.Draft,
     ACTIVE: CareRecipientStatus.Active,
+    ON_HOLD: CareRecipientStatus.OnHold,
+    DISCHARGED: CareRecipientStatus.Discharged,
   };
 
   private static readonly TO_PERSISTENCE_STATUS: Record<CareRecipientStatus, PrismaStatus> = {
     [CareRecipientStatus.Draft]: 'DRAFT',
     [CareRecipientStatus.Active]: 'ACTIVE',
+    [CareRecipientStatus.OnHold]: 'ON_HOLD',
+    [CareRecipientStatus.Discharged]: 'DISCHARGED',
+  };
+
+  private static readonly TO_DOMAIN_PRIORITY: Record<PrismaPriority, CareRecipientPriority> = {
+    CRITICAL: CareRecipientPriority.Critical,
+    URGENT: CareRecipientPriority.Urgent,
+    HIGH: CareRecipientPriority.High,
+    MEDIUM: CareRecipientPriority.Medium,
+    NORMAL: CareRecipientPriority.Normal,
+    LOW: CareRecipientPriority.Low,
+  };
+
+  private static readonly TO_PERSISTENCE_PRIORITY: Record<CareRecipientPriority, PrismaPriority> = {
+    [CareRecipientPriority.Critical]: 'CRITICAL',
+    [CareRecipientPriority.Urgent]: 'URGENT',
+    [CareRecipientPriority.High]: 'HIGH',
+    [CareRecipientPriority.Medium]: 'MEDIUM',
+    [CareRecipientPriority.Normal]: 'NORMAL',
+    [CareRecipientPriority.Low]: 'LOW',
   };
 
   private static readonly TO_DOMAIN_STEP: Record<PrismaOnboardingStep, OnboardingStep> = {
