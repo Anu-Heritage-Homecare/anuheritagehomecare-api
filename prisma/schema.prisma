@@ -254,6 +254,9 @@ model CareRecipient {
   // prevention), not by the family owner. Surfaced read only on the family care
   // plan; the office capture surface is deferred to the admin module.
   careGoals CareGoal[]
+  scheduleBlocks   CarePlanScheduleBlock[]
+  careInstructions CareInstruction[]
+  planRevisions    CarePlanRevision[]
 
   // Step 4: care schedule (null until the step is completed). The recurring
   // pattern (which weekdays, the start time in minutes from midnight, and how
@@ -311,17 +314,92 @@ model Medication {
 // independence). Owned by the recipient and surfaced read only on the family
 // care plan; ordered by position. The office capture path is deferred.
 model CareGoal {
+  id              String         @id @default(uuid()) @db.Uuid
+  careRecipientId String         @db.Uuid
+  label           String         @db.VarChar(200)
+  achieved        Boolean        @default(false)
+  progressPercent Int            @default(0)
+  status          CareGoalStatus @default(ON_TRACK)
+  position        Int
+  createdAt       DateTime       @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId])
+  @@map("care_goals")
+}
+
+// One block of a care recipient's daily care schedule (time, title, description).
+// Office set and replaced wholesale when the schedule is edited.
+model CarePlanScheduleBlock {
   id              String   @id @default(uuid()) @db.Uuid
   careRecipientId String   @db.Uuid
-  label           String   @db.VarChar(200)
-  achieved        Boolean  @default(false)
+  startMinute     Int
+  title           String   @db.VarChar(200)
+  description     String   @db.VarChar(500)
   position        Int
   createdAt       DateTime @default(now())
 
   careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
 
   @@index([careRecipientId])
-  @@map("care_goals")
+  @@map("care_plan_schedule_blocks")
+}
+
+// One care instruction: a medical need or a behavioral note/protocol, with a
+// severity. Office set and replaced wholesale when the instructions are edited.
+model CareInstruction {
+  id              String                  @id @default(uuid()) @db.Uuid
+  careRecipientId String                  @db.Uuid
+  category        CareInstructionCategory
+  text            String                  @db.VarChar(300)
+  severity        CareInstructionSeverity @default(NORMAL)
+  position        Int
+  createdAt       DateTime                @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId])
+  @@map("care_instructions")
+}
+
+// One append only entry in a care plan's revision history, attributed to the
+// admin who made the change.
+model CarePlanRevision {
+  id              String   @id @default(uuid()) @db.Uuid
+  careRecipientId String   @db.Uuid
+  description     String   @db.VarChar(300)
+  authorAdminId   String?  @db.Uuid
+  createdAt       DateTime @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId, createdAt])
+  @@map("care_plan_revisions")
+}
+
+enum CareGoalStatus {
+  ON_TRACK
+  NEEDS_ATTENTION
+  AT_RISK
+  ACHIEVED
+
+  @@map("care_goal_status")
+}
+
+enum CareInstructionCategory {
+  MEDICAL
+  BEHAVIORAL
+
+  @@map("care_instruction_category")
+}
+
+enum CareInstructionSeverity {
+  CRITICAL
+  WARNING
+  NORMAL
+
+  @@map("care_instruction_severity")
 }
 
 enum CareRecipientStatus {

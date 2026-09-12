@@ -1,6 +1,7 @@
 import { IdGenerator } from '@shared/application/ports/id-generator.port';
 import { ValidationException } from '@shared/domain/domain-exception';
 import { CareGoal } from '../../domain/care-goal.entity';
+import { CareGoalStatus } from '../../domain/care-goal-status.enum';
 import { CareGoalRepository } from '../../domain/care-goal.repository';
 import { SetCareGoalsUseCase } from './set-care-goals.use-case';
 
@@ -30,14 +31,24 @@ describe('SetCareGoalsUseCase', () => {
     const result = await useCase.execute({
       careRecipientId: 'r1',
       goals: [
-        { label: 'Maintain independence', achieved: true },
-        { label: 'Fall prevention', achieved: false },
+        { label: 'Maintain independence', progressPercent: 100, status: CareGoalStatus.Achieved },
+        { label: 'Fall prevention', progressPercent: 60, status: CareGoalStatus.OnTrack },
       ],
     });
 
     expect(result).toEqual([
-      { label: 'Maintain independence', achieved: true },
-      { label: 'Fall prevention', achieved: false },
+      {
+        label: 'Maintain independence',
+        progressPercent: 100,
+        status: CareGoalStatus.Achieved,
+        achieved: true,
+      },
+      {
+        label: 'Fall prevention',
+        progressPercent: 60,
+        status: CareGoalStatus.OnTrack,
+        achieved: false,
+      },
     ]);
     const stored = repo.byRecipient.get('r1') ?? [];
     expect(stored.map((goal) => goal.position)).toEqual([0, 1]);
@@ -48,7 +59,10 @@ describe('SetCareGoalsUseCase', () => {
     const useCase = new SetCareGoalsUseCase(new InMemoryCareGoalRepository(), ids());
 
     await expect(
-      useCase.execute({ careRecipientId: 'r1', goals: [{ label: '   ', achieved: false }] }),
+      useCase.execute({
+        careRecipientId: 'r1',
+        goals: [{ label: '   ', progressPercent: 0, status: CareGoalStatus.OnTrack }],
+      }),
     ).rejects.toBeInstanceOf(ValidationException);
   });
 });

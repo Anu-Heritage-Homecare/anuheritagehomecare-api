@@ -1,6 +1,7 @@
 import { CareRecipientRepository } from '@modules/care-recipients/domain/care-recipient.repository';
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
 import { CareGoal } from '@modules/care-recipients/domain/care-goal.entity';
+import { CareGoalStatus } from '@modules/care-recipients/domain/care-goal-status.enum';
 import { CareGoalRepository } from '@modules/care-recipients/domain/care-goal.repository';
 import { UserRepository } from '@modules/identity/domain/user.repository';
 import { VisitRepository } from '@modules/visits/domain/visit.repository';
@@ -66,14 +67,16 @@ const sampleGoals = [
     id: 'g1',
     careRecipientId: 'r1',
     label: 'Maintain independence',
-    achieved: true,
+    progressPercent: 100,
+    status: CareGoalStatus.Achieved,
     position: 0,
   }),
   CareGoal.create({
     id: 'g2',
     careRecipientId: 'r1',
     label: 'Fall prevention',
-    achieved: false,
+    progressPercent: 60,
+    status: CareGoalStatus.OnTrack,
     position: 1,
   }),
 ];
