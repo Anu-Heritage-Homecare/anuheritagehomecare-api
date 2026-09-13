@@ -24,6 +24,7 @@ import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { AddCareRecipientUseCase } from '../application/use-cases/add-care-recipient.use-case';
+import { AddHealthEventUseCase } from '../application/use-cases/add-health-event.use-case';
 import { AddMedicationUseCase } from '../application/use-cases/add-medication.use-case';
 import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/change-care-recipient-status.use-case';
 import { DiscontinueMedicationUseCase } from '../application/use-cases/discontinue-medication.use-case';
@@ -46,6 +47,7 @@ import {
   MedicationRequestDto,
   SetMedicationWarningsRequestDto,
 } from './dto/medication-write.dto';
+import { AddHealthEventRequestDto } from './dto/add-health-event-request.dto';
 import { HealthTimelineTab, RecipientHealthQueryDto } from './dto/recipient-health-query.dto';
 import { RecipientHealthResponseDto } from './dto/recipient-health-response.dto';
 import { RecipientMedicationsResponseDto } from './dto/recipient-medications-response.dto';
@@ -82,6 +84,7 @@ export class AdminCareRecipientsController {
     private readonly visits: GetRecipientVisitsUseCase,
     private readonly medications: GetRecipientMedicationsUseCase,
     private readonly health: GetRecipientHealthUseCase,
+    private readonly addHealthEvent: AddHealthEventUseCase,
     private readonly addMedication: AddMedicationUseCase,
     private readonly updateMedication: UpdateMedicationUseCase,
     private readonly discontinueMedication: DiscontinueMedicationUseCase,
@@ -177,6 +180,26 @@ export class AdminCareRecipientsController {
       pageSize: query.pageSize ?? 8,
     });
     return RecipientHealthResponseDto.fromResult(result);
+  }
+
+  @Post(':id/health/events')
+  @ApiOperation({ summary: 'Add a health event to the recipient timeline' })
+  @ApiCreatedResponse()
+  async createHealthEvent(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AddHealthEventRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ id: string }> {
+    return this.addHealthEvent.execute({
+      recipientId: id,
+      adminId: principal.adminUserId,
+      category: body.category,
+      title: body.title,
+      description: body.description,
+      recordedByName: body.recordedByName ?? null,
+      recordedByRole: body.recordedByRole ?? null,
+      occurredAt: new Date(body.occurredAt),
+    });
   }
 
   @Post(':id/medications')

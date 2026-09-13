@@ -6,6 +6,7 @@ import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.m
 import { IdentityModule } from '@modules/identity/identity.module';
 import { VisitsModule } from '@modules/visits/visits.module';
 import { AddCareRecipientUseCase } from './application/use-cases/add-care-recipient.use-case';
+import { AddHealthEventUseCase } from './application/use-cases/add-health-event.use-case';
 import { AddMedicationUseCase } from './application/use-cases/add-medication.use-case';
 import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change-care-recipient-status.use-case';
 import { DiscontinueMedicationUseCase } from './application/use-cases/discontinue-medication.use-case';
@@ -58,6 +59,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     GetRecipientVisitsUseCase,
     GetRecipientMedicationsUseCase,
     GetRecipientHealthUseCase,
+    AddHealthEventUseCase,
     AddMedicationUseCase,
     UpdateMedicationUseCase,
     DiscontinueMedicationUseCase,
