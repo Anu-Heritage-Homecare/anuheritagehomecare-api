@@ -23,7 +23,9 @@ import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { AddCareRecipientUseCase } from '../application/use-cases/add-care-recipient.use-case';
+import { AddMedicationUseCase } from '../application/use-cases/add-medication.use-case';
 import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/change-care-recipient-status.use-case';
+import { DiscontinueMedicationUseCase } from '../application/use-cases/discontinue-medication.use-case';
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
 import { GetRecipientMedicationsUseCase } from '../application/use-cases/get-recipient-medications.use-case';
@@ -33,8 +35,15 @@ import { SetCarePlanGoalsUseCase } from '../application/use-cases/set-care-plan-
 import { SetCarePlanInstructionsUseCase } from '../application/use-cases/set-care-plan-instructions.use-case';
 import { SetCarePlanScheduleUseCase } from '../application/use-cases/set-care-plan-schedule.use-case';
 import { SetCareRecipientPriorityUseCase } from '../application/use-cases/set-care-recipient-priority.use-case';
+import { SetMedicationWarningsUseCase } from '../application/use-cases/set-medication-warnings.use-case';
 import { SetPrimaryCaregiverUseCase } from '../application/use-cases/set-primary-caregiver.use-case';
+import { UpdateMedicationUseCase } from '../application/use-cases/update-medication.use-case';
 import { CarePlanResponseDto } from './dto/care-plan-response.dto';
+import {
+  DiscontinueMedicationRequestDto,
+  MedicationRequestDto,
+  SetMedicationWarningsRequestDto,
+} from './dto/medication-write.dto';
 import { RecipientMedicationsResponseDto } from './dto/recipient-medications-response.dto';
 import { RecipientVisitsQueryDto } from './dto/recipient-visits-query.dto';
 import { RecipientVisitsResponseDto } from './dto/recipient-visits-response.dto';
@@ -68,6 +77,10 @@ export class AdminCareRecipientsController {
     private readonly profile: GetCareRecipientProfileUseCase,
     private readonly visits: GetRecipientVisitsUseCase,
     private readonly medications: GetRecipientMedicationsUseCase,
+    private readonly addMedication: AddMedicationUseCase,
+    private readonly updateMedication: UpdateMedicationUseCase,
+    private readonly discontinueMedication: DiscontinueMedicationUseCase,
+    private readonly setMedicationWarnings: SetMedicationWarningsUseCase,
     private readonly carePlan: GetCarePlanUseCase,
     private readonly setGoals: SetCarePlanGoalsUseCase,
     private readonly setSchedule: SetCarePlanScheduleUseCase,
@@ -140,6 +153,86 @@ export class AdminCareRecipientsController {
   ): Promise<RecipientMedicationsResponseDto> {
     const result = await this.medications.execute(id);
     return RecipientMedicationsResponseDto.fromResult(result);
+  }
+
+  @Post(':id/medications')
+  @ApiOperation({ summary: 'Add a prescription (records an audit entry)' })
+  @ApiCreatedResponse()
+  async createMedication(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: MedicationRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ id: string }> {
+    return this.addMedication.execute({
+      recipientId: id,
+      adminId: principal.adminUserId,
+      name: body.name,
+      dose: body.dose,
+      purpose: body.purpose,
+      prescribedBy: body.prescribedBy,
+      startDate: body.startDate ? new Date(body.startDate) : null,
+      instructions: body.instructions,
+      doseTimes: body.doseTimes ?? null,
+      note: body.note,
+    });
+  }
+
+  // Declared before the ":medicationId" route so "warnings" is not read as an id.
+  @Put(':id/medications/warnings')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Replace the medication clinical warning profile (records an audit)' })
+  async saveMedicationWarnings(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetMedicationWarningsRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ warningCount: number }> {
+    return this.setMedicationWarnings.execute({
+      recipientId: id,
+      adminId: principal.adminUserId,
+      note: body.note,
+      warnings: body.warnings,
+    });
+  }
+
+  @Put(':id/medications/:medicationId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Edit a prescription (records an audit entry)' })
+  async editMedication(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('medicationId', ParseUUIDPipe) medicationId: string,
+    @Body() body: MedicationRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ id: string }> {
+    return this.updateMedication.execute({
+      recipientId: id,
+      medicationId,
+      adminId: principal.adminUserId,
+      name: body.name,
+      dose: body.dose,
+      purpose: body.purpose,
+      prescribedBy: body.prescribedBy,
+      startDate: body.startDate ? new Date(body.startDate) : null,
+      instructions: body.instructions,
+      doseTimes: body.doseTimes ?? null,
+      note: body.note,
+    });
+  }
+
+  @Post(':id/medications/:medicationId/discontinue')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Discontinue a prescription (records an audit entry)' })
+  async stopMedication(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('medicationId', ParseUUIDPipe) medicationId: string,
+    @Body() body: DiscontinueMedicationRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ id: string }> {
+    return this.discontinueMedication.execute({
+      recipientId: id,
+      medicationId,
+      adminId: principal.adminUserId,
+      note: body.note,
+    });
   }
 
   @Get(':id/care-plan')

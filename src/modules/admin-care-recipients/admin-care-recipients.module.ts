@@ -6,7 +6,9 @@ import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.m
 import { IdentityModule } from '@modules/identity/identity.module';
 import { VisitsModule } from '@modules/visits/visits.module';
 import { AddCareRecipientUseCase } from './application/use-cases/add-care-recipient.use-case';
+import { AddMedicationUseCase } from './application/use-cases/add-medication.use-case';
 import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change-care-recipient-status.use-case';
+import { DiscontinueMedicationUseCase } from './application/use-cases/discontinue-medication.use-case';
 import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from './application/use-cases/get-care-recipient-profile.use-case';
 import { GetRecipientMedicationsUseCase } from './application/use-cases/get-recipient-medications.use-case';
@@ -16,7 +18,9 @@ import { SetCarePlanGoalsUseCase } from './application/use-cases/set-care-plan-g
 import { SetCarePlanInstructionsUseCase } from './application/use-cases/set-care-plan-instructions.use-case';
 import { SetCarePlanScheduleUseCase } from './application/use-cases/set-care-plan-schedule.use-case';
 import { SetCareRecipientPriorityUseCase } from './application/use-cases/set-care-recipient-priority.use-case';
+import { SetMedicationWarningsUseCase } from './application/use-cases/set-medication-warnings.use-case';
 import { SetPrimaryCaregiverUseCase } from './application/use-cases/set-primary-caregiver.use-case';
+import { UpdateMedicationUseCase } from './application/use-cases/update-medication.use-case';
 import { CARE_ACTIVITY_DIRECTORY } from './application/ports/care-activity.port';
 import { CARE_RECIPIENT_READ_MODEL } from './application/ports/care-recipient-read.port';
 import { MEDICATION_ADMINISTRATION_DIRECTORY } from './application/ports/medication-administration.port';
@@ -48,6 +52,10 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     GetCareRecipientProfileUseCase,
     GetRecipientVisitsUseCase,
     GetRecipientMedicationsUseCase,
+    AddMedicationUseCase,
+    UpdateMedicationUseCase,
+    DiscontinueMedicationUseCase,
+    SetMedicationWarningsUseCase,
     GetCarePlanUseCase,
     SetCarePlanGoalsUseCase,
     SetCarePlanScheduleUseCase,
