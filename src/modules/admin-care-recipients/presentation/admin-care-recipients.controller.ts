@@ -25,14 +25,18 @@ import { HealthEventCategory } from '@modules/care-recipients/domain/health-even
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
+import { AcknowledgeCareNoteUseCase } from '../application/use-cases/acknowledge-care-note.use-case';
+import { AddCareNoteUseCase } from '../application/use-cases/add-care-note.use-case';
 import { AddCareRecipientUseCase } from '../application/use-cases/add-care-recipient.use-case';
 import { AddHealthEventUseCase } from '../application/use-cases/add-health-event.use-case';
 import { AddMedicationUseCase } from '../application/use-cases/add-medication.use-case';
+import { AddNoteCommentUseCase } from '../application/use-cases/add-note-comment.use-case';
 import { AssignCaregiverUseCase } from '../application/use-cases/assign-caregiver.use-case';
 import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/change-care-recipient-status.use-case';
 import { CreateInvoiceUseCase } from '../application/use-cases/create-invoice.use-case';
 import { DeleteDocumentUseCase } from '../application/use-cases/delete-document.use-case';
 import { DiscontinueMedicationUseCase } from '../application/use-cases/discontinue-medication.use-case';
+import { FlagCareNoteUseCase } from '../application/use-cases/flag-care-note.use-case';
 import { RecordInvoicePaymentUseCase } from '../application/use-cases/record-invoice-payment.use-case';
 import { RemoveCaregiverUseCase } from '../application/use-cases/remove-caregiver.use-case';
 import { ReviseCaregiverAssignmentUseCase } from '../application/use-cases/revise-caregiver-assignment.use-case';
@@ -45,6 +49,7 @@ import { GetRecipientCaregiversUseCase } from '../application/use-cases/get-reci
 import { GetRecipientDocumentsUseCase } from '../application/use-cases/get-recipient-documents.use-case';
 import { GetRecipientHealthUseCase } from '../application/use-cases/get-recipient-health.use-case';
 import { GetRecipientMedicationsUseCase } from '../application/use-cases/get-recipient-medications.use-case';
+import { GetRecipientNotesUseCase } from '../application/use-cases/get-recipient-notes.use-case';
 import { GetRecipientVisitsUseCase } from '../application/use-cases/get-recipient-visits.use-case';
 import { ListCareRecipientsUseCase } from '../application/use-cases/list-care-recipients.use-case';
 import { SetCarePlanGoalsUseCase } from '../application/use-cases/set-care-plan-goals.use-case';
@@ -74,8 +79,15 @@ import {
   RecordInvoicePaymentRequestDto,
   SetBillingProfileRequestDto,
 } from './dto/billing-write.dto';
+import {
+  AddNoteCommentRequestDto,
+  CreateNoteRequestDto,
+  FlagNoteRequestDto,
+} from './dto/note-write.dto';
 import { RecipientBillingResponseDto } from './dto/recipient-billing-response.dto';
 import { RecipientCaregiversResponseDto } from './dto/recipient-caregivers-response.dto';
+import { RecipientNotesQueryDto } from './dto/recipient-notes-query.dto';
+import { RecipientNotesResponseDto } from './dto/recipient-notes-response.dto';
 import { SetDocumentStatusRequestDto, UploadDocumentRequestDto } from './dto/document-write.dto';
 import { RecipientDocumentsQueryDto } from './dto/recipient-documents-query.dto';
 import { RecipientDocumentsResponseDto } from './dto/recipient-documents-response.dto';
@@ -118,6 +130,11 @@ export class AdminCareRecipientsController {
     private readonly caregivers: GetRecipientCaregiversUseCase,
     private readonly documents: GetRecipientDocumentsUseCase,
     private readonly billing: GetRecipientBillingUseCase,
+    private readonly notes: GetRecipientNotesUseCase,
+    private readonly addNote: AddCareNoteUseCase,
+    private readonly acknowledgeNote: AcknowledgeCareNoteUseCase,
+    private readonly flagNote: FlagCareNoteUseCase,
+    private readonly addNoteComment: AddNoteCommentUseCase,
     private readonly createInvoice: CreateInvoiceUseCase,
     private readonly recordInvoicePayment: RecordInvoicePaymentUseCase,
     private readonly setBillingProfile: SetBillingProfileUseCase,
@@ -315,6 +332,90 @@ export class AdminCareRecipientsController {
     @Body() body: SetBillingProfileRequestDto,
   ): Promise<{ id: string }> {
     return this.setBillingProfile.execute({ recipientId: id, ...body });
+  }
+
+  @Get(':id/notes')
+  @ApiOperation({
+    summary: 'The notes tab: snapshot, category counts, author list and the note feed',
+  })
+  @ApiOkResponse({ type: RecipientNotesResponseDto })
+  async getNotes(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: RecipientNotesQueryDto,
+  ): Promise<RecipientNotesResponseDto> {
+    const result = await this.notes.execute({
+      recipientId: id,
+      category: query.category ?? null,
+      search: query.search ?? null,
+      authorName: query.author ?? null,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 10,
+    });
+    return RecipientNotesResponseDto.fromResult(result);
+  }
+
+  @Post(':id/notes')
+  @ApiOperation({ summary: 'Log a care note on the recipient activity feed' })
+  @ApiCreatedResponse()
+  async createNote(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CreateNoteRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ id: string }> {
+    return this.addNote.execute({
+      recipientId: id,
+      adminId: principal.adminUserId,
+      category: body.category,
+      content: body.content,
+      authorName: body.authorName,
+      authorRole: body.authorRole,
+      attachmentKeys: body.attachmentKeys ?? null,
+      flaggedForReview: body.flaggedForReview,
+      postedAt: body.postedAt ? new Date(body.postedAt) : null,
+    });
+  }
+
+  @Post(':id/notes/:noteId/acknowledge')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Acknowledge a care note (records supervisor review)' })
+  async acknowledgeCareNote(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('noteId', ParseUUIDPipe) noteId: string,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ id: string; acknowledged: boolean }> {
+    return this.acknowledgeNote.execute({
+      recipientId: id,
+      noteId,
+      adminId: principal.adminUserId,
+    });
+  }
+
+  @Put(':id/notes/:noteId/flag')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Flag or clear a care note for urgent supervisor attention' })
+  async setNoteFlag(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('noteId', ParseUUIDPipe) noteId: string,
+    @Body() body: FlagNoteRequestDto,
+  ): Promise<{ id: string; flaggedForReview: boolean }> {
+    return this.flagNote.execute({ recipientId: id, noteId, flagged: body.flagged });
+  }
+
+  @Post(':id/notes/:noteId/comments')
+  @ApiOperation({ summary: 'Add a comment to a care note' })
+  @ApiCreatedResponse()
+  async createNoteComment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('noteId', ParseUUIDPipe) noteId: string,
+    @Body() body: AddNoteCommentRequestDto,
+  ): Promise<{ id: string }> {
+    return this.addNoteComment.execute({
+      recipientId: id,
+      noteId,
+      authorName: body.authorName,
+      authorRole: body.authorRole,
+      content: body.content,
+    });
   }
 
   @Post(':id/documents')
