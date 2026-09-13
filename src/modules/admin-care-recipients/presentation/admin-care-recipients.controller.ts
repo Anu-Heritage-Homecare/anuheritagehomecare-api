@@ -19,6 +19,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { HealthEventCategory } from '@modules/care-recipients/domain/health-event-category.enum';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
@@ -28,6 +29,7 @@ import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/chang
 import { DiscontinueMedicationUseCase } from '../application/use-cases/discontinue-medication.use-case';
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
+import { GetRecipientHealthUseCase } from '../application/use-cases/get-recipient-health.use-case';
 import { GetRecipientMedicationsUseCase } from '../application/use-cases/get-recipient-medications.use-case';
 import { GetRecipientVisitsUseCase } from '../application/use-cases/get-recipient-visits.use-case';
 import { ListCareRecipientsUseCase } from '../application/use-cases/list-care-recipients.use-case';
@@ -44,6 +46,8 @@ import {
   MedicationRequestDto,
   SetMedicationWarningsRequestDto,
 } from './dto/medication-write.dto';
+import { HealthTimelineTab, RecipientHealthQueryDto } from './dto/recipient-health-query.dto';
+import { RecipientHealthResponseDto } from './dto/recipient-health-response.dto';
 import { RecipientMedicationsResponseDto } from './dto/recipient-medications-response.dto';
 import { RecipientVisitsQueryDto } from './dto/recipient-visits-query.dto';
 import { RecipientVisitsResponseDto } from './dto/recipient-visits-response.dto';
@@ -77,6 +81,7 @@ export class AdminCareRecipientsController {
     private readonly profile: GetCareRecipientProfileUseCase,
     private readonly visits: GetRecipientVisitsUseCase,
     private readonly medications: GetRecipientMedicationsUseCase,
+    private readonly health: GetRecipientHealthUseCase,
     private readonly addMedication: AddMedicationUseCase,
     private readonly updateMedication: UpdateMedicationUseCase,
     private readonly discontinueMedication: DiscontinueMedicationUseCase,
@@ -153,6 +158,25 @@ export class AdminCareRecipientsController {
   ): Promise<RecipientMedicationsResponseDto> {
     const result = await this.medications.execute(id);
     return RecipientMedicationsResponseDto.fromResult(result);
+  }
+
+  @Get(':id/health')
+  @ApiOperation({
+    summary: 'The health tab: conditions, last vitals, next appointment, trend and timeline',
+  })
+  @ApiOkResponse({ type: RecipientHealthResponseDto })
+  async getHealth(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: RecipientHealthQueryDto,
+  ): Promise<RecipientHealthResponseDto> {
+    const result = await this.health.execute({
+      recipientId: id,
+      categories: categoriesForTab(query.tab ?? 'ALL'),
+      search: query.search ?? null,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 8,
+    });
+    return RecipientHealthResponseDto.fromResult(result);
   }
 
   @Post(':id/medications')
@@ -349,5 +373,24 @@ export class AdminCareRecipientsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<{ id: string; primaryCaregiverId: string | null }> {
     return this.setPrimaryCaregiver.execute({ recipientId: id, caregiverId: null });
+  }
+}
+
+/** Map a health timeline filter tab to the health event categories it covers. */
+function categoriesForTab(tab: HealthTimelineTab): HealthEventCategory[] | null {
+  switch (tab) {
+    case 'VITALS':
+      return [HealthEventCategory.Vitals];
+    case 'INCIDENTS':
+      return [HealthEventCategory.Incident];
+    case 'MEDICATION':
+      return [HealthEventCategory.Medication];
+    case 'ASSESSMENTS':
+      return [HealthEventCategory.Assessment];
+    case 'APPOINTMENTS':
+      return [HealthEventCategory.Appointment, HealthEventCategory.Specialist];
+    case 'ALL':
+    default:
+      return null;
   }
 }
