@@ -261,6 +261,33 @@ export class CareRecipient extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
+  /**
+   * Add a prescription to the medication list (the admin Add Medication action).
+   * Unlike the onboarding step this does not require the health section, since the
+   * office manages prescriptions directly on an active record.
+   */
+  public addMedication(medication: Medication, now: Date): void {
+    this.props.medications = [...this.props.medications, medication];
+    this.props.updatedAt = now;
+  }
+
+  /** Replace an existing prescription in place by its identity. */
+  public replaceMedication(medication: Medication, now: Date): void {
+    const index = this.props.medications.findIndex((m) => m.id === medication.id);
+    if (index === -1) {
+      throw new ValidationException('The medication does not belong to this care recipient');
+    }
+    const next = [...this.props.medications];
+    next[index] = medication;
+    this.props.medications = next;
+    this.props.updatedAt = now;
+  }
+
+  /** Find a prescription on this recipient by its identity, or null. */
+  public findMedication(medicationId: string): Medication | null {
+    return this.props.medications.find((m) => m.id === medicationId) ?? null;
+  }
+
   public get ownerId(): string {
     return this.props.ownerId;
   }

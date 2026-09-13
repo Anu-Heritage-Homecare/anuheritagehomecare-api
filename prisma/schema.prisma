@@ -258,6 +258,12 @@ model CareRecipient {
   careInstructions CareInstruction[]
   planRevisions    CarePlanRevision[]
 
+  // Office set medication clinical warnings (drug interactions, food
+  // instructions) and the append only prescription audit trail, surfaced on the
+  // admin Medications screen.
+  medicationWarnings MedicationWarning[]
+  medicationAudits   MedicationAudit[]
+
   // Step 4: care schedule (null until the step is completed). The recurring
   // pattern (which weekdays, the start time in minutes from midnight, and how
   // long each visit lasts in minutes) is optional and may be refined after
@@ -301,6 +307,17 @@ model Medication {
   name            String        @db.VarChar(200)
   dose            String?       @db.VarChar(60)
   scheduleMinute  Int?
+  // Office set prescription fields (null when only the family onboarding captured
+  // the medication). `doseTimes` are the times of day a dose is due, minutes from
+  // midnight, ordered; it drives the daily dose schedule. `status` lets the office
+  // discontinue a prescription without deleting it, so history is preserved.
+  purpose         String?          @db.VarChar(300)
+  prescribedBy    String?          @db.VarChar(120)
+  startDate       DateTime?        @db.Date
+  instructions    String?          @db.VarChar(300)
+  doseTimes       Int[]            @default([])
+  status          MedicationStatus @default(ACTIVE)
+  discontinuedAt  DateTime?
   position        Int
   createdAt       DateTime      @default(now())
 
@@ -376,6 +393,47 @@ model CarePlanRevision {
 
   @@index([careRecipientId, createdAt])
   @@map("care_plan_revisions")
+}
+
+// One office set medication clinical warning for a recipient (a drug interaction
+// or a food instruction). Free text authored by the office; replaced wholesale
+// when the clinical warning profile is edited. Ordered by position.
+model MedicationWarning {
+  id              String   @id @default(uuid()) @db.Uuid
+  careRecipientId String   @db.Uuid
+  title           String   @db.VarChar(200)
+  detail          String   @db.VarChar(1000)
+  position        Int
+  createdAt       DateTime @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId])
+  @@map("medication_warnings")
+}
+
+// One append only entry in a recipient's prescription history and audit trail
+// (for example "Donepezil increased 5mg to 10mg"), attributed to the admin who
+// recorded it. Written whenever a prescription is added, edited or discontinued.
+model MedicationAudit {
+  id              String   @id @default(uuid()) @db.Uuid
+  careRecipientId String   @db.Uuid
+  title           String   @db.VarChar(200)
+  detail          String   @db.VarChar(1000)
+  authorAdminId   String?  @db.Uuid
+  createdAt       DateTime @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId, createdAt])
+  @@map("medication_audits")
+}
+
+enum MedicationStatus {
+  ACTIVE
+  DISCONTINUED
+
+  @@map("medication_status")
 }
 
 enum CareGoalStatus {

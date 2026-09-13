@@ -13,11 +13,15 @@ import { CARE_INSTRUCTION_REPOSITORY } from './domain/care-instruction.repositor
 import { CARE_PLAN_REVISION_REPOSITORY } from './domain/care-plan-revision.repository';
 import { CARE_PLAN_SCHEDULE_REPOSITORY } from './domain/care-plan-schedule-block.repository';
 import { CARE_RECIPIENT_REPOSITORY } from './domain/care-recipient.repository';
+import { MEDICATION_AUDIT_REPOSITORY } from './domain/medication-audit.repository';
+import { MEDICATION_WARNING_REPOSITORY } from './domain/medication-warning.repository';
 import { CareGoalPrismaRepository } from './infrastructure/persistence/care-goal-prisma.repository';
 import { CareInstructionPrismaRepository } from './infrastructure/persistence/care-instruction-prisma.repository';
 import { CarePlanRevisionPrismaRepository } from './infrastructure/persistence/care-plan-revision-prisma.repository';
 import { CarePlanSchedulePrismaRepository } from './infrastructure/persistence/care-plan-schedule-prisma.repository';
 import { CareRecipientPrismaRepository } from './infrastructure/persistence/care-recipient-prisma.repository';
+import { MedicationAuditPrismaRepository } from './infrastructure/persistence/medication-audit-prisma.repository';
+import { MedicationWarningPrismaRepository } from './infrastructure/persistence/medication-warning-prisma.repository';
 import { CareRecipientsController } from './presentation/care-recipients.controller';
 
 /**
@@ -43,6 +47,8 @@ import { CareRecipientsController } from './presentation/care-recipients.control
     { provide: CARE_PLAN_SCHEDULE_REPOSITORY, useClass: CarePlanSchedulePrismaRepository },
     { provide: CARE_INSTRUCTION_REPOSITORY, useClass: CareInstructionPrismaRepository },
     { provide: CARE_PLAN_REVISION_REPOSITORY, useClass: CarePlanRevisionPrismaRepository },
+    { provide: MEDICATION_WARNING_REPOSITORY, useClass: MedicationWarningPrismaRepository },
+    { provide: MEDICATION_AUDIT_REPOSITORY, useClass: MedicationAuditPrismaRepository },
   ],
   exports: [
     CARE_RECIPIENT_REPOSITORY,
@@ -50,6 +56,8 @@ import { CareRecipientsController } from './presentation/care-recipients.control
     CARE_PLAN_SCHEDULE_REPOSITORY,
     CARE_INSTRUCTION_REPOSITORY,
     CARE_PLAN_REVISION_REPOSITORY,
+    MEDICATION_WARNING_REPOSITORY,
+    MEDICATION_AUDIT_REPOSITORY,
     SetCareGoalsUseCase,
   ],
 })

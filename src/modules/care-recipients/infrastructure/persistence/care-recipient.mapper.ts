@@ -6,6 +6,7 @@ import {
   CareRecipientStatus as PrismaStatus,
   Gender as PrismaGender,
   Medication as PrismaMedication,
+  MedicationStatus as PrismaMedicationStatus,
   OnboardingStep as PrismaOnboardingStep,
   Weekday as PrismaWeekday,
 } from '@prisma/client';
@@ -16,6 +17,7 @@ import { CareRecipientPriority } from '../../domain/care-recipient-priority.enum
 import { CareRecipientStatus } from '../../domain/care-recipient-status.enum';
 import { Gender } from '../../domain/gender.enum';
 import { Medication } from '../../domain/medication.entity';
+import { MedicationStatus } from '../../domain/medication-status.enum';
 import { OnboardingStep } from '../../domain/onboarding-step.enum';
 import { Weekday } from '../../domain/weekday.enum';
 import { CareSchedule } from '../../domain/value-objects/care-schedule.vo';
@@ -30,6 +32,13 @@ export interface MedicationRow {
   name: string;
   dose: string | null;
   scheduleMinute: number | null;
+  purpose: string | null;
+  prescribedBy: string | null;
+  startDate: Date | null;
+  instructions: string | null;
+  doseTimes: number[];
+  status: PrismaMedicationStatus;
+  discontinuedAt: Date | null;
   position: number;
 }
 
@@ -72,6 +81,13 @@ export class CareRecipientMapper {
           name: medication.name,
           dose: medication.dose,
           scheduleMinute: medication.scheduleMinute,
+          purpose: medication.purpose,
+          prescribedBy: medication.prescribedBy,
+          startDate: medication.startDate,
+          instructions: medication.instructions,
+          doseTimes: medication.doseTimes,
+          status: CareRecipientMapper.TO_DOMAIN_MEDICATION_STATUS[medication.status],
+          discontinuedAt: medication.discontinuedAt,
         }),
       );
 
@@ -156,6 +172,13 @@ export class CareRecipientMapper {
       name: medication.name,
       dose: medication.dose,
       scheduleMinute: medication.scheduleMinute,
+      purpose: medication.purpose,
+      prescribedBy: medication.prescribedBy,
+      startDate: medication.startDate,
+      instructions: medication.instructions,
+      doseTimes: medication.doseTimes,
+      status: CareRecipientMapper.TO_PERSISTENCE_MEDICATION_STATUS[medication.status],
+      discontinuedAt: medication.discontinuedAt,
       position: index,
     }));
   }
@@ -208,6 +231,22 @@ export class CareRecipientMapper {
     [OnboardingStep.Schedule]: 'SCHEDULE',
     [OnboardingStep.Review]: 'REVIEW',
     [OnboardingStep.Completed]: 'COMPLETED',
+  };
+
+  private static readonly TO_DOMAIN_MEDICATION_STATUS: Record<
+    PrismaMedicationStatus,
+    MedicationStatus
+  > = {
+    ACTIVE: MedicationStatus.Active,
+    DISCONTINUED: MedicationStatus.Discontinued,
+  };
+
+  private static readonly TO_PERSISTENCE_MEDICATION_STATUS: Record<
+    MedicationStatus,
+    PrismaMedicationStatus
+  > = {
+    [MedicationStatus.Active]: 'ACTIVE',
+    [MedicationStatus.Discontinued]: 'DISCONTINUED',
   };
 
   private static readonly TO_DOMAIN_GENDER: Record<PrismaGender, Gender> = {
