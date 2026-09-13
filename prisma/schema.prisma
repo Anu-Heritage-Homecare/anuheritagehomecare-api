@@ -626,6 +626,9 @@ model RecipientInvoice {
   periodEnd             DateTime               @db.Date
   servicesLabel         String                 @db.VarChar(300)
   currency              Currency
+  // Denormalised total (the sum of the line amounts), stored so the read model can
+  // aggregate billed and outstanding figures without re-summing lines per invoice.
+  amountMinor           Int
   insuranceCoveredMinor Int
   status                RecipientInvoiceStatus @default(PENDING)
   issuedAt              DateTime

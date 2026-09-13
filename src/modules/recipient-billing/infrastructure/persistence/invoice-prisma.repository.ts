@@ -24,6 +24,7 @@ export class InvoicePrismaRepository implements InvoiceRepository {
         periodEnd: invoice.periodEnd,
         servicesLabel: invoice.servicesLabel,
         currency: TO_PERSISTENCE_CURRENCY[invoice.currency],
+        amountMinor: invoice.amountMinor,
         insuranceCoveredMinor: invoice.insuranceCoveredMinor,
         status: TO_PERSISTENCE_INVOICE_STATUS[invoice.status],
         issuedAt: invoice.issuedAt,

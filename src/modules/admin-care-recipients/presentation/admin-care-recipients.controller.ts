@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Put,
@@ -35,6 +37,7 @@ import { ReviseCaregiverAssignmentUseCase } from '../application/use-cases/revis
 import { SetCoverageUseCase } from '../application/use-cases/set-coverage.use-case';
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
+import { GetRecipientBillingUseCase } from '../application/use-cases/get-recipient-billing.use-case';
 import { GetRecipientCaregiversUseCase } from '../application/use-cases/get-recipient-caregivers.use-case';
 import { GetRecipientDocumentsUseCase } from '../application/use-cases/get-recipient-documents.use-case';
 import { GetRecipientHealthUseCase } from '../application/use-cases/get-recipient-health.use-case';
@@ -63,6 +66,7 @@ import {
   ReviseCaregiverAssignmentRequestDto,
   SetCoverageRequestDto,
 } from './dto/care-team-write.dto';
+import { RecipientBillingResponseDto } from './dto/recipient-billing-response.dto';
 import { RecipientCaregiversResponseDto } from './dto/recipient-caregivers-response.dto';
 import { SetDocumentStatusRequestDto, UploadDocumentRequestDto } from './dto/document-write.dto';
 import { RecipientDocumentsQueryDto } from './dto/recipient-documents-query.dto';
@@ -105,6 +109,7 @@ export class AdminCareRecipientsController {
     private readonly health: GetRecipientHealthUseCase,
     private readonly caregivers: GetRecipientCaregiversUseCase,
     private readonly documents: GetRecipientDocumentsUseCase,
+    private readonly billing: GetRecipientBillingUseCase,
     private readonly uploadDocument: UploadDocumentUseCase,
     private readonly setDocumentStatus: SetDocumentStatusUseCase,
     private readonly deleteDocument: DeleteDocumentUseCase,
@@ -241,6 +246,19 @@ export class AdminCareRecipientsController {
       pageSize: query.pageSize ?? 10,
     });
     return RecipientDocumentsResponseDto.fromResult(result);
+  }
+
+  @Get(':id/billing')
+  @ApiOperation({
+    summary: 'The billing tab: cards, billing & insurance, invoices, breakdown and payments',
+  })
+  @ApiOkResponse({ type: RecipientBillingResponseDto })
+  async getBilling(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+  ): Promise<RecipientBillingResponseDto> {
+    const result = await this.billing.execute(id, page < 1 ? 1 : page);
+    return RecipientBillingResponseDto.fromResult(result);
   }
 
   @Post(':id/documents')
