@@ -9,6 +9,7 @@ import { AddCareRecipientUseCase } from './application/use-cases/add-care-recipi
 import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change-care-recipient-status.use-case';
 import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from './application/use-cases/get-care-recipient-profile.use-case';
+import { GetRecipientMedicationsUseCase } from './application/use-cases/get-recipient-medications.use-case';
 import { GetRecipientVisitsUseCase } from './application/use-cases/get-recipient-visits.use-case';
 import { ListCareRecipientsUseCase } from './application/use-cases/list-care-recipients.use-case';
 import { SetCarePlanGoalsUseCase } from './application/use-cases/set-care-plan-goals.use-case';
@@ -18,8 +19,10 @@ import { SetCareRecipientPriorityUseCase } from './application/use-cases/set-car
 import { SetPrimaryCaregiverUseCase } from './application/use-cases/set-primary-caregiver.use-case';
 import { CARE_ACTIVITY_DIRECTORY } from './application/ports/care-activity.port';
 import { CARE_RECIPIENT_READ_MODEL } from './application/ports/care-recipient-read.port';
+import { MEDICATION_ADMINISTRATION_DIRECTORY } from './application/ports/medication-administration.port';
 import { RECIPIENT_VISITS_READ_MODEL } from './application/ports/recipient-visits-read.port';
 import { VisitsCareActivityDirectory } from './infrastructure/access/visits-care-activity.directory';
+import { VisitsMedicationAdministrationDirectory } from './infrastructure/access/visits-medication-administration.directory';
 import { CareRecipientReadPrisma } from './infrastructure/persistence/care-recipient-read.prisma';
 import { RecipientVisitsReadPrisma } from './infrastructure/persistence/recipient-visits-read.prisma';
 import { AdminCareRecipientsController } from './presentation/admin-care-recipients.controller';
@@ -44,6 +47,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     ListCareRecipientsUseCase,
     GetCareRecipientProfileUseCase,
     GetRecipientVisitsUseCase,
+    GetRecipientMedicationsUseCase,
     GetCarePlanUseCase,
     SetCarePlanGoalsUseCase,
     SetCarePlanScheduleUseCase,
@@ -54,6 +58,10 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     SetPrimaryCaregiverUseCase,
     { provide: CARE_RECIPIENT_READ_MODEL, useClass: CareRecipientReadPrisma },
     { provide: RECIPIENT_VISITS_READ_MODEL, useClass: RecipientVisitsReadPrisma },
+    {
+      provide: MEDICATION_ADMINISTRATION_DIRECTORY,
+      useClass: VisitsMedicationAdministrationDirectory,
+    },
     { provide: CARE_ACTIVITY_DIRECTORY, useClass: VisitsCareActivityDirectory },
   ],
 })

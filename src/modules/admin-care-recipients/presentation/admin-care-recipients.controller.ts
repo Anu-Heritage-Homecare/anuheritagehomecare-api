@@ -26,6 +26,7 @@ import { AddCareRecipientUseCase } from '../application/use-cases/add-care-recip
 import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/change-care-recipient-status.use-case';
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
+import { GetRecipientMedicationsUseCase } from '../application/use-cases/get-recipient-medications.use-case';
 import { GetRecipientVisitsUseCase } from '../application/use-cases/get-recipient-visits.use-case';
 import { ListCareRecipientsUseCase } from '../application/use-cases/list-care-recipients.use-case';
 import { SetCarePlanGoalsUseCase } from '../application/use-cases/set-care-plan-goals.use-case';
@@ -34,6 +35,7 @@ import { SetCarePlanScheduleUseCase } from '../application/use-cases/set-care-pl
 import { SetCareRecipientPriorityUseCase } from '../application/use-cases/set-care-recipient-priority.use-case';
 import { SetPrimaryCaregiverUseCase } from '../application/use-cases/set-primary-caregiver.use-case';
 import { CarePlanResponseDto } from './dto/care-plan-response.dto';
+import { RecipientMedicationsResponseDto } from './dto/recipient-medications-response.dto';
 import { RecipientVisitsQueryDto } from './dto/recipient-visits-query.dto';
 import { RecipientVisitsResponseDto } from './dto/recipient-visits-response.dto';
 import {
@@ -65,6 +67,7 @@ export class AdminCareRecipientsController {
     private readonly list: ListCareRecipientsUseCase,
     private readonly profile: GetCareRecipientProfileUseCase,
     private readonly visits: GetRecipientVisitsUseCase,
+    private readonly medications: GetRecipientMedicationsUseCase,
     private readonly carePlan: GetCarePlanUseCase,
     private readonly setGoals: SetCarePlanGoalsUseCase,
     private readonly setSchedule: SetCarePlanScheduleUseCase,
@@ -125,6 +128,18 @@ export class AdminCareRecipientsController {
       pageSize: query.pageSize ?? 10,
     });
     return RecipientVisitsResponseDto.fromResult(result);
+  }
+
+  @Get(':id/medications')
+  @ApiOperation({
+    summary: 'The medications tab: cards, prescriptions, dose schedule, warnings and audit',
+  })
+  @ApiOkResponse({ type: RecipientMedicationsResponseDto })
+  async getMedications(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<RecipientMedicationsResponseDto> {
+    const result = await this.medications.execute(id);
+    return RecipientMedicationsResponseDto.fromResult(result);
   }
 
   @Get(':id/care-plan')
