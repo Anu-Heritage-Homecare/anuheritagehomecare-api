@@ -284,6 +284,11 @@ model CareRecipient {
   recipientInvoicePayments RecipientInvoicePayment[]
   billingProfile           BillingProfile?
 
+  // The recipient's care notes activity log (visit notes, clinical observations,
+  // coordinator entries, family communications and incidents), surfaced on the
+  // admin Notes screen.
+  careNotes CareNote[]
+
   // Step 4: care schedule (null until the step is completed). The recurring
   // pattern (which weekdays, the start time in minutes from midnight, and how
   // long each visit lasts in minutes) is optional and may be refined after
@@ -706,6 +711,65 @@ enum RecipientInvoiceStatus {
   PAID
 
   @@map("recipient_invoice_status")
+}
+
+// One care note on a recipient's activity log: a caregiver visit note, a clinical
+// observation, a coordinator entry, a family communication or an incident report.
+// Authored by whoever logged it (free text name and role); an office coordinator may
+// add one too. Flagging marks a note for urgent supervisor attention; acknowledging
+// records that a supervisor reviewed it. Sensitive personal data; never logged.
+model CareNote {
+  id                    String       @id @default(uuid()) @db.Uuid
+  careRecipientId       String       @db.Uuid
+  category              NoteCategory
+  content               String       @db.VarChar(4000)
+  // Who wrote the note (free text, e.g. "Sarah Williams") and their role (e.g.
+  // "CNA", "Care Coordinator", "Family"). Distinct from the admin attribution.
+  authorName            String       @db.VarChar(120)
+  authorRole            String?      @db.VarChar(120)
+  // Opaque object store references for attachments; storage and download deferred.
+  attachmentKeys        String[]     @default([])
+  flaggedForReview      Boolean      @default(false)
+  acknowledgedAt        DateTime?
+  acknowledgedByAdminId String?      @db.Uuid
+  // The admin who entered the note, for attribution. Null for app authored notes.
+  authorAdminId         String?      @db.Uuid
+  postedAt              DateTime
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+  comments      NoteComment[]
+
+  @@index([careRecipientId, postedAt])
+  @@index([careRecipientId, category])
+  @@map("care_notes")
+}
+
+// One comment appended to a care note (a supervisor or colleague reply). Append only;
+// feeds the comment count on the note card.
+model NoteComment {
+  id         String   @id @default(uuid()) @db.Uuid
+  noteId     String   @db.Uuid
+  authorName String   @db.VarChar(120)
+  authorRole String?  @db.VarChar(120)
+  content    String   @db.VarChar(2000)
+  createdAt  DateTime @default(now())
+
+  note CareNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId, createdAt])
+  @@map("note_comments")
+}
+
+enum NoteCategory {
+  VISIT_NOTE
+  CLINICAL
+  COORDINATOR
+  FAMILY_COMMUNICATION
+  INCIDENT
+
+  @@map("note_category")
 }
 
 enum CareGoalStatus {
