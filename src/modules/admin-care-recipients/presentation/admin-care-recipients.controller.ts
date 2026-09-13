@@ -35,6 +35,7 @@ import { SetCoverageUseCase } from '../application/use-cases/set-coverage.use-ca
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
 import { GetRecipientCaregiversUseCase } from '../application/use-cases/get-recipient-caregivers.use-case';
+import { GetRecipientDocumentsUseCase } from '../application/use-cases/get-recipient-documents.use-case';
 import { GetRecipientHealthUseCase } from '../application/use-cases/get-recipient-health.use-case';
 import { GetRecipientMedicationsUseCase } from '../application/use-cases/get-recipient-medications.use-case';
 import { GetRecipientVisitsUseCase } from '../application/use-cases/get-recipient-visits.use-case';
@@ -60,6 +61,8 @@ import {
   SetCoverageRequestDto,
 } from './dto/care-team-write.dto';
 import { RecipientCaregiversResponseDto } from './dto/recipient-caregivers-response.dto';
+import { RecipientDocumentsQueryDto } from './dto/recipient-documents-query.dto';
+import { RecipientDocumentsResponseDto } from './dto/recipient-documents-response.dto';
 import { HealthTimelineTab, RecipientHealthQueryDto } from './dto/recipient-health-query.dto';
 import { RecipientHealthResponseDto } from './dto/recipient-health-response.dto';
 import { RecipientMedicationsResponseDto } from './dto/recipient-medications-response.dto';
@@ -97,6 +100,7 @@ export class AdminCareRecipientsController {
     private readonly medications: GetRecipientMedicationsUseCase,
     private readonly health: GetRecipientHealthUseCase,
     private readonly caregivers: GetRecipientCaregiversUseCase,
+    private readonly documents: GetRecipientDocumentsUseCase,
     private readonly assignTeamCaregiver: AssignCaregiverUseCase,
     private readonly reviseAssignment: ReviseCaregiverAssignmentUseCase,
     private readonly removeCaregiver: RemoveCaregiverUseCase,
@@ -209,6 +213,27 @@ export class AdminCareRecipientsController {
   ): Promise<RecipientCaregiversResponseDto> {
     const result = await this.caregivers.execute(id);
     return RecipientCaregiversResponseDto.fromResult(result);
+  }
+
+  @Get(':id/documents')
+  @ApiOperation({
+    summary: 'The documents tab: cards, category counts, document list and recent activity',
+  })
+  @ApiOkResponse({ type: RecipientDocumentsResponseDto })
+  async getDocuments(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: RecipientDocumentsQueryDto,
+  ): Promise<RecipientDocumentsResponseDto> {
+    const result = await this.documents.execute({
+      recipientId: id,
+      category: query.category ?? null,
+      search: query.search ?? null,
+      sortField: query.sort ?? 'DATE',
+      sortDirection: query.direction ?? 'DESC',
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 10,
+    });
+    return RecipientDocumentsResponseDto.fromResult(result);
   }
 
   @Post(':id/caregivers')
