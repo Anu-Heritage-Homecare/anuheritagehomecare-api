@@ -9,8 +9,12 @@ import { VisitsModule } from '@modules/visits/visits.module';
 import { AddCareRecipientUseCase } from './application/use-cases/add-care-recipient.use-case';
 import { AddHealthEventUseCase } from './application/use-cases/add-health-event.use-case';
 import { AddMedicationUseCase } from './application/use-cases/add-medication.use-case';
+import { AssignCaregiverUseCase } from './application/use-cases/assign-caregiver.use-case';
 import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change-care-recipient-status.use-case';
 import { DiscontinueMedicationUseCase } from './application/use-cases/discontinue-medication.use-case';
+import { RemoveCaregiverUseCase } from './application/use-cases/remove-caregiver.use-case';
+import { ReviseCaregiverAssignmentUseCase } from './application/use-cases/revise-caregiver-assignment.use-case';
+import { SetCoverageUseCase } from './application/use-cases/set-coverage.use-case';
 import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from './application/use-cases/get-care-recipient-profile.use-case';
 import { GetRecipientCaregiversUseCase } from './application/use-cases/get-recipient-caregivers.use-case';
@@ -63,6 +67,10 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     GetRecipientMedicationsUseCase,
     GetRecipientHealthUseCase,
     GetRecipientCaregiversUseCase,
+    AssignCaregiverUseCase,
+    ReviseCaregiverAssignmentUseCase,
+    RemoveCaregiverUseCase,
+    SetCoverageUseCase,
     AddHealthEventUseCase,
     AddMedicationUseCase,
     UpdateMedicationUseCase,

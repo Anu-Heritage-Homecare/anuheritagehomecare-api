@@ -26,8 +26,12 @@ import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { AddCareRecipientUseCase } from '../application/use-cases/add-care-recipient.use-case';
 import { AddHealthEventUseCase } from '../application/use-cases/add-health-event.use-case';
 import { AddMedicationUseCase } from '../application/use-cases/add-medication.use-case';
+import { AssignCaregiverUseCase } from '../application/use-cases/assign-caregiver.use-case';
 import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/change-care-recipient-status.use-case';
 import { DiscontinueMedicationUseCase } from '../application/use-cases/discontinue-medication.use-case';
+import { RemoveCaregiverUseCase } from '../application/use-cases/remove-caregiver.use-case';
+import { ReviseCaregiverAssignmentUseCase } from '../application/use-cases/revise-caregiver-assignment.use-case';
+import { SetCoverageUseCase } from '../application/use-cases/set-coverage.use-case';
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
 import { GetRecipientCaregiversUseCase } from '../application/use-cases/get-recipient-caregivers.use-case';
@@ -49,6 +53,12 @@ import {
   SetMedicationWarningsRequestDto,
 } from './dto/medication-write.dto';
 import { AddHealthEventRequestDto } from './dto/add-health-event-request.dto';
+import {
+  AssignCaregiverRequestDto,
+  RemoveCaregiverRequestDto,
+  ReviseCaregiverAssignmentRequestDto,
+  SetCoverageRequestDto,
+} from './dto/care-team-write.dto';
 import { RecipientCaregiversResponseDto } from './dto/recipient-caregivers-response.dto';
 import { HealthTimelineTab, RecipientHealthQueryDto } from './dto/recipient-health-query.dto';
 import { RecipientHealthResponseDto } from './dto/recipient-health-response.dto';
@@ -87,6 +97,10 @@ export class AdminCareRecipientsController {
     private readonly medications: GetRecipientMedicationsUseCase,
     private readonly health: GetRecipientHealthUseCase,
     private readonly caregivers: GetRecipientCaregiversUseCase,
+    private readonly assignTeamCaregiver: AssignCaregiverUseCase,
+    private readonly reviseAssignment: ReviseCaregiverAssignmentUseCase,
+    private readonly removeCaregiver: RemoveCaregiverUseCase,
+    private readonly setCoverage: SetCoverageUseCase,
     private readonly addHealthEvent: AddHealthEventUseCase,
     private readonly addMedication: AddMedicationUseCase,
     private readonly updateMedication: UpdateMedicationUseCase,
@@ -195,6 +209,77 @@ export class AdminCareRecipientsController {
   ): Promise<RecipientCaregiversResponseDto> {
     const result = await this.caregivers.execute(id);
     return RecipientCaregiversResponseDto.fromResult(result);
+  }
+
+  @Post(':id/caregivers')
+  @ApiOperation({ summary: 'Assign a caregiver to the team (records assignment history)' })
+  @ApiCreatedResponse()
+  async createAssignment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AssignCaregiverRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ id: string }> {
+    return this.assignTeamCaregiver.execute({
+      recipientId: id,
+      adminId: principal.adminUserId,
+      caregiverId: body.caregiverId,
+      role: body.role,
+      specialization: body.specialization,
+      scheduleLabel: body.scheduleLabel,
+      reason: body.reason,
+    });
+  }
+
+  // Declared before the ":assignmentId" route so "coverage" is not read as an id.
+  @Put(':id/caregivers/coverage')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Replace the recurring weekly coverage grid' })
+  async saveCoverage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetCoverageRequestDto,
+  ): Promise<{ blockCount: number }> {
+    return this.setCoverage.execute({
+      recipientId: id,
+      blocks: body.blocks.map((b) => ({
+        weekday: b.weekday,
+        slot: b.slot,
+        caregiverId: b.caregiverId ?? null,
+      })),
+    });
+  }
+
+  @Put(':id/caregivers/:assignmentId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revise a care team assignment (role, specialization, schedule)' })
+  async editAssignment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
+    @Body() body: ReviseCaregiverAssignmentRequestDto,
+  ): Promise<{ id: string }> {
+    return this.reviseAssignment.execute({
+      recipientId: id,
+      assignmentId,
+      role: body.role,
+      specialization: body.specialization,
+      scheduleLabel: body.scheduleLabel,
+    });
+  }
+
+  @Delete(':id/caregivers/:assignmentId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove a caregiver from the team (records assignment history)' })
+  async deleteAssignment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
+    @Body() body: RemoveCaregiverRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ id: string }> {
+    return this.removeCaregiver.execute({
+      recipientId: id,
+      assignmentId,
+      adminId: principal.adminUserId,
+      reason: body.reason,
+    });
   }
 
   @Post(':id/health/events')
