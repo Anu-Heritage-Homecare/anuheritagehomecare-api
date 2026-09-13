@@ -28,6 +28,7 @@ import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { AcknowledgeCareNoteUseCase } from '../application/use-cases/acknowledge-care-note.use-case';
 import { AddCareNoteUseCase } from '../application/use-cases/add-care-note.use-case';
 import { AddCareRecipientUseCase } from '../application/use-cases/add-care-recipient.use-case';
+import { AddFamilyContactUseCase } from '../application/use-cases/add-family-contact.use-case';
 import { AddHealthEventUseCase } from '../application/use-cases/add-health-event.use-case';
 import { AddMedicationUseCase } from '../application/use-cases/add-medication.use-case';
 import { AddNoteCommentUseCase } from '../application/use-cases/add-note-comment.use-case';
@@ -37,6 +38,9 @@ import { CreateInvoiceUseCase } from '../application/use-cases/create-invoice.us
 import { DeleteDocumentUseCase } from '../application/use-cases/delete-document.use-case';
 import { DiscontinueMedicationUseCase } from '../application/use-cases/discontinue-medication.use-case';
 import { FlagCareNoteUseCase } from '../application/use-cases/flag-care-note.use-case';
+import { LogFamilyCommunicationUseCase } from '../application/use-cases/log-family-communication.use-case';
+import { RemoveFamilyContactUseCase } from '../application/use-cases/remove-family-contact.use-case';
+import { UpdateFamilyContactUseCase } from '../application/use-cases/update-family-contact.use-case';
 import { RecordInvoicePaymentUseCase } from '../application/use-cases/record-invoice-payment.use-case';
 import { RemoveCaregiverUseCase } from '../application/use-cases/remove-caregiver.use-case';
 import { ReviseCaregiverAssignmentUseCase } from '../application/use-cases/revise-caregiver-assignment.use-case';
@@ -47,6 +51,7 @@ import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-car
 import { GetRecipientBillingUseCase } from '../application/use-cases/get-recipient-billing.use-case';
 import { GetRecipientCaregiversUseCase } from '../application/use-cases/get-recipient-caregivers.use-case';
 import { GetRecipientDocumentsUseCase } from '../application/use-cases/get-recipient-documents.use-case';
+import { GetRecipientFamilyUseCase } from '../application/use-cases/get-recipient-family.use-case';
 import { GetRecipientHealthUseCase } from '../application/use-cases/get-recipient-health.use-case';
 import { GetRecipientMedicationsUseCase } from '../application/use-cases/get-recipient-medications.use-case';
 import { GetRecipientNotesUseCase } from '../application/use-cases/get-recipient-notes.use-case';
@@ -79,6 +84,7 @@ import {
   RecordInvoicePaymentRequestDto,
   SetBillingProfileRequestDto,
 } from './dto/billing-write.dto';
+import { FamilyContactRequestDto, LogFamilyCommunicationRequestDto } from './dto/family-write.dto';
 import {
   AddNoteCommentRequestDto,
   CreateNoteRequestDto,
@@ -86,6 +92,7 @@ import {
 } from './dto/note-write.dto';
 import { RecipientBillingResponseDto } from './dto/recipient-billing-response.dto';
 import { RecipientCaregiversResponseDto } from './dto/recipient-caregivers-response.dto';
+import { RecipientFamilyResponseDto } from './dto/recipient-family-response.dto';
 import { RecipientNotesQueryDto } from './dto/recipient-notes-query.dto';
 import { RecipientNotesResponseDto } from './dto/recipient-notes-response.dto';
 import { SetDocumentStatusRequestDto, UploadDocumentRequestDto } from './dto/document-write.dto';
@@ -135,6 +142,11 @@ export class AdminCareRecipientsController {
     private readonly acknowledgeNote: AcknowledgeCareNoteUseCase,
     private readonly flagNote: FlagCareNoteUseCase,
     private readonly addNoteComment: AddNoteCommentUseCase,
+    private readonly family: GetRecipientFamilyUseCase,
+    private readonly addFamilyContact: AddFamilyContactUseCase,
+    private readonly updateFamilyContact: UpdateFamilyContactUseCase,
+    private readonly removeFamilyContact: RemoveFamilyContactUseCase,
+    private readonly logFamilyCommunication: LogFamilyCommunicationUseCase,
     private readonly createInvoice: CreateInvoiceUseCase,
     private readonly recordInvoicePayment: RecordInvoicePaymentUseCase,
     private readonly setBillingProfile: SetBillingProfileUseCase,
@@ -416,6 +428,64 @@ export class AdminCareRecipientsController {
       authorRole: body.authorRole,
       content: body.content,
     });
+  }
+
+  @Get(':id/family')
+  @ApiOperation({
+    summary: 'The family tab: summary, registered contacts, communication log and permissions',
+  })
+  @ApiOkResponse({ type: RecipientFamilyResponseDto })
+  async getFamily(@Param('id', ParseUUIDPipe) id: string): Promise<RecipientFamilyResponseDto> {
+    const result = await this.family.execute(id);
+    return RecipientFamilyResponseDto.fromResult(result);
+  }
+
+  @Post(':id/family/contacts')
+  @ApiOperation({ summary: 'Register a family contact' })
+  @ApiCreatedResponse()
+  async createFamilyContact(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: FamilyContactRequestDto,
+  ): Promise<{ id: string }> {
+    return this.addFamilyContact.execute({ recipientId: id, ...body });
+  }
+
+  @Post(':id/family/communications')
+  @ApiOperation({ summary: 'Log an interaction with a family contact' })
+  @ApiCreatedResponse()
+  async createFamilyCommunication(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: LogFamilyCommunicationRequestDto,
+  ): Promise<{ id: string }> {
+    return this.logFamilyCommunication.execute({
+      recipientId: id,
+      contactId: body.contactId,
+      type: body.type,
+      subject: body.subject,
+      staffMemberName: body.staffMemberName,
+      occurredAt: new Date(body.occurredAt),
+    });
+  }
+
+  @Put(':id/family/contacts/:contactId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revise a registered family contact' })
+  async editFamilyContact(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('contactId', ParseUUIDPipe) contactId: string,
+    @Body() body: FamilyContactRequestDto,
+  ): Promise<{ id: string }> {
+    return this.updateFamilyContact.execute({ recipientId: id, contactId, ...body });
+  }
+
+  @Delete(':id/family/contacts/:contactId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove a registered family contact' })
+  async deleteFamilyContact(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('contactId', ParseUUIDPipe) contactId: string,
+  ): Promise<{ id: string }> {
+    return this.removeFamilyContact.execute({ recipientId: id, contactId });
   }
 
   @Post(':id/documents')
