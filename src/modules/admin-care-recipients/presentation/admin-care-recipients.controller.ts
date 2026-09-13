@@ -30,6 +30,7 @@ import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/chang
 import { DiscontinueMedicationUseCase } from '../application/use-cases/discontinue-medication.use-case';
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
+import { GetRecipientCaregiversUseCase } from '../application/use-cases/get-recipient-caregivers.use-case';
 import { GetRecipientHealthUseCase } from '../application/use-cases/get-recipient-health.use-case';
 import { GetRecipientMedicationsUseCase } from '../application/use-cases/get-recipient-medications.use-case';
 import { GetRecipientVisitsUseCase } from '../application/use-cases/get-recipient-visits.use-case';
@@ -48,6 +49,7 @@ import {
   SetMedicationWarningsRequestDto,
 } from './dto/medication-write.dto';
 import { AddHealthEventRequestDto } from './dto/add-health-event-request.dto';
+import { RecipientCaregiversResponseDto } from './dto/recipient-caregivers-response.dto';
 import { HealthTimelineTab, RecipientHealthQueryDto } from './dto/recipient-health-query.dto';
 import { RecipientHealthResponseDto } from './dto/recipient-health-response.dto';
 import { RecipientMedicationsResponseDto } from './dto/recipient-medications-response.dto';
@@ -84,6 +86,7 @@ export class AdminCareRecipientsController {
     private readonly visits: GetRecipientVisitsUseCase,
     private readonly medications: GetRecipientMedicationsUseCase,
     private readonly health: GetRecipientHealthUseCase,
+    private readonly caregivers: GetRecipientCaregiversUseCase,
     private readonly addHealthEvent: AddHealthEventUseCase,
     private readonly addMedication: AddMedicationUseCase,
     private readonly updateMedication: UpdateMedicationUseCase,
@@ -180,6 +183,18 @@ export class AdminCareRecipientsController {
       pageSize: query.pageSize ?? 8,
     });
     return RecipientHealthResponseDto.fromResult(result);
+  }
+
+  @Get(':id/caregivers')
+  @ApiOperation({
+    summary: 'The caregivers tab: cards, care team, coverage grid and assignment history',
+  })
+  @ApiOkResponse({ type: RecipientCaregiversResponseDto })
+  async getCaregivers(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<RecipientCaregiversResponseDto> {
+    const result = await this.caregivers.execute(id);
+    return RecipientCaregiversResponseDto.fromResult(result);
   }
 
   @Post(':id/health/events')

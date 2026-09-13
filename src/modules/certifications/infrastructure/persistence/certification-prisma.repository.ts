@@ -29,4 +29,12 @@ export class CertificationPrismaRepository implements CertificationRepository {
     });
     return rows.map((row) => CertificationMapper.toDomain(row));
   }
+
+  async listForCaregiver(caregiverId: string): Promise<Certification[]> {
+    const rows = await this.prisma.certification.findMany({
+      where: { caregiverId },
+      orderBy: { name: 'asc' },
+    });
+    return rows.map((row) => CertificationMapper.toDomain(row));
+  }
 }

@@ -3,6 +3,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AdminAlertsModule } from '@modules/admin-alerts/admin-alerts.module';
 import { AdminIdentityModule } from '@modules/admin-identity/admin-identity.module';
 import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.module';
+import { CertificationsModule } from '@modules/certifications/certifications.module';
 import { IdentityModule } from '@modules/identity/identity.module';
 import { VisitsModule } from '@modules/visits/visits.module';
 import { AddCareRecipientUseCase } from './application/use-cases/add-care-recipient.use-case';
@@ -12,6 +13,7 @@ import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change
 import { DiscontinueMedicationUseCase } from './application/use-cases/discontinue-medication.use-case';
 import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from './application/use-cases/get-care-recipient-profile.use-case';
+import { GetRecipientCaregiversUseCase } from './application/use-cases/get-recipient-caregivers.use-case';
 import { GetRecipientHealthUseCase } from './application/use-cases/get-recipient-health.use-case';
 import { GetRecipientMedicationsUseCase } from './application/use-cases/get-recipient-medications.use-case';
 import { GetRecipientVisitsUseCase } from './application/use-cases/get-recipient-visits.use-case';
@@ -49,6 +51,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     IdentityModule,
     CareRecipientsModule,
     VisitsModule,
+    CertificationsModule,
     AdminAlertsModule,
     AdminIdentityModule,
   ],
@@ -59,6 +62,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     GetRecipientVisitsUseCase,
     GetRecipientMedicationsUseCase,
     GetRecipientHealthUseCase,
+    GetRecipientCaregiversUseCase,
     AddHealthEventUseCase,
     AddMedicationUseCase,
     UpdateMedicationUseCase,

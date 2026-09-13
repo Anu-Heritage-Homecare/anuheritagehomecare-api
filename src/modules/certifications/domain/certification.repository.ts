@@ -8,6 +8,8 @@ export interface CertificationRepository {
    * dashboard's Certification Expiring watch.
    */
   listExpiringBefore(cutoff: Date): Promise<Certification[]>;
+  /** Every certification held by a caregiver, for the admin care team card. */
+  listForCaregiver(caregiverId: string): Promise<Certification[]>;
 }
 
 export const CERTIFICATION_REPOSITORY = Symbol('CERTIFICATION_REPOSITORY');

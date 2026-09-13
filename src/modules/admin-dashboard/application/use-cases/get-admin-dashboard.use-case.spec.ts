@@ -83,6 +83,7 @@ const ratingRepo: CareRatingRepository = {
 const certRepo: CertificationRepository = {
   save: () => Promise.resolve(),
   listExpiringBefore: () => Promise.resolve<Certification[]>([]),
+  listForCaregiver: () => Promise.resolve<Certification[]>([]),
 };
 
 function recipient(id: string, name: string): CareRecipient {
