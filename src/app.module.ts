@@ -23,6 +23,7 @@ import { ProfileModule } from './modules/profile/profile.module';
 import { CareRequestsModule } from './modules/care-requests/care-requests.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { EarningsModule } from './modules/earnings/earnings.module';
+import { FamilyContactsModule } from './modules/family-contacts/family-contacts.module';
 import { FamilyCareModule } from './modules/family-care/family-care.module';
 import { FamilyDashboardModule } from './modules/family-dashboard/family-dashboard.module';
 import { KycModule } from './modules/kyc/kyc.module';
@@ -142,6 +143,7 @@ import { SharedModule } from './shared/shared.module';
     CertificationsModule,
     RecipientBillingModule,
     CareNotesModule,
+    FamilyContactsModule,
     AdminDashboardModule,
     AdminCareRecipientsModule,
   ],

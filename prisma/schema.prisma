@@ -289,6 +289,11 @@ model CareRecipient {
   // admin Notes screen.
   careNotes CareNote[]
 
+  // The recipient's registered family contacts and the logged interactions with
+  // them, surfaced on the admin Family screen.
+  familyContacts       FamilyContact[]
+  familyCommunications FamilyCommunication[]
+
   // Step 4: care schedule (null until the step is completed). The recurring
   // pattern (which weekdays, the start time in minutes from midnight, and how
   // long each visit lasts in minutes) is optional and may be refined after
@@ -770,6 +775,97 @@ enum NoteCategory {
   INCIDENT
 
   @@map("note_category")
+}
+
+// One family member registered against a care recipient, authorised to receive
+// updates, participate in scheduling or manage care. Holds contact details, one or
+// more designated roles, a portal access level and a preferred contact channel.
+// Office set; sensitive personal data, so contact details are never logged.
+model FamilyContact {
+  id                      String                        @id @default(uuid()) @db.Uuid
+  careRecipientId         String                        @db.Uuid
+  name                    String                        @db.VarChar(200)
+  relationship            String                        @db.VarChar(120)
+  roles                   FamilyContactRole[]           @default([])
+  roleNote                String?                       @db.VarChar(200)
+  phone                   String?                       @db.VarChar(200)
+  email                   String?                       @db.VarChar(200)
+  address                 String?                       @db.VarChar(500)
+  accessLevel             FamilyAccessLevel             @default(VIEW_ONLY)
+  accessScopeLabel        String?                       @db.VarChar(200)
+  authorizedSectionsLabel String?                       @db.VarChar(500)
+  preferredMethod         FamilyPreferredContactMethod?
+  portalLoginEnabled      Boolean                       @default(false)
+  createdAt               DateTime                      @default(now())
+  updatedAt               DateTime                      @updatedAt
+
+  careRecipient  CareRecipient         @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+  communications FamilyCommunication[]
+
+  @@index([careRecipientId])
+  @@map("family_contacts")
+}
+
+// One logged interaction with a family contact (an app message, phone call, in person
+// visit, email or video call). Append only; feeds the Recent Communication Log and the
+// last contact shown on each contact card.
+model FamilyCommunication {
+  id              String                  @id @default(uuid()) @db.Uuid
+  careRecipientId String                  @db.Uuid
+  familyContactId String                  @db.Uuid
+  type            FamilyCommunicationType
+  subject         String                  @db.VarChar(300)
+  staffMemberName String                  @db.VarChar(120)
+  occurredAt      DateTime
+  createdAt       DateTime                @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+  familyContact FamilyContact @relation(fields: [familyContactId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId, occurredAt])
+  @@index([familyContactId, occurredAt])
+  @@map("family_communications")
+}
+
+enum FamilyContactRole {
+  PRIMARY_CONTACT
+  SECONDARY_CONTACT
+  EMERGENCY_CONTACT
+  POWER_OF_ATTORNEY
+  BILLING_CONTACT
+  MEDICAL_DECISION_BACKUP
+  VISIT_COMPANION
+
+  @@map("family_contact_role")
+}
+
+enum FamilyAccessLevel {
+  FULL_ACCESS
+  VIEW_ONLY
+  LIMITED
+
+  @@map("family_access_level")
+}
+
+enum FamilyPreferredContactMethod {
+  PHONE
+  APP_MESSAGE
+  SMS_TEXT
+  VIDEO_CALL
+  EMAIL
+
+  @@map("family_preferred_contact_method")
+}
+
+enum FamilyCommunicationType {
+  APP_MESSAGE
+  PHONE_CALL
+  IN_PERSON
+  EMAIL
+  VIDEO_CALL
+  SMS_TEXT
+
+  @@map("family_communication_type")
 }
 
 enum CareGoalStatus {
