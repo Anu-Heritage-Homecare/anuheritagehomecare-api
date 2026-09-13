@@ -17,6 +17,7 @@ import { CARE_TEAM_ASSIGNMENT_EVENT_REPOSITORY } from './domain/care-team-assign
 import { CARE_TEAM_ASSIGNMENT_REPOSITORY } from './domain/care-team-assignment.repository';
 import { COVERAGE_BLOCK_REPOSITORY } from './domain/coverage-block.repository';
 import { HEALTH_EVENT_REPOSITORY } from './domain/health-event.repository';
+import { RECIPIENT_DOCUMENT_REPOSITORY } from './domain/recipient-document.repository';
 import { MEDICATION_AUDIT_REPOSITORY } from './domain/medication-audit.repository';
 import { MEDICATION_WARNING_REPOSITORY } from './domain/medication-warning.repository';
 import { CareGoalPrismaRepository } from './infrastructure/persistence/care-goal-prisma.repository';
@@ -28,6 +29,7 @@ import { CareTeamAssignmentEventPrismaRepository } from './infrastructure/persis
 import { CareTeamAssignmentPrismaRepository } from './infrastructure/persistence/care-team-assignment-prisma.repository';
 import { CoverageBlockPrismaRepository } from './infrastructure/persistence/coverage-block-prisma.repository';
 import { HealthEventPrismaRepository } from './infrastructure/persistence/health-event-prisma.repository';
+import { RecipientDocumentPrismaRepository } from './infrastructure/persistence/recipient-document-prisma.repository';
 import { MedicationAuditPrismaRepository } from './infrastructure/persistence/medication-audit-prisma.repository';
 import { MedicationWarningPrismaRepository } from './infrastructure/persistence/medication-warning-prisma.repository';
 import { CareRecipientsController } from './presentation/care-recipients.controller';
@@ -64,6 +66,7 @@ import { CareRecipientsController } from './presentation/care-recipients.control
       useClass: CareTeamAssignmentEventPrismaRepository,
     },
     { provide: COVERAGE_BLOCK_REPOSITORY, useClass: CoverageBlockPrismaRepository },
+    { provide: RECIPIENT_DOCUMENT_REPOSITORY, useClass: RecipientDocumentPrismaRepository },
   ],
   exports: [
     CARE_RECIPIENT_REPOSITORY,
@@ -77,6 +80,7 @@ import { CareRecipientsController } from './presentation/care-recipients.control
     CARE_TEAM_ASSIGNMENT_REPOSITORY,
     CARE_TEAM_ASSIGNMENT_EVENT_REPOSITORY,
     COVERAGE_BLOCK_REPOSITORY,
+    RECIPIENT_DOCUMENT_REPOSITORY,
     SetCareGoalsUseCase,
   ],
 })

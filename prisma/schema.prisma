@@ -275,6 +275,9 @@ model CareRecipient {
   careTeamHistory  CareTeamAssignmentEvent[]
   coverageBlocks   CoverageBlock[]
 
+  // The recipient's document registry, surfaced on the admin Documents screen.
+  documents RecipientDocument[]
+
   // Step 4: care schedule (null until the step is completed). The recurring
   // pattern (which weekdays, the start time in minutes from midnight, and how
   // long each visit lasts in minutes) is optional and may be refined after
@@ -561,6 +564,48 @@ enum CoverageSlot {
   AFTERNOON
 
   @@map("coverage_slot")
+}
+
+// One document held for a care recipient. Stores metadata and an opaque storage
+// key; the file lives in object storage (upload and download deferred). `expiresAt`
+// drives the derived Expiring Soon status for documents that lapse.
+model RecipientDocument {
+  id              String           @id @default(uuid()) @db.Uuid
+  careRecipientId String           @db.Uuid
+  name            String           @db.VarChar(300)
+  category        DocumentCategory
+  storageKey      String           @db.VarChar(500)
+  sizeBytes       Int
+  uploadedByName  String?          @db.VarChar(120)
+  status          DocumentStatus   @default(CURRENT)
+  expiresAt       DateTime?
+  uploadedAt      DateTime
+  updatedAt       DateTime         @updatedAt
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId, uploadedAt])
+  @@index([careRecipientId, category])
+  @@map("recipient_documents")
+}
+
+enum DocumentCategory {
+  MEDICAL_RECORDS
+  CARE_PLANS
+  LEGAL
+  INSURANCE
+  CERTIFICATIONS
+  PHOTOS
+
+  @@map("document_category")
+}
+
+enum DocumentStatus {
+  CURRENT
+  PENDING_REVIEW
+  VERIFIED
+
+  @@map("document_status")
 }
 
 enum CareGoalStatus {
