@@ -268,6 +268,13 @@ model CareRecipient {
   // assessments, appointments), surfaced on the admin Health screen.
   healthEvents HealthEvent[]
 
+  // The recipient's caregiver team (with roles), the append only assignment
+  // history, and the recurring weekly coverage grid, surfaced on the admin
+  // Caregivers screen.
+  careTeam         CareTeamAssignment[]
+  careTeamHistory  CareTeamAssignmentEvent[]
+  coverageBlocks   CoverageBlock[]
+
   // Step 4: care schedule (null until the step is completed). The recurring
   // pattern (which weekdays, the start time in minutes from midnight, and how
   // long each visit lasts in minutes) is optional and may be refined after
@@ -477,6 +484,83 @@ enum HealthEventCategory {
   CARE
 
   @@map("health_event_category")
+}
+
+// One caregiver's membership on a recipient's care team, in a role, with an office
+// set specialization and working schedule. Removed (removedAt stamped) rather than
+// deleted, so the assignment history is preserved.
+model CareTeamAssignment {
+  id              String       @id @default(uuid()) @db.Uuid
+  careRecipientId String       @db.Uuid
+  // References the caregiver User by id across contexts (no database foreign key).
+  caregiverId     String       @db.Uuid
+  role            CareTeamRole
+  specialization  String?      @db.VarChar(200)
+  scheduleLabel   String?      @db.VarChar(200)
+  assignedAt      DateTime
+  removedAt       DateTime?
+  createdAt       DateTime     @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId])
+  @@map("care_team_assignments")
+}
+
+// One append only entry in a recipient's caregiver assignment history (a caregiver
+// assigned to or removed from the team, with the reason), attributed to the admin.
+model CareTeamAssignmentEvent {
+  id              String         @id @default(uuid()) @db.Uuid
+  careRecipientId String         @db.Uuid
+  caregiverId     String         @db.Uuid
+  action          CareTeamAction
+  reason          String         @db.VarChar(500)
+  byAdminId       String?        @db.Uuid
+  createdAt       DateTime       @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId, createdAt])
+  @@map("care_team_assignment_events")
+}
+
+// One block of a recipient's recurring weekly coverage grid: a weekday and slot
+// (morning or afternoon) covered by a caregiver, or open. Office set and replaced
+// wholesale when the coverage template is edited.
+model CoverageBlock {
+  id              String       @id @default(uuid()) @db.Uuid
+  careRecipientId String       @db.Uuid
+  weekday         Weekday
+  slot            CoverageSlot
+  caregiverId     String?      @db.Uuid
+  createdAt       DateTime     @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId])
+  @@map("coverage_blocks")
+}
+
+enum CareTeamRole {
+  PRIMARY
+  BACKUP
+  COORDINATOR
+
+  @@map("care_team_role")
+}
+
+enum CareTeamAction {
+  ASSIGNED
+  REMOVED
+
+  @@map("care_team_action")
+}
+
+enum CoverageSlot {
+  MORNING
+  AFTERNOON
+
+  @@map("coverage_slot")
 }
 
 enum CareGoalStatus {

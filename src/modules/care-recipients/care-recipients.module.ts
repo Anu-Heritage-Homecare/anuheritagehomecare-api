@@ -13,6 +13,9 @@ import { CARE_INSTRUCTION_REPOSITORY } from './domain/care-instruction.repositor
 import { CARE_PLAN_REVISION_REPOSITORY } from './domain/care-plan-revision.repository';
 import { CARE_PLAN_SCHEDULE_REPOSITORY } from './domain/care-plan-schedule-block.repository';
 import { CARE_RECIPIENT_REPOSITORY } from './domain/care-recipient.repository';
+import { CARE_TEAM_ASSIGNMENT_EVENT_REPOSITORY } from './domain/care-team-assignment-event.repository';
+import { CARE_TEAM_ASSIGNMENT_REPOSITORY } from './domain/care-team-assignment.repository';
+import { COVERAGE_BLOCK_REPOSITORY } from './domain/coverage-block.repository';
 import { HEALTH_EVENT_REPOSITORY } from './domain/health-event.repository';
 import { MEDICATION_AUDIT_REPOSITORY } from './domain/medication-audit.repository';
 import { MEDICATION_WARNING_REPOSITORY } from './domain/medication-warning.repository';
@@ -21,6 +24,9 @@ import { CareInstructionPrismaRepository } from './infrastructure/persistence/ca
 import { CarePlanRevisionPrismaRepository } from './infrastructure/persistence/care-plan-revision-prisma.repository';
 import { CarePlanSchedulePrismaRepository } from './infrastructure/persistence/care-plan-schedule-prisma.repository';
 import { CareRecipientPrismaRepository } from './infrastructure/persistence/care-recipient-prisma.repository';
+import { CareTeamAssignmentEventPrismaRepository } from './infrastructure/persistence/care-team-assignment-event-prisma.repository';
+import { CareTeamAssignmentPrismaRepository } from './infrastructure/persistence/care-team-assignment-prisma.repository';
+import { CoverageBlockPrismaRepository } from './infrastructure/persistence/coverage-block-prisma.repository';
 import { HealthEventPrismaRepository } from './infrastructure/persistence/health-event-prisma.repository';
 import { MedicationAuditPrismaRepository } from './infrastructure/persistence/medication-audit-prisma.repository';
 import { MedicationWarningPrismaRepository } from './infrastructure/persistence/medication-warning-prisma.repository';
@@ -52,6 +58,12 @@ import { CareRecipientsController } from './presentation/care-recipients.control
     { provide: MEDICATION_WARNING_REPOSITORY, useClass: MedicationWarningPrismaRepository },
     { provide: MEDICATION_AUDIT_REPOSITORY, useClass: MedicationAuditPrismaRepository },
     { provide: HEALTH_EVENT_REPOSITORY, useClass: HealthEventPrismaRepository },
+    { provide: CARE_TEAM_ASSIGNMENT_REPOSITORY, useClass: CareTeamAssignmentPrismaRepository },
+    {
+      provide: CARE_TEAM_ASSIGNMENT_EVENT_REPOSITORY,
+      useClass: CareTeamAssignmentEventPrismaRepository,
+    },
+    { provide: COVERAGE_BLOCK_REPOSITORY, useClass: CoverageBlockPrismaRepository },
   ],
   exports: [
     CARE_RECIPIENT_REPOSITORY,
@@ -62,6 +74,9 @@ import { CareRecipientsController } from './presentation/care-recipients.control
     MEDICATION_WARNING_REPOSITORY,
     MEDICATION_AUDIT_REPOSITORY,
     HEALTH_EVENT_REPOSITORY,
+    CARE_TEAM_ASSIGNMENT_REPOSITORY,
+    CARE_TEAM_ASSIGNMENT_EVENT_REPOSITORY,
+    COVERAGE_BLOCK_REPOSITORY,
     SetCareGoalsUseCase,
   ],
 })
