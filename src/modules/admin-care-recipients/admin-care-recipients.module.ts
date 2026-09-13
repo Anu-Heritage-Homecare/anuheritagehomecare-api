@@ -9,6 +9,7 @@ import { AddCareRecipientUseCase } from './application/use-cases/add-care-recipi
 import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change-care-recipient-status.use-case';
 import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from './application/use-cases/get-care-recipient-profile.use-case';
+import { GetRecipientVisitsUseCase } from './application/use-cases/get-recipient-visits.use-case';
 import { ListCareRecipientsUseCase } from './application/use-cases/list-care-recipients.use-case';
 import { SetCarePlanGoalsUseCase } from './application/use-cases/set-care-plan-goals.use-case';
 import { SetCarePlanInstructionsUseCase } from './application/use-cases/set-care-plan-instructions.use-case';
@@ -17,8 +18,10 @@ import { SetCareRecipientPriorityUseCase } from './application/use-cases/set-car
 import { SetPrimaryCaregiverUseCase } from './application/use-cases/set-primary-caregiver.use-case';
 import { CARE_ACTIVITY_DIRECTORY } from './application/ports/care-activity.port';
 import { CARE_RECIPIENT_READ_MODEL } from './application/ports/care-recipient-read.port';
+import { RECIPIENT_VISITS_READ_MODEL } from './application/ports/recipient-visits-read.port';
 import { VisitsCareActivityDirectory } from './infrastructure/access/visits-care-activity.directory';
 import { CareRecipientReadPrisma } from './infrastructure/persistence/care-recipient-read.prisma';
+import { RecipientVisitsReadPrisma } from './infrastructure/persistence/recipient-visits-read.prisma';
 import { AdminCareRecipientsController } from './presentation/admin-care-recipients.controller';
 
 /**
@@ -40,6 +43,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
   providers: [
     ListCareRecipientsUseCase,
     GetCareRecipientProfileUseCase,
+    GetRecipientVisitsUseCase,
     GetCarePlanUseCase,
     SetCarePlanGoalsUseCase,
     SetCarePlanScheduleUseCase,
@@ -49,6 +53,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     SetCareRecipientPriorityUseCase,
     SetPrimaryCaregiverUseCase,
     { provide: CARE_RECIPIENT_READ_MODEL, useClass: CareRecipientReadPrisma },
+    { provide: RECIPIENT_VISITS_READ_MODEL, useClass: RecipientVisitsReadPrisma },
     { provide: CARE_ACTIVITY_DIRECTORY, useClass: VisitsCareActivityDirectory },
   ],
 })

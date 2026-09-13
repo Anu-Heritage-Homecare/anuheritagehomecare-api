@@ -26,6 +26,7 @@ import { AddCareRecipientUseCase } from '../application/use-cases/add-care-recip
 import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/change-care-recipient-status.use-case';
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
+import { GetRecipientVisitsUseCase } from '../application/use-cases/get-recipient-visits.use-case';
 import { ListCareRecipientsUseCase } from '../application/use-cases/list-care-recipients.use-case';
 import { SetCarePlanGoalsUseCase } from '../application/use-cases/set-care-plan-goals.use-case';
 import { SetCarePlanInstructionsUseCase } from '../application/use-cases/set-care-plan-instructions.use-case';
@@ -33,6 +34,8 @@ import { SetCarePlanScheduleUseCase } from '../application/use-cases/set-care-pl
 import { SetCareRecipientPriorityUseCase } from '../application/use-cases/set-care-recipient-priority.use-case';
 import { SetPrimaryCaregiverUseCase } from '../application/use-cases/set-primary-caregiver.use-case';
 import { CarePlanResponseDto } from './dto/care-plan-response.dto';
+import { RecipientVisitsQueryDto } from './dto/recipient-visits-query.dto';
+import { RecipientVisitsResponseDto } from './dto/recipient-visits-response.dto';
 import {
   SetGoalsRequestDto,
   SetInstructionsRequestDto,
@@ -61,6 +64,7 @@ export class AdminCareRecipientsController {
   constructor(
     private readonly list: ListCareRecipientsUseCase,
     private readonly profile: GetCareRecipientProfileUseCase,
+    private readonly visits: GetRecipientVisitsUseCase,
     private readonly carePlan: GetCarePlanUseCase,
     private readonly setGoals: SetCarePlanGoalsUseCase,
     private readonly setSchedule: SetCarePlanScheduleUseCase,
@@ -98,6 +102,29 @@ export class AdminCareRecipientsController {
   ): Promise<CareRecipientProfileResponseDto> {
     const result = await this.profile.execute(id);
     return CareRecipientProfileResponseDto.fromResult(result);
+  }
+
+  @Get(':id/visits')
+  @ApiOperation({
+    summary: 'The visits tab: summary cards, filtered visit history and visit analytics',
+  })
+  @ApiOkResponse({ type: RecipientVisitsResponseDto })
+  async getVisits(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: RecipientVisitsQueryDto,
+  ): Promise<RecipientVisitsResponseDto> {
+    const result = await this.visits.execute({
+      recipientId: id,
+      from: query.from ? new Date(query.from) : null,
+      to: query.to ? new Date(query.to) : null,
+      caregiverId: query.caregiverId ?? null,
+      visitType: query.visitType ?? null,
+      status: query.status ?? null,
+      search: query.search ?? null,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 10,
+    });
+    return RecipientVisitsResponseDto.fromResult(result);
   }
 
   @Get(':id/care-plan')
