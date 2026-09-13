@@ -12,10 +12,13 @@ import { AddHealthEventUseCase } from './application/use-cases/add-health-event.
 import { AddMedicationUseCase } from './application/use-cases/add-medication.use-case';
 import { AssignCaregiverUseCase } from './application/use-cases/assign-caregiver.use-case';
 import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change-care-recipient-status.use-case';
+import { CreateInvoiceUseCase } from './application/use-cases/create-invoice.use-case';
 import { DeleteDocumentUseCase } from './application/use-cases/delete-document.use-case';
 import { DiscontinueMedicationUseCase } from './application/use-cases/discontinue-medication.use-case';
+import { RecordInvoicePaymentUseCase } from './application/use-cases/record-invoice-payment.use-case';
 import { RemoveCaregiverUseCase } from './application/use-cases/remove-caregiver.use-case';
 import { ReviseCaregiverAssignmentUseCase } from './application/use-cases/revise-caregiver-assignment.use-case';
+import { SetBillingProfileUseCase } from './application/use-cases/set-billing-profile.use-case';
 import { SetCoverageUseCase } from './application/use-cases/set-coverage.use-case';
 import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from './application/use-cases/get-care-recipient-profile.use-case';
@@ -80,6 +83,9 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     GetRecipientCaregiversUseCase,
     GetRecipientDocumentsUseCase,
     GetRecipientBillingUseCase,
+    CreateInvoiceUseCase,
+    RecordInvoicePaymentUseCase,
+    SetBillingProfileUseCase,
     UploadDocumentUseCase,
     SetDocumentStatusUseCase,
     DeleteDocumentUseCase,

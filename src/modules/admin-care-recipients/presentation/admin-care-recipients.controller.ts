@@ -30,10 +30,13 @@ import { AddHealthEventUseCase } from '../application/use-cases/add-health-event
 import { AddMedicationUseCase } from '../application/use-cases/add-medication.use-case';
 import { AssignCaregiverUseCase } from '../application/use-cases/assign-caregiver.use-case';
 import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/change-care-recipient-status.use-case';
+import { CreateInvoiceUseCase } from '../application/use-cases/create-invoice.use-case';
 import { DeleteDocumentUseCase } from '../application/use-cases/delete-document.use-case';
 import { DiscontinueMedicationUseCase } from '../application/use-cases/discontinue-medication.use-case';
+import { RecordInvoicePaymentUseCase } from '../application/use-cases/record-invoice-payment.use-case';
 import { RemoveCaregiverUseCase } from '../application/use-cases/remove-caregiver.use-case';
 import { ReviseCaregiverAssignmentUseCase } from '../application/use-cases/revise-caregiver-assignment.use-case';
+import { SetBillingProfileUseCase } from '../application/use-cases/set-billing-profile.use-case';
 import { SetCoverageUseCase } from '../application/use-cases/set-coverage.use-case';
 import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-case';
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
@@ -66,6 +69,11 @@ import {
   ReviseCaregiverAssignmentRequestDto,
   SetCoverageRequestDto,
 } from './dto/care-team-write.dto';
+import {
+  CreateInvoiceRequestDto,
+  RecordInvoicePaymentRequestDto,
+  SetBillingProfileRequestDto,
+} from './dto/billing-write.dto';
 import { RecipientBillingResponseDto } from './dto/recipient-billing-response.dto';
 import { RecipientCaregiversResponseDto } from './dto/recipient-caregivers-response.dto';
 import { SetDocumentStatusRequestDto, UploadDocumentRequestDto } from './dto/document-write.dto';
@@ -110,6 +118,9 @@ export class AdminCareRecipientsController {
     private readonly caregivers: GetRecipientCaregiversUseCase,
     private readonly documents: GetRecipientDocumentsUseCase,
     private readonly billing: GetRecipientBillingUseCase,
+    private readonly createInvoice: CreateInvoiceUseCase,
+    private readonly recordInvoicePayment: RecordInvoicePaymentUseCase,
+    private readonly setBillingProfile: SetBillingProfileUseCase,
     private readonly uploadDocument: UploadDocumentUseCase,
     private readonly setDocumentStatus: SetDocumentStatusUseCase,
     private readonly deleteDocument: DeleteDocumentUseCase,
@@ -259,6 +270,51 @@ export class AdminCareRecipientsController {
   ): Promise<RecipientBillingResponseDto> {
     const result = await this.billing.execute(id, page < 1 ? 1 : page);
     return RecipientBillingResponseDto.fromResult(result);
+  }
+
+  @Post(':id/invoices')
+  @ApiOperation({ summary: 'Issue an invoice for a billing period (currency derived server side)' })
+  @ApiCreatedResponse()
+  async issueInvoice(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CreateInvoiceRequestDto,
+  ): Promise<{ id: string }> {
+    return this.createInvoice.execute({
+      recipientId: id,
+      periodStart: new Date(body.periodStart),
+      periodEnd: new Date(body.periodEnd),
+      servicesLabel: body.servicesLabel,
+      insuranceCoveredMinor: body.insuranceCoveredMinor,
+      dueDate: body.dueDate ? new Date(body.dueDate) : null,
+      lines: body.lines.map((l) => ({ serviceName: l.serviceName, amountMinor: l.amountMinor })),
+    });
+  }
+
+  @Post(':id/invoices/:invoiceId/payments')
+  @ApiOperation({ summary: 'Record a payment received towards an invoice' })
+  @ApiCreatedResponse()
+  async addInvoicePayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('invoiceId', ParseUUIDPipe) invoiceId: string,
+    @Body() body: RecordInvoicePaymentRequestDto,
+  ): Promise<{ id: string }> {
+    return this.recordInvoicePayment.execute({
+      recipientId: id,
+      invoiceId,
+      amountMinor: body.amountMinor,
+      methodLabel: body.methodLabel,
+      receivedAt: body.receivedAt ? new Date(body.receivedAt) : null,
+    });
+  }
+
+  @Put(':id/billing/profile')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set the billing and insurance profile' })
+  async saveBillingProfile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetBillingProfileRequestDto,
+  ): Promise<{ id: string }> {
+    return this.setBillingProfile.execute({ recipientId: id, ...body });
   }
 
   @Post(':id/documents')
