@@ -8,6 +8,7 @@ interface VitalsReadingProps {
   oxygenSaturation: number | null;
   weightGrams: number | null;
   temperatureTenths: number | null;
+  bloodGlucose: number | null;
   recordedAt: Date;
 }
 
@@ -15,6 +16,8 @@ interface VitalsReadingProps {
 const MAX_PRESSURE = 400;
 const MAX_HEART_RATE = 400;
 const MAX_WEIGHT_GRAMS = 500_000;
+// Blood glucose in mg/dL; well outside is treated as a typo.
+const MAX_BLOOD_GLUCOSE = 2000;
 // Body temperature in tenths of a degree Celsius (30.0 to 45.0 C).
 const MIN_TEMP_TENTHS = 300;
 const MAX_TEMP_TENTHS = 450;
@@ -38,6 +41,7 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
     oxygenSaturation?: number | null;
     weightGrams?: number | null;
     temperatureCelsius?: number | null;
+    bloodGlucose?: number | null;
     recordedAt: Date;
   }): VitalsReading {
     const systolic = VitalsReading.cleanMeasure(params.systolic, 'Systolic', MAX_PRESSURE);
@@ -50,6 +54,11 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
     );
     const weightGrams = VitalsReading.cleanMeasure(params.weightGrams, 'Weight', MAX_WEIGHT_GRAMS);
     const temperatureTenths = VitalsReading.cleanTemperature(params.temperatureCelsius);
+    const bloodGlucose = VitalsReading.cleanMeasure(
+      params.bloodGlucose,
+      'Blood glucose',
+      MAX_BLOOD_GLUCOSE,
+    );
 
     if (
       systolic === null &&
@@ -57,7 +66,8 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
       heartRate === null &&
       oxygenSaturation === null &&
       weightGrams === null &&
-      temperatureTenths === null
+      temperatureTenths === null &&
+      bloodGlucose === null
     ) {
       throw new ValidationException('At least one vital sign must be recorded');
     }
@@ -75,6 +85,7 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
       oxygenSaturation,
       weightGrams,
       temperatureTenths,
+      bloodGlucose,
       recordedAt: params.recordedAt,
     });
   }
@@ -136,6 +147,11 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
   /** Temperature in degrees Celsius (one decimal), or null. */
   public get temperatureCelsius(): number | null {
     return this.props.temperatureTenths === null ? null : this.props.temperatureTenths / 10;
+  }
+
+  /** Blood glucose in mg/dL, or null. */
+  public get bloodGlucose(): number | null {
+    return this.props.bloodGlucose;
   }
 
   public get recordedAt(): Date {

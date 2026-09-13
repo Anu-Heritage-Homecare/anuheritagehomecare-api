@@ -63,4 +63,16 @@ export class RecordVitalsRequestDto {
   @Min(MIN_TEMP)
   @Max(MAX_TEMP)
   temperatureCelsius?: number | null;
+
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 2000,
+    example: 142,
+    description: 'Blood glucose in mg/dL',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2000)
+  bloodGlucose?: number | null;
 }

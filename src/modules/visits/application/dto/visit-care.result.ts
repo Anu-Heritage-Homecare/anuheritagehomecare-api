@@ -17,6 +17,7 @@ export interface VitalsReadingResult {
   oxygenSaturation: number | null;
   weightGrams: number | null;
   temperatureCelsius: number | null;
+  bloodGlucose: number | null;
   recordedAt: string;
 }
 

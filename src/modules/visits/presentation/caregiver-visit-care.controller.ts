@@ -106,6 +106,7 @@ export class CaregiverVisitCareController {
       oxygenSaturation: body.oxygenSaturation,
       weightGrams: body.weightGrams,
       temperatureCelsius: body.temperatureCelsius,
+      bloodGlucose: body.bloodGlucose,
     });
     return VitalsResponseDto.fromResult(result);
   }

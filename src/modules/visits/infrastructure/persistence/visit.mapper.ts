@@ -59,6 +59,7 @@ export interface VisitVitalsRow {
   oxygenSaturation: number | null;
   weightGrams: number | null;
   temperatureTenths: number | null;
+  bloodGlucose: number | null;
   recordedAt: Date;
 }
 
@@ -112,6 +113,7 @@ export class VisitMapper {
           weightGrams: reading.weightGrams,
           temperatureCelsius:
             reading.temperatureTenths === null ? null : reading.temperatureTenths / 10,
+          bloodGlucose: reading.bloodGlucose,
           recordedAt: reading.recordedAt,
         }),
       );
@@ -220,6 +222,7 @@ export class VisitMapper {
       oxygenSaturation: reading.oxygenSaturation,
       weightGrams: reading.weightGrams,
       temperatureTenths: reading.temperatureTenths,
+      bloodGlucose: reading.bloodGlucose,
       recordedAt: reading.recordedAt,
     }));
   }

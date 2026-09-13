@@ -57,6 +57,9 @@ export class VitalsResponseDto {
   @ApiProperty({ nullable: true, example: 36.8 })
   temperatureCelsius!: number | null;
 
+  @ApiProperty({ nullable: true, example: 142 })
+  bloodGlucose!: number | null;
+
   @ApiProperty()
   recordedAt!: string;
 
@@ -68,6 +71,7 @@ export class VitalsResponseDto {
     dto.oxygenSaturation = result.oxygenSaturation;
     dto.weightGrams = result.weightGrams;
     dto.temperatureCelsius = result.temperatureCelsius;
+    dto.bloodGlucose = result.bloodGlucose;
     dto.recordedAt = result.recordedAt;
     return dto;
   }
