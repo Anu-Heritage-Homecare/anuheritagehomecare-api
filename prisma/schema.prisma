@@ -278,6 +278,12 @@ model CareRecipient {
   // The recipient's document registry, surfaced on the admin Documents screen.
   documents RecipientDocument[]
 
+  // The recipient's billing: invoices, payments and the billing/insurance profile,
+  // surfaced on the admin Billing screen.
+  recipientInvoices        RecipientInvoice[]
+  recipientInvoicePayments RecipientInvoicePayment[]
+  billingProfile           BillingProfile?
+
   // Step 4: care schedule (null until the step is completed). The recurring
   // pattern (which weekdays, the start time in minutes from midnight, and how
   // long each visit lasts in minutes) is optional and may be refined after
@@ -606,6 +612,97 @@ enum DocumentStatus {
   VERIFIED
 
   @@map("document_status")
+}
+
+// An office issued invoice for a recipient over a billing period. The amount is the
+// sum of its lines; insurance covers part and the remainder is the patient due.
+// Money is integer minor units in the owner's billing currency. `sequence` is a
+// database assigned number formatted as INV-YYYY-NNN for display.
+model RecipientInvoice {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  careRecipientId       String                 @db.Uuid
+  sequence              Int                    @unique @default(autoincrement())
+  periodStart           DateTime               @db.Date
+  periodEnd             DateTime               @db.Date
+  servicesLabel         String                 @db.VarChar(300)
+  currency              Currency
+  insuranceCoveredMinor Int
+  status                RecipientInvoiceStatus @default(PENDING)
+  issuedAt              DateTime
+  dueDate               DateTime?              @db.Date
+  createdAt             DateTime               @default(now())
+
+  careRecipient CareRecipient          @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+  lines         RecipientInvoiceLine[]
+
+  @@index([careRecipientId, issuedAt])
+  @@map("recipient_invoices")
+}
+
+// One service line on a recipient invoice (service name and amount in minor units).
+// Drives the invoice total and the year to date service breakdown.
+model RecipientInvoiceLine {
+  id          String @id @default(uuid()) @db.Uuid
+  invoiceId   String @db.Uuid
+  serviceName String @db.VarChar(120)
+  amountMinor Int
+  position    Int
+
+  invoice RecipientInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("recipient_invoice_lines")
+}
+
+// A payment received towards a recipient's invoices (patient or insurance). Only a
+// display safe method label is stored, never card data.
+model RecipientInvoicePayment {
+  id              String   @id @default(uuid()) @db.Uuid
+  careRecipientId String   @db.Uuid
+  invoiceId       String?  @db.Uuid
+  amountMinor     Int
+  currency        Currency
+  methodLabel     String?  @db.VarChar(120)
+  receivedAt      DateTime
+  createdAt       DateTime @default(now())
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([careRecipientId, receivedAt])
+  @@map("recipient_invoice_payments")
+}
+
+// The office set billing and insurance profile for a recipient (one per recipient).
+// Only display safe payment details (brand and last four) are stored.
+model BillingProfile {
+  id                              String    @id @default(uuid()) @db.Uuid
+  careRecipientId                 String    @unique @db.Uuid
+  billingContactName              String?   @db.VarChar(200)
+  billingContactRelationship      String?   @db.VarChar(200)
+  billingContactEmail             String?   @db.VarChar(200)
+  billingContactPhone             String?   @db.VarChar(200)
+  paymentMethodBrand              String?   @db.VarChar(200)
+  paymentMethodLast4              String?   @db.VarChar(4)
+  autoPayEnabled                  Boolean   @default(false)
+  primaryInsuranceProvider        String?   @db.VarChar(200)
+  primaryInsurancePolicyNumber    String?   @db.VarChar(200)
+  primaryInsuranceCoveragePercent Int?
+  primaryInsuranceCoverageDetails String?   @db.VarChar(500)
+  coPayPerVisitMinor              Int?
+  coPayCurrency                   Currency?
+  secondaryInsurance              String?   @db.VarChar(500)
+  updatedAt                       DateTime  @updatedAt
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@map("billing_profiles")
+}
+
+enum RecipientInvoiceStatus {
+  PENDING
+  PAID
+
+  @@map("recipient_invoice_status")
 }
 
 enum CareGoalStatus {

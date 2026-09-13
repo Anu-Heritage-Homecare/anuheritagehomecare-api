@@ -16,6 +16,7 @@ import { CarePlansModule } from './modules/care-plans/care-plans.module';
 import { CareRatingsModule } from './modules/care-ratings/care-ratings.module';
 import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
 import { CertificationsModule } from './modules/certifications/certifications.module';
+import { RecipientBillingModule } from './modules/recipient-billing/recipient-billing.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { CareRequestsModule } from './modules/care-requests/care-requests.module';
@@ -138,6 +139,7 @@ import { SharedModule } from './shared/shared.module';
     AdminTasksModule,
     CareRatingsModule,
     CertificationsModule,
+    RecipientBillingModule,
     AdminDashboardModule,
     AdminCareRecipientsModule,
   ],
