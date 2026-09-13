@@ -28,6 +28,7 @@ import { AddHealthEventUseCase } from '../application/use-cases/add-health-event
 import { AddMedicationUseCase } from '../application/use-cases/add-medication.use-case';
 import { AssignCaregiverUseCase } from '../application/use-cases/assign-caregiver.use-case';
 import { ChangeCareRecipientStatusUseCase } from '../application/use-cases/change-care-recipient-status.use-case';
+import { DeleteDocumentUseCase } from '../application/use-cases/delete-document.use-case';
 import { DiscontinueMedicationUseCase } from '../application/use-cases/discontinue-medication.use-case';
 import { RemoveCaregiverUseCase } from '../application/use-cases/remove-caregiver.use-case';
 import { ReviseCaregiverAssignmentUseCase } from '../application/use-cases/revise-caregiver-assignment.use-case';
@@ -44,7 +45,9 @@ import { SetCarePlanGoalsUseCase } from '../application/use-cases/set-care-plan-
 import { SetCarePlanInstructionsUseCase } from '../application/use-cases/set-care-plan-instructions.use-case';
 import { SetCarePlanScheduleUseCase } from '../application/use-cases/set-care-plan-schedule.use-case';
 import { SetCareRecipientPriorityUseCase } from '../application/use-cases/set-care-recipient-priority.use-case';
+import { SetDocumentStatusUseCase } from '../application/use-cases/set-document-status.use-case';
 import { SetMedicationWarningsUseCase } from '../application/use-cases/set-medication-warnings.use-case';
+import { UploadDocumentUseCase } from '../application/use-cases/upload-document.use-case';
 import { SetPrimaryCaregiverUseCase } from '../application/use-cases/set-primary-caregiver.use-case';
 import { UpdateMedicationUseCase } from '../application/use-cases/update-medication.use-case';
 import { CarePlanResponseDto } from './dto/care-plan-response.dto';
@@ -61,6 +64,7 @@ import {
   SetCoverageRequestDto,
 } from './dto/care-team-write.dto';
 import { RecipientCaregiversResponseDto } from './dto/recipient-caregivers-response.dto';
+import { SetDocumentStatusRequestDto, UploadDocumentRequestDto } from './dto/document-write.dto';
 import { RecipientDocumentsQueryDto } from './dto/recipient-documents-query.dto';
 import { RecipientDocumentsResponseDto } from './dto/recipient-documents-response.dto';
 import { HealthTimelineTab, RecipientHealthQueryDto } from './dto/recipient-health-query.dto';
@@ -101,6 +105,9 @@ export class AdminCareRecipientsController {
     private readonly health: GetRecipientHealthUseCase,
     private readonly caregivers: GetRecipientCaregiversUseCase,
     private readonly documents: GetRecipientDocumentsUseCase,
+    private readonly uploadDocument: UploadDocumentUseCase,
+    private readonly setDocumentStatus: SetDocumentStatusUseCase,
+    private readonly deleteDocument: DeleteDocumentUseCase,
     private readonly assignTeamCaregiver: AssignCaregiverUseCase,
     private readonly reviseAssignment: ReviseCaregiverAssignmentUseCase,
     private readonly removeCaregiver: RemoveCaregiverUseCase,
@@ -234,6 +241,46 @@ export class AdminCareRecipientsController {
       pageSize: query.pageSize ?? 10,
     });
     return RecipientDocumentsResponseDto.fromResult(result);
+  }
+
+  @Post(':id/documents')
+  @ApiOperation({ summary: 'Register an uploaded document (metadata and storage key)' })
+  @ApiCreatedResponse()
+  async createDocument(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UploadDocumentRequestDto,
+  ): Promise<{ id: string }> {
+    return this.uploadDocument.execute({
+      recipientId: id,
+      name: body.name,
+      category: body.category,
+      storageKey: body.storageKey,
+      sizeBytes: body.sizeBytes,
+      uploadedByName: body.uploadedByName,
+      status: body.status,
+      expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+    });
+  }
+
+  @Put(':id/documents/:documentId/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change a document review status' })
+  async changeDocumentStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+    @Body() body: SetDocumentStatusRequestDto,
+  ): Promise<{ id: string; status: string }> {
+    return this.setDocumentStatus.execute({ recipientId: id, documentId, status: body.status });
+  }
+
+  @Delete(':id/documents/:documentId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove a document from the registry' })
+  async removeDocument(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+  ): Promise<{ id: string }> {
+    return this.deleteDocument.execute({ recipientId: id, documentId });
   }
 
   @Post(':id/caregivers')

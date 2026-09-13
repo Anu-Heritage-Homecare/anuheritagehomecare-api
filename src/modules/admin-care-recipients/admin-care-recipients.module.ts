@@ -11,6 +11,7 @@ import { AddHealthEventUseCase } from './application/use-cases/add-health-event.
 import { AddMedicationUseCase } from './application/use-cases/add-medication.use-case';
 import { AssignCaregiverUseCase } from './application/use-cases/assign-caregiver.use-case';
 import { ChangeCareRecipientStatusUseCase } from './application/use-cases/change-care-recipient-status.use-case';
+import { DeleteDocumentUseCase } from './application/use-cases/delete-document.use-case';
 import { DiscontinueMedicationUseCase } from './application/use-cases/discontinue-medication.use-case';
 import { RemoveCaregiverUseCase } from './application/use-cases/remove-caregiver.use-case';
 import { ReviseCaregiverAssignmentUseCase } from './application/use-cases/revise-caregiver-assignment.use-case';
@@ -27,7 +28,9 @@ import { SetCarePlanGoalsUseCase } from './application/use-cases/set-care-plan-g
 import { SetCarePlanInstructionsUseCase } from './application/use-cases/set-care-plan-instructions.use-case';
 import { SetCarePlanScheduleUseCase } from './application/use-cases/set-care-plan-schedule.use-case';
 import { SetCareRecipientPriorityUseCase } from './application/use-cases/set-care-recipient-priority.use-case';
+import { SetDocumentStatusUseCase } from './application/use-cases/set-document-status.use-case';
 import { SetMedicationWarningsUseCase } from './application/use-cases/set-medication-warnings.use-case';
+import { UploadDocumentUseCase } from './application/use-cases/upload-document.use-case';
 import { SetPrimaryCaregiverUseCase } from './application/use-cases/set-primary-caregiver.use-case';
 import { UpdateMedicationUseCase } from './application/use-cases/update-medication.use-case';
 import { CARE_ACTIVITY_DIRECTORY } from './application/ports/care-activity.port';
@@ -71,6 +74,9 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     GetRecipientHealthUseCase,
     GetRecipientCaregiversUseCase,
     GetRecipientDocumentsUseCase,
+    UploadDocumentUseCase,
+    SetDocumentStatusUseCase,
+    DeleteDocumentUseCase,
     AssignCaregiverUseCase,
     ReviseCaregiverAssignmentUseCase,
     RemoveCaregiverUseCase,
