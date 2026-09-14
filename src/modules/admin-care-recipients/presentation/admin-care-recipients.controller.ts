@@ -50,6 +50,7 @@ import { GetCarePlanUseCase } from '../application/use-cases/get-care-plan.use-c
 import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-care-recipient-profile.use-case';
 import { GetRecipientBillingUseCase } from '../application/use-cases/get-recipient-billing.use-case';
 import { GetRecipientCaregiversUseCase } from '../application/use-cases/get-recipient-caregivers.use-case';
+import { GetRecipientActivityUseCase } from '../application/use-cases/get-recipient-activity.use-case';
 import { GetRecipientDocumentsUseCase } from '../application/use-cases/get-recipient-documents.use-case';
 import { GetRecipientFamilyUseCase } from '../application/use-cases/get-recipient-family.use-case';
 import { GetRecipientHealthUseCase } from '../application/use-cases/get-recipient-health.use-case';
@@ -92,6 +93,8 @@ import {
 } from './dto/note-write.dto';
 import { RecipientBillingResponseDto } from './dto/recipient-billing-response.dto';
 import { RecipientCaregiversResponseDto } from './dto/recipient-caregivers-response.dto';
+import { RecipientActivityQueryDto } from './dto/recipient-activity-query.dto';
+import { RecipientActivityResponseDto } from './dto/recipient-activity-response.dto';
 import { RecipientFamilyResponseDto } from './dto/recipient-family-response.dto';
 import { RecipientNotesQueryDto } from './dto/recipient-notes-query.dto';
 import { RecipientNotesResponseDto } from './dto/recipient-notes-response.dto';
@@ -147,6 +150,7 @@ export class AdminCareRecipientsController {
     private readonly updateFamilyContact: UpdateFamilyContactUseCase,
     private readonly removeFamilyContact: RemoveFamilyContactUseCase,
     private readonly logFamilyCommunication: LogFamilyCommunicationUseCase,
+    private readonly activity: GetRecipientActivityUseCase,
     private readonly createInvoice: CreateInvoiceUseCase,
     private readonly recordInvoicePayment: RecordInvoicePaymentUseCase,
     private readonly setBillingProfile: SetBillingProfileUseCase,
@@ -486,6 +490,27 @@ export class AdminCareRecipientsController {
     @Param('contactId', ParseUUIDPipe) contactId: string,
   ): Promise<{ id: string }> {
     return this.removeFamilyContact.execute({ recipientId: id, contactId });
+  }
+
+  @Get(':id/activity')
+  @ApiOperation({
+    summary: 'The activity tab: the chronological system audit trail across contexts',
+  })
+  @ApiOkResponse({ type: RecipientActivityResponseDto })
+  async getActivity(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: RecipientActivityQueryDto,
+  ): Promise<RecipientActivityResponseDto> {
+    const result = await this.activity.execute({
+      recipientId: id,
+      category: query.category ?? null,
+      user: query.user ?? null,
+      search: query.search ?? null,
+      days: query.days ?? 7,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    });
+    return RecipientActivityResponseDto.fromResult(result);
   }
 
   @Post(':id/documents')

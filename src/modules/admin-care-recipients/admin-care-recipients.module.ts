@@ -34,6 +34,7 @@ import { GetCarePlanUseCase } from './application/use-cases/get-care-plan.use-ca
 import { GetCareRecipientProfileUseCase } from './application/use-cases/get-care-recipient-profile.use-case';
 import { GetRecipientBillingUseCase } from './application/use-cases/get-recipient-billing.use-case';
 import { GetRecipientCaregiversUseCase } from './application/use-cases/get-recipient-caregivers.use-case';
+import { GetRecipientActivityUseCase } from './application/use-cases/get-recipient-activity.use-case';
 import { GetRecipientDocumentsUseCase } from './application/use-cases/get-recipient-documents.use-case';
 import { GetRecipientFamilyUseCase } from './application/use-cases/get-recipient-family.use-case';
 import { GetRecipientHealthUseCase } from './application/use-cases/get-recipient-health.use-case';
@@ -52,6 +53,7 @@ import { SetPrimaryCaregiverUseCase } from './application/use-cases/set-primary-
 import { UpdateMedicationUseCase } from './application/use-cases/update-medication.use-case';
 import { CARE_ACTIVITY_DIRECTORY } from './application/ports/care-activity.port';
 import { CARE_RECIPIENT_READ_MODEL } from './application/ports/care-recipient-read.port';
+import { RECIPIENT_ACTIVITY_READ_MODEL } from './application/ports/recipient-activity-read.port';
 import { HEALTH_EVENT_READ_MODEL } from './application/ports/health-event-read.port';
 import { MEDICATION_ADMINISTRATION_DIRECTORY } from './application/ports/medication-administration.port';
 import { RECIPIENT_BILLING_READ_MODEL } from './application/ports/recipient-billing-read.port';
@@ -64,6 +66,7 @@ import { VisitsCareActivityDirectory } from './infrastructure/access/visits-care
 import { VisitsMedicationAdministrationDirectory } from './infrastructure/access/visits-medication-administration.directory';
 import { VisitsRecipientVitalsDirectory } from './infrastructure/access/visits-recipient-vitals.directory';
 import { CareRecipientReadPrisma } from './infrastructure/persistence/care-recipient-read.prisma';
+import { RecipientActivityReadPrisma } from './infrastructure/persistence/recipient-activity-read.prisma';
 import { HealthEventReadPrisma } from './infrastructure/persistence/health-event-read.prisma';
 import { RecipientBillingReadPrisma } from './infrastructure/persistence/recipient-billing-read.prisma';
 import { RecipientDocumentReadPrisma } from './infrastructure/persistence/recipient-document-read.prisma';
@@ -111,6 +114,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     UpdateFamilyContactUseCase,
     RemoveFamilyContactUseCase,
     LogFamilyCommunicationUseCase,
+    GetRecipientActivityUseCase,
     CreateInvoiceUseCase,
     RecordInvoicePaymentUseCase,
     SetBillingProfileUseCase,
@@ -146,6 +150,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     { provide: RECIPIENT_BILLING_READ_MODEL, useClass: RecipientBillingReadPrisma },
     { provide: RECIPIENT_NOTES_READ_MODEL, useClass: RecipientNotesReadPrisma },
     { provide: RECIPIENT_FAMILY_READ_MODEL, useClass: RecipientFamilyReadPrisma },
+    { provide: RECIPIENT_ACTIVITY_READ_MODEL, useClass: RecipientActivityReadPrisma },
     { provide: CARE_ACTIVITY_DIRECTORY, useClass: VisitsCareActivityDirectory },
   ],
 })
