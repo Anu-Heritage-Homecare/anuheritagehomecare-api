@@ -225,6 +225,18 @@ export class Visit extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
+  /**
+   * Cancel a scheduled visit, for example when the recipient is discharged or a
+   * shift is called off. Only a visit that has not started can be cancelled.
+   */
+  public cancel(now: Date): void {
+    if (this.props.status !== VisitStatus.Scheduled) {
+      throw new ValidationException('Only a scheduled visit can be cancelled');
+    }
+    this.props.status = VisitStatus.Cancelled;
+    this.props.updatedAt = now;
+  }
+
   /** Begin a break. The visit must be under way; it moves to ON_BREAK. */
   public startBreak(now: Date): void {
     if (this.props.status !== VisitStatus.InProgress) {

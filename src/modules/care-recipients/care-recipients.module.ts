@@ -16,6 +16,7 @@ import { CARE_RECIPIENT_REPOSITORY } from './domain/care-recipient.repository';
 import { CARE_TEAM_ASSIGNMENT_EVENT_REPOSITORY } from './domain/care-team-assignment-event.repository';
 import { CARE_TEAM_ASSIGNMENT_REPOSITORY } from './domain/care-team-assignment.repository';
 import { COVERAGE_BLOCK_REPOSITORY } from './domain/coverage-block.repository';
+import { DISCHARGE_RECORD_REPOSITORY } from './domain/discharge-record.repository';
 import { HEALTH_EVENT_REPOSITORY } from './domain/health-event.repository';
 import { RECIPIENT_DOCUMENT_REPOSITORY } from './domain/recipient-document.repository';
 import { MEDICATION_AUDIT_REPOSITORY } from './domain/medication-audit.repository';
@@ -28,6 +29,7 @@ import { CareRecipientPrismaRepository } from './infrastructure/persistence/care
 import { CareTeamAssignmentEventPrismaRepository } from './infrastructure/persistence/care-team-assignment-event-prisma.repository';
 import { CareTeamAssignmentPrismaRepository } from './infrastructure/persistence/care-team-assignment-prisma.repository';
 import { CoverageBlockPrismaRepository } from './infrastructure/persistence/coverage-block-prisma.repository';
+import { DischargeRecordPrismaRepository } from './infrastructure/persistence/discharge-record-prisma.repository';
 import { HealthEventPrismaRepository } from './infrastructure/persistence/health-event-prisma.repository';
 import { RecipientDocumentPrismaRepository } from './infrastructure/persistence/recipient-document-prisma.repository';
 import { MedicationAuditPrismaRepository } from './infrastructure/persistence/medication-audit-prisma.repository';
@@ -67,6 +69,7 @@ import { CareRecipientsController } from './presentation/care-recipients.control
     },
     { provide: COVERAGE_BLOCK_REPOSITORY, useClass: CoverageBlockPrismaRepository },
     { provide: RECIPIENT_DOCUMENT_REPOSITORY, useClass: RecipientDocumentPrismaRepository },
+    { provide: DISCHARGE_RECORD_REPOSITORY, useClass: DischargeRecordPrismaRepository },
   ],
   exports: [
     CARE_RECIPIENT_REPOSITORY,
@@ -81,6 +84,7 @@ import { CareRecipientsController } from './presentation/care-recipients.control
     CARE_TEAM_ASSIGNMENT_EVENT_REPOSITORY,
     COVERAGE_BLOCK_REPOSITORY,
     RECIPIENT_DOCUMENT_REPOSITORY,
+    DISCHARGE_RECORD_REPOSITORY,
     SetCareGoalsUseCase,
   ],
 })

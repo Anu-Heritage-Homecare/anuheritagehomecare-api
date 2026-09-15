@@ -294,6 +294,10 @@ model CareRecipient {
   familyContacts       FamilyContact[]
   familyCommunications FamilyCommunication[]
 
+  // The recipient's archive/discharge record (one per recipient), surfaced on the
+  // admin Archive/Discharge screen.
+  dischargeRecord DischargeRecord?
+
   // Step 4: care schedule (null until the step is completed). The recurring
   // pattern (which weekdays, the start time in minutes from midnight, and how
   // long each visit lasts in minutes) is optional and may be refined after
@@ -866,6 +870,65 @@ enum FamilyCommunicationType {
   SMS_TEXT
 
   @@map("family_communication_type")
+}
+
+// The formal archive/discharge record for a recipient (one per recipient). Saved as a
+// DRAFT and revised, then PROCESSED once the hold or discharge is executed. The
+// clinical summary is sensitive free text and is kept out of the logs.
+model DischargeRecord {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  careRecipientId    String                    @unique @db.Uuid
+  action             DischargeAction
+  reason             DischargeReason?
+  effectiveDate      DateTime?                 @db.Date
+  clinicalSummary    String?                   @db.VarChar(4000)
+  acknowledgements   DischargeAcknowledgement[] @default([])
+  status             DischargeRecordStatus     @default(DRAFT)
+  processedByAdminId String?                   @db.Uuid
+  processedAt        DateTime?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+
+  @@map("discharge_records")
+}
+
+enum DischargeAction {
+  HOLD
+  DISCHARGE
+
+  @@map("discharge_action")
+}
+
+enum DischargeReason {
+  CARE_NO_LONGER_NEEDED
+  RESIDENTIAL_FACILITY_TRANSITION
+  RELOCATION_OUT_OF_COVERAGE
+  DECEASED
+  HOSPITALIZATION
+  FAMILY_TRAVEL
+  TEMPORARY_RELOCATION
+  OTHER
+
+  @@map("discharge_reason")
+}
+
+enum DischargeAcknowledgement {
+  FINAL_ASSESSMENT_FILED
+  CLINICAL_TASKS_RESOLVED
+  FAMILY_NOTIFIED
+  FINAL_INVOICES_VERIFIED
+  RECORDS_ARCHIVED
+
+  @@map("discharge_acknowledgement")
+}
+
+enum DischargeRecordStatus {
+  DRAFT
+  PROCESSED
+
+  @@map("discharge_record_status")
 }
 
 enum CareGoalStatus {
