@@ -23,7 +23,9 @@ import { FlagCareNoteUseCase } from './application/use-cases/flag-care-note.use-
 import { DeleteDocumentUseCase } from './application/use-cases/delete-document.use-case';
 import { DiscontinueMedicationUseCase } from './application/use-cases/discontinue-medication.use-case';
 import { LogFamilyCommunicationUseCase } from './application/use-cases/log-family-communication.use-case';
+import { ProcessDischargeUseCase } from './application/use-cases/process-discharge.use-case';
 import { RemoveFamilyContactUseCase } from './application/use-cases/remove-family-contact.use-case';
+import { SaveDischargeDraftUseCase } from './application/use-cases/save-discharge-draft.use-case';
 import { UpdateFamilyContactUseCase } from './application/use-cases/update-family-contact.use-case';
 import { RecordInvoicePaymentUseCase } from './application/use-cases/record-invoice-payment.use-case';
 import { RemoveCaregiverUseCase } from './application/use-cases/remove-caregiver.use-case';
@@ -35,6 +37,7 @@ import { GetCareRecipientProfileUseCase } from './application/use-cases/get-care
 import { GetRecipientBillingUseCase } from './application/use-cases/get-recipient-billing.use-case';
 import { GetRecipientCaregiversUseCase } from './application/use-cases/get-recipient-caregivers.use-case';
 import { GetRecipientActivityUseCase } from './application/use-cases/get-recipient-activity.use-case';
+import { GetRecipientArchiveUseCase } from './application/use-cases/get-recipient-archive.use-case';
 import { GetRecipientDocumentsUseCase } from './application/use-cases/get-recipient-documents.use-case';
 import { GetRecipientFamilyUseCase } from './application/use-cases/get-recipient-family.use-case';
 import { GetRecipientHealthUseCase } from './application/use-cases/get-recipient-health.use-case';
@@ -115,6 +118,9 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     RemoveFamilyContactUseCase,
     LogFamilyCommunicationUseCase,
     GetRecipientActivityUseCase,
+    GetRecipientArchiveUseCase,
+    SaveDischargeDraftUseCase,
+    ProcessDischargeUseCase,
     CreateInvoiceUseCase,
     RecordInvoicePaymentUseCase,
     SetBillingProfileUseCase,

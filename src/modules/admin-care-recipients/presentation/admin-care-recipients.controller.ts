@@ -39,7 +39,9 @@ import { DeleteDocumentUseCase } from '../application/use-cases/delete-document.
 import { DiscontinueMedicationUseCase } from '../application/use-cases/discontinue-medication.use-case';
 import { FlagCareNoteUseCase } from '../application/use-cases/flag-care-note.use-case';
 import { LogFamilyCommunicationUseCase } from '../application/use-cases/log-family-communication.use-case';
+import { ProcessDischargeUseCase } from '../application/use-cases/process-discharge.use-case';
 import { RemoveFamilyContactUseCase } from '../application/use-cases/remove-family-contact.use-case';
+import { SaveDischargeDraftUseCase } from '../application/use-cases/save-discharge-draft.use-case';
 import { UpdateFamilyContactUseCase } from '../application/use-cases/update-family-contact.use-case';
 import { RecordInvoicePaymentUseCase } from '../application/use-cases/record-invoice-payment.use-case';
 import { RemoveCaregiverUseCase } from '../application/use-cases/remove-caregiver.use-case';
@@ -51,6 +53,7 @@ import { GetCareRecipientProfileUseCase } from '../application/use-cases/get-car
 import { GetRecipientBillingUseCase } from '../application/use-cases/get-recipient-billing.use-case';
 import { GetRecipientCaregiversUseCase } from '../application/use-cases/get-recipient-caregivers.use-case';
 import { GetRecipientActivityUseCase } from '../application/use-cases/get-recipient-activity.use-case';
+import { GetRecipientArchiveUseCase } from '../application/use-cases/get-recipient-archive.use-case';
 import { GetRecipientDocumentsUseCase } from '../application/use-cases/get-recipient-documents.use-case';
 import { GetRecipientFamilyUseCase } from '../application/use-cases/get-recipient-family.use-case';
 import { GetRecipientHealthUseCase } from '../application/use-cases/get-recipient-health.use-case';
@@ -93,8 +96,10 @@ import {
 } from './dto/note-write.dto';
 import { RecipientBillingResponseDto } from './dto/recipient-billing-response.dto';
 import { RecipientCaregiversResponseDto } from './dto/recipient-caregivers-response.dto';
+import { DischargeFormRequestDto } from './dto/discharge-write.dto';
 import { RecipientActivityQueryDto } from './dto/recipient-activity-query.dto';
 import { RecipientActivityResponseDto } from './dto/recipient-activity-response.dto';
+import { RecipientArchiveResponseDto } from './dto/recipient-archive-response.dto';
 import { RecipientFamilyResponseDto } from './dto/recipient-family-response.dto';
 import { RecipientNotesQueryDto } from './dto/recipient-notes-query.dto';
 import { RecipientNotesResponseDto } from './dto/recipient-notes-response.dto';
@@ -151,6 +156,9 @@ export class AdminCareRecipientsController {
     private readonly removeFamilyContact: RemoveFamilyContactUseCase,
     private readonly logFamilyCommunication: LogFamilyCommunicationUseCase,
     private readonly activity: GetRecipientActivityUseCase,
+    private readonly archive: GetRecipientArchiveUseCase,
+    private readonly saveDischargeDraft: SaveDischargeDraftUseCase,
+    private readonly processDischarge: ProcessDischargeUseCase,
     private readonly createInvoice: CreateInvoiceUseCase,
     private readonly recordInvoicePayment: RecordInvoicePaymentUseCase,
     private readonly setBillingProfile: SetBillingProfileUseCase,
@@ -511,6 +519,60 @@ export class AdminCareRecipientsController {
       pageSize: query.pageSize ?? 20,
     });
     return RecipientActivityResponseDto.fromResult(result);
+  }
+
+  @Get(':id/archive')
+  @ApiOperation({
+    summary: 'The archive/discharge screen: service summary, readiness checklist and draft',
+  })
+  @ApiOkResponse({ type: RecipientArchiveResponseDto })
+  async getArchive(@Param('id', ParseUUIDPipe) id: string): Promise<RecipientArchiveResponseDto> {
+    const result = await this.archive.execute(id);
+    return RecipientArchiveResponseDto.fromResult(result);
+  }
+
+  @Put(':id/archive/draft')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Save or revise the archive/discharge form as a draft' })
+  async saveArchiveDraft(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: DischargeFormRequestDto,
+  ): Promise<{ id: string; status: string }> {
+    return this.saveDischargeDraft.execute({
+      recipientId: id,
+      action: body.action,
+      reason: body.reason ?? null,
+      effectiveDate: body.effectiveDate ? new Date(body.effectiveDate) : null,
+      clinicalSummary: body.clinicalSummary ?? null,
+      acknowledgements: body.acknowledgements ?? null,
+    });
+  }
+
+  @Post(':id/archive/process')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Process the discharge or hold (transitions the recipient and runs the cascade)',
+  })
+  async processArchive(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: DischargeFormRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{
+    id: string;
+    dischargeRecordId: string;
+    status: string;
+    cancelledVisits: number;
+    removedAssignments: number;
+  }> {
+    return this.processDischarge.execute({
+      recipientId: id,
+      adminId: principal.adminUserId,
+      action: body.action,
+      reason: body.reason ?? null,
+      effectiveDate: body.effectiveDate ? new Date(body.effectiveDate) : null,
+      clinicalSummary: body.clinicalSummary ?? null,
+      acknowledgements: body.acknowledgements ?? null,
+    });
   }
 
   @Post(':id/documents')
