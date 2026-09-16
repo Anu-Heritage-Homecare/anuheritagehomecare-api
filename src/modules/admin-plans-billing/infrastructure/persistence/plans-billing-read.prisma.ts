@@ -22,6 +22,10 @@ import {
   SubscriptionPageView,
 } from '../../application/ports/plans-billing-read.port';
 import {
+  PlanPerformanceReadModel,
+  PlanPerformanceView,
+} from '../../application/ports/plan-performance-read.port';
+import {
   SubscriptionStatusCountsView,
   SubscriptionStatusReadModel,
 } from '../../application/ports/subscription-status-read.port';
@@ -45,7 +49,8 @@ export class PlansBillingReadPrisma
     TransactionsReadModel,
     CareRequestsReadModel,
     FlexibleHoursReadModel,
-    SubscriptionStatusReadModel
+    SubscriptionStatusReadModel,
+    PlanPerformanceReadModel
 {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -339,6 +344,73 @@ export class PlansBillingReadPrisma
       pendingPayment: byStatus.get(SubscriptionStatus.PENDING_PAYMENT) ?? 0,
       pastDue: byStatus.get(SubscriptionStatus.PAST_DUE) ?? 0,
       cancelled: byStatus.get(SubscriptionStatus.CANCELLED) ?? 0,
+    };
+  }
+
+  async perPlan(
+    currency: PrismaCurrency,
+    matureBefore: Date,
+    monthStart: Date,
+  ): Promise<PlanPerformanceView> {
+    const [active, cancelled, activeMature, matured, flexible] = await Promise.all([
+      this.prisma.subscription.groupBy({
+        by: ['planType'],
+        where: { currency, status: SubscriptionStatus.ACTIVE },
+        _count: { _all: true },
+        _sum: { monthlyPriceMinor: true },
+      }),
+      this.prisma.subscription.groupBy({
+        by: ['planType'],
+        where: { currency, status: SubscriptionStatus.CANCELLED },
+        _count: { _all: true },
+      }),
+      this.prisma.subscription.groupBy({
+        by: ['planType'],
+        where: {
+          currency,
+          status: SubscriptionStatus.ACTIVE,
+          createdAt: { lt: matureBefore },
+        },
+        _count: { _all: true },
+      }),
+      this.prisma.subscription.groupBy({
+        by: ['planType'],
+        where: {
+          currency,
+          status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.CANCELLED] },
+          createdAt: { lt: matureBefore },
+        },
+        _count: { _all: true },
+      }),
+      this.prisma.booking.aggregate({
+        _count: { _all: true },
+        _sum: { totalMinor: true },
+        where: {
+          currency,
+          status: BookingStatus.CONFIRMED,
+          serviceDate: { gte: monthStart },
+        },
+      }),
+    ]);
+
+    const activeMap = new Map(active.map((r) => [r.planType, r]));
+    const cancelledMap = new Map(cancelled.map((r) => [r.planType, r._count._all]));
+    const activeMatureMap = new Map(activeMature.map((r) => [r.planType, r._count._all]));
+    const maturedMap = new Map(matured.map((r) => [r.planType, r._count._all]));
+
+    const planTypes = new Set([...activeMap.keys(), ...cancelledMap.keys(), ...maturedMap.keys()]);
+
+    return {
+      monthly: [...planTypes].map((planType) => ({
+        planType,
+        activeCount: activeMap.get(planType)?._count._all ?? 0,
+        monthlyRevenueMinor: activeMap.get(planType)?._sum.monthlyPriceMinor ?? 0,
+        cancelledCount: cancelledMap.get(planType) ?? 0,
+        activeMatureCount: activeMatureMap.get(planType) ?? 0,
+        maturedCount: maturedMap.get(planType) ?? 0,
+      })),
+      flexibleBookings: flexible._count._all,
+      flexibleRevenueMinor: flexible._sum.totalMinor ?? 0,
     };
   }
 }

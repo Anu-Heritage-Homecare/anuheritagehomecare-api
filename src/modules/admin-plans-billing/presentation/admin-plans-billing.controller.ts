@@ -30,6 +30,7 @@ import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-s
 import { DeclineCareRequestUseCase } from '../application/use-cases/decline-care-request.use-case';
 import { GetOnboardingPipelineUseCase } from '../application/use-cases/get-onboarding-pipeline.use-case';
 import { GetOperationsPanelUseCase } from '../application/use-cases/get-operations-panel.use-case';
+import { GetPlanPerformanceUseCase } from '../application/use-cases/get-plan-performance.use-case';
 import { GetPlansBillingOverviewUseCase } from '../application/use-cases/get-plans-billing-overview.use-case';
 import { GetRenewalsTimelineUseCase } from '../application/use-cases/get-renewals-timeline.use-case';
 import { GetSubscriptionStatusUseCase } from '../application/use-cases/get-subscription-status.use-case';
@@ -48,6 +49,7 @@ import { ApplicationsQueryDto } from './dto/applications-query.dto';
 import { CareRequestListResponseDto } from './dto/care-request-list-response.dto';
 import { CareRequestsQueryDto } from './dto/care-requests-query.dto';
 import { OnboardingPipelineResponseDto } from './dto/onboarding-pipeline-response.dto';
+import { PlanPerformanceCardsResponseDto } from './dto/plan-performance-cards-response.dto';
 import { SubscriptionStatusResponseDto } from './dto/subscription-status-response.dto';
 import { ChangeSubscriptionPlanRequestDto } from './dto/change-subscription-plan.dto';
 import { DeclineCareRequestRequestDto } from './dto/decline-care-request.dto';
@@ -87,6 +89,7 @@ export class AdminPlansBillingController {
     private readonly setApplicationStatus: SetApplicationStatusUseCase,
     private readonly advanceApplication: AdvanceApplicationStageUseCase,
     private readonly getSubscriptionStatus: GetSubscriptionStatusUseCase,
+    private readonly getPlanPerformance: GetPlanPerformanceUseCase,
   ) {}
 
   @Get()
@@ -164,6 +167,18 @@ export class AdminPlansBillingController {
       currency: query.currency ?? Currency.UnitedStatesDollar,
     });
     return SubscriptionStatusResponseDto.fromResult(result);
+  }
+
+  @Get('plan-performance')
+  @ApiOperation({ summary: 'Care plan distribution and performance cards for one market' })
+  @ApiOkResponse({ type: PlanPerformanceCardsResponseDto })
+  async planPerformance(
+    @Query() query: PlansBillingQueryDto,
+  ): Promise<PlanPerformanceCardsResponseDto> {
+    const result = await this.getPlanPerformance.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+    });
+    return PlanPerformanceCardsResponseDto.fromResult(result);
   }
 
   @Get('care-requests')
