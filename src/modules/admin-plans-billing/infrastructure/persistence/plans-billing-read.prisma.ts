@@ -12,6 +12,10 @@ import {
   CareRequestsReadModel,
 } from '../../application/ports/care-requests-read.port';
 import {
+  FlexibleHoursReadModel,
+  FlexibleHoursView,
+} from '../../application/ports/flexible-hours-read.port';
+import {
   MonthlyRevenuePointView,
   PlansBillingOverviewView,
   PlansBillingReadModel,
@@ -32,7 +36,11 @@ const REVENUE_SERIES_MONTHS = 12;
  */
 @Injectable()
 export class PlansBillingReadPrisma
-  implements PlansBillingReadModel, TransactionsReadModel, CareRequestsReadModel
+  implements
+    PlansBillingReadModel,
+    TransactionsReadModel,
+    CareRequestsReadModel,
+    FlexibleHoursReadModel
 {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -286,6 +294,31 @@ export class PlansBillingReadPrisma
         status: row.status,
         createdAt: row.createdAt,
       })),
+    };
+  }
+
+  async flexibleHours(currency: PrismaCurrency, now: Date): Promise<FlexibleHoursView> {
+    const monthStart = startOfUtcMonth(now, 0);
+    const todayStart = startOfUtcDay(now);
+    const flex = { currency, status: BookingStatus.CONFIRMED };
+    const [thisMonth, upcoming] = await Promise.all([
+      this.prisma.booking.aggregate({
+        _count: { _all: true },
+        _sum: { hours: true, totalMinor: true },
+        where: { ...flex, serviceDate: { gte: monthStart } },
+      }),
+      this.prisma.booking.aggregate({
+        _count: { _all: true },
+        _sum: { hours: true },
+        where: { ...flex, serviceDate: { gte: todayStart } },
+      }),
+    ]);
+    return {
+      bookingsThisMonth: thisMonth._count._all,
+      hoursBookedThisMonth: thisMonth._sum.hours ?? 0,
+      revenueThisMonthMinor: thisMonth._sum.totalMinor ?? 0,
+      upcomingBookings: upcoming._count._all,
+      upcomingHours: upcoming._sum.hours ?? 0,
     };
   }
 }

@@ -26,6 +26,7 @@ import { ApproveCareRequestUseCase } from '../application/use-cases/approve-care
 import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-subscription-plan.use-case';
 import { DeclineCareRequestUseCase } from '../application/use-cases/decline-care-request.use-case';
+import { GetOperationsPanelUseCase } from '../application/use-cases/get-operations-panel.use-case';
 import { GetPlansBillingOverviewUseCase } from '../application/use-cases/get-plans-billing-overview.use-case';
 import { GetRenewalsTimelineUseCase } from '../application/use-cases/get-renewals-timeline.use-case';
 import { ListCareRequestsUseCase } from '../application/use-cases/list-care-requests.use-case';
@@ -35,6 +36,7 @@ import { CareRequestListResponseDto } from './dto/care-request-list-response.dto
 import { CareRequestsQueryDto } from './dto/care-requests-query.dto';
 import { ChangeSubscriptionPlanRequestDto } from './dto/change-subscription-plan.dto';
 import { DeclineCareRequestRequestDto } from './dto/decline-care-request.dto';
+import { OperationsPanelResponseDto } from './dto/operations-panel-response.dto';
 import { PlansBillingOverviewResponseDto } from './dto/plans-billing-overview-response.dto';
 import { PlansBillingQueryDto } from './dto/plans-billing-query.dto';
 import { RenewalsResponseDto } from './dto/renewals-response.dto';
@@ -63,6 +65,7 @@ export class AdminPlansBillingController {
     private readonly listCareRequests: ListCareRequestsUseCase,
     private readonly approveCareRequest: ApproveCareRequestUseCase,
     private readonly declineCareRequest: DeclineCareRequestUseCase,
+    private readonly getOperations: GetOperationsPanelUseCase,
   ) {}
 
   @Get()
@@ -167,5 +170,15 @@ export class AdminPlansBillingController {
       adminId: principal.adminUserId,
       note: body.note ?? null,
     });
+  }
+
+  @Get('operations')
+  @ApiOperation({ summary: 'Flexible hours tracker and the command actions bar' })
+  @ApiOkResponse({ type: OperationsPanelResponseDto })
+  async operations(@Query() query: PlansBillingQueryDto): Promise<OperationsPanelResponseDto> {
+    const result = await this.getOperations.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+    });
+    return OperationsPanelResponseDto.fromResult(result);
   }
 }
