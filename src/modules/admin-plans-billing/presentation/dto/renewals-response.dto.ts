@@ -12,6 +12,7 @@ class RenewalEntryDto implements RenewalEntryResult {
   @ApiProperty() renewalDate!: string;
   @ApiProperty() amountMinor!: number;
   @ApiProperty() currency!: string;
+  @ApiProperty() autoRenew!: boolean;
 }
 
 class RenewalGroupDto implements RenewalGroupResult {

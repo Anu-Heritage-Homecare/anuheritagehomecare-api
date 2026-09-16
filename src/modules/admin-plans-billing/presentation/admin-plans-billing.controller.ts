@@ -29,6 +29,7 @@ import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subsc
 import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-subscription-plan.use-case';
 import { DeclineCareRequestUseCase } from '../application/use-cases/decline-care-request.use-case';
 import { GetOnboardingPipelineUseCase } from '../application/use-cases/get-onboarding-pipeline.use-case';
+import { GetOperationalAlertsUseCase } from '../application/use-cases/get-operational-alerts.use-case';
 import { GetOperationsPanelUseCase } from '../application/use-cases/get-operations-panel.use-case';
 import { GetPlanPerformanceUseCase } from '../application/use-cases/get-plan-performance.use-case';
 import { GetPlansBillingOverviewUseCase } from '../application/use-cases/get-plans-billing-overview.use-case';
@@ -49,6 +50,7 @@ import { ApplicationsQueryDto } from './dto/applications-query.dto';
 import { CareRequestListResponseDto } from './dto/care-request-list-response.dto';
 import { CareRequestsQueryDto } from './dto/care-requests-query.dto';
 import { OnboardingPipelineResponseDto } from './dto/onboarding-pipeline-response.dto';
+import { OperationalAlertsResponseDto } from './dto/operational-alerts-response.dto';
 import { PlanPerformanceCardsResponseDto } from './dto/plan-performance-cards-response.dto';
 import { SubscriptionStatusResponseDto } from './dto/subscription-status-response.dto';
 import { ChangeSubscriptionPlanRequestDto } from './dto/change-subscription-plan.dto';
@@ -90,6 +92,7 @@ export class AdminPlansBillingController {
     private readonly advanceApplication: AdvanceApplicationStageUseCase,
     private readonly getSubscriptionStatus: GetSubscriptionStatusUseCase,
     private readonly getPlanPerformance: GetPlanPerformanceUseCase,
+    private readonly getOperationalAlerts: GetOperationalAlertsUseCase,
   ) {}
 
   @Get()
@@ -179,6 +182,16 @@ export class AdminPlansBillingController {
       currency: query.currency ?? Currency.UnitedStatesDollar,
     });
     return PlanPerformanceCardsResponseDto.fromResult(result);
+  }
+
+  @Get('alerts')
+  @ApiOperation({ summary: 'Operational alerts queue for one market' })
+  @ApiOkResponse({ type: OperationalAlertsResponseDto })
+  async alerts(@Query() query: PlansBillingQueryDto): Promise<OperationalAlertsResponseDto> {
+    const result = await this.getOperationalAlerts.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+    });
+    return OperationalAlertsResponseDto.fromResult(result);
   }
 
   @Get('care-requests')

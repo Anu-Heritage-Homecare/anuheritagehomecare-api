@@ -103,6 +103,7 @@ export class GetRenewalsTimelineUseCase {
       renewalDate: renewal.toISOString(),
       amountMinor: row.monthlyPriceMinor,
       currency,
+      autoRenew: row.status === PrismaSubscriptionStatus.ACTIVE,
     };
   }
 

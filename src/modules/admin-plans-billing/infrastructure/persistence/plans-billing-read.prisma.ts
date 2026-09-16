@@ -22,6 +22,10 @@ import {
   SubscriptionPageView,
 } from '../../application/ports/plans-billing-read.port';
 import {
+  OperationalAlertCountsView,
+  OperationalAlertsReadModel,
+} from '../../application/ports/operational-alerts-read.port';
+import {
   PlanPerformanceReadModel,
   PlanPerformanceView,
 } from '../../application/ports/plan-performance-read.port';
@@ -50,7 +54,8 @@ export class PlansBillingReadPrisma
     CareRequestsReadModel,
     FlexibleHoursReadModel,
     SubscriptionStatusReadModel,
-    PlanPerformanceReadModel
+    PlanPerformanceReadModel,
+    OperationalAlertsReadModel
 {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -411,6 +416,33 @@ export class PlansBillingReadPrisma
       })),
       flexibleBookings: flexible._count._all,
       flexibleRevenueMinor: flexible._sum.totalMinor ?? 0,
+    };
+  }
+
+  async alertCounts(
+    currency: PrismaCurrency,
+    failedSince: Date,
+  ): Promise<OperationalAlertCountsView> {
+    const [failedOwners, documentationMissing, coordinatorNotAssigned, subscriptionSuspended] =
+      await Promise.all([
+        this.prisma.payment.groupBy({
+          by: ['ownerId'],
+          where: { currency, status: PaymentStatus.FAILED, createdAt: { gte: failedSince } },
+        }),
+        this.prisma.clientApplication.count({ where: { currency, status: 'NEEDS_INFO' } }),
+        this.prisma.clientApplication.count({
+          where: { currency, status: 'APPROVED', coordinatorId: null },
+        }),
+        this.prisma.subscription.count({
+          where: { currency, status: SubscriptionStatus.PAST_DUE },
+        }),
+      ]);
+
+    return {
+      paymentFailedClients: failedOwners.length,
+      documentationMissing,
+      coordinatorNotAssigned,
+      subscriptionSuspended,
     };
   }
 }

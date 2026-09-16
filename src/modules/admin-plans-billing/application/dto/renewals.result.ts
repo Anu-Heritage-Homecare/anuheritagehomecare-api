@@ -6,6 +6,8 @@ export interface RenewalEntryResult {
   renewalDate: string;
   amountMinor: number;
   currency: string;
+  /** Active monthly subscriptions renew automatically; derived from the status. */
+  autoRenew: boolean;
 }
 
 /** A window of the Upcoming Renewals Timeline (today, this week, next week). */

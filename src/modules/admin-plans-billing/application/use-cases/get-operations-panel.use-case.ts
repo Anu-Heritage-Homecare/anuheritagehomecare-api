@@ -15,6 +15,7 @@ import { CommandActionResult, OperationsPanelResult } from '../dto/operations-pa
  */
 const COMMAND_ACTIONS: CommandActionResult[] = [
   { key: 'APPROVE_CARE_REQUEST', label: 'Approve Care Request', available: true, reason: null },
+  { key: 'ASSIGN_COORDINATOR', label: 'Assign Coordinator', available: true, reason: null },
   {
     key: 'CREATE_CARE_PLAN',
     label: 'Create Care Plan',
