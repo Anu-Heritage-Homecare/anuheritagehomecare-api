@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
+import { BookingsModule } from '@modules/bookings/bookings.module';
 import { CarePlansModule } from '@modules/care-plans/care-plans.module';
+import { CancelSubscriptionUseCase } from './application/use-cases/cancel-subscription.use-case';
+import { ChangeSubscriptionPlanUseCase } from './application/use-cases/change-subscription-plan.use-case';
 import { GetPlansBillingOverviewUseCase } from './application/use-cases/get-plans-billing-overview.use-case';
+import { ListPlanSubscriptionsUseCase } from './application/use-cases/list-plan-subscriptions.use-case';
 import { PLANS_BILLING_READ_MODEL } from './application/ports/plans-billing-read.port';
 import { PlansBillingReadPrisma } from './infrastructure/persistence/plans-billing-read.prisma';
 import { AdminPlansBillingController } from './presentation/admin-plans-billing.controller';
@@ -12,10 +16,13 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
  * plan names and prices. Separate admin auth applies at the controller.
  */
 @Module({
-  imports: [PassportModule, CarePlansModule],
+  imports: [PassportModule, CarePlansModule, BookingsModule],
   controllers: [AdminPlansBillingController],
   providers: [
     GetPlansBillingOverviewUseCase,
+    ListPlanSubscriptionsUseCase,
+    ChangeSubscriptionPlanUseCase,
+    CancelSubscriptionUseCase,
     { provide: PLANS_BILLING_READ_MODEL, useClass: PlansBillingReadPrisma },
   ],
 })

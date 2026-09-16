@@ -56,7 +56,10 @@ function catalog(): CarePlan[] {
 function useCase(
   overrides: Partial<PlansBillingOverviewView> = {},
 ): GetPlansBillingOverviewUseCase {
-  const reads = { overview: () => Promise.resolve(view(overrides)) };
+  const reads = {
+    overview: () => Promise.resolve(view(overrides)),
+    listSubscriptions: () => Promise.resolve({ total: 0, rows: [] }),
+  };
   const plans: CarePlanRepository = {
     findByType: () => Promise.resolve(null),
     findAllActive: () => Promise.resolve(catalog()),

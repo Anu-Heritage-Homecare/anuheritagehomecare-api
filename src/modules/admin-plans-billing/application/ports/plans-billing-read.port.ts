@@ -1,4 +1,8 @@
-import { CarePlanType as PrismaCarePlanType, Currency as PrismaCurrency } from '@prisma/client';
+import {
+  CarePlanType as PrismaCarePlanType,
+  Currency as PrismaCurrency,
+  SubscriptionStatus as PrismaSubscriptionStatus,
+} from '@prisma/client';
 
 /** One month bucket of settled revenue, in the panel's currency. */
 export interface MonthlyRevenuePointView {
@@ -34,12 +38,35 @@ export interface PlansBillingOverviewView {
   flexibleRevenueThisMonthMinor: number;
 }
 
+/** One row of the Subscription Management table (names resolved in batch). */
+export interface SubscriptionRowView {
+  id: string;
+  recipientName: string | null;
+  accountHolderName: string | null;
+  planType: PrismaCarePlanType;
+  status: PrismaSubscriptionStatus;
+  startDate: Date;
+  monthlyPriceMinor: number;
+}
+
+/** A page of subscription rows plus the total matching the filter. */
+export interface SubscriptionPageView {
+  total: number;
+  rows: SubscriptionRowView[];
+}
+
 /**
  * Read model over the billing, subscription, booking and care request tables for
  * the admin Plans and Billing control panel. Currency scoped.
  */
 export interface PlansBillingReadModel {
   overview(currency: PrismaCurrency, now: Date): Promise<PlansBillingOverviewView>;
+  listSubscriptions(
+    currency: PrismaCurrency,
+    status: PrismaSubscriptionStatus | null,
+    page: number,
+    pageSize: number,
+  ): Promise<SubscriptionPageView>;
 }
 
 export const PLANS_BILLING_READ_MODEL = Symbol('PLANS_BILLING_READ_MODEL');

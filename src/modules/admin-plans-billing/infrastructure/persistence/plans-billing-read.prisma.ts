@@ -11,6 +11,7 @@ import {
   MonthlyRevenuePointView,
   PlansBillingOverviewView,
   PlansBillingReadModel,
+  SubscriptionPageView,
 } from '../../application/ports/plans-billing-read.port';
 
 /** Number of months shown on the revenue analytics chart, current month included. */
@@ -113,6 +114,75 @@ export class PlansBillingReadPrisma implements PlansBillingReadModel {
       flexibleBookingsThisMonth: flexible._count._all,
       flexibleRevenueThisMonthMinor: flexible._sum.totalMinor ?? 0,
     };
+  }
+
+  async listSubscriptions(
+    currency: PrismaCurrency,
+    status: SubscriptionStatus | null,
+    page: number,
+    pageSize: number,
+  ): Promise<SubscriptionPageView> {
+    const where = { currency, ...(status === null ? {} : { status }) };
+    const [total, rows] = await this.prisma.$transaction([
+      this.prisma.subscription.count({ where }),
+      this.prisma.subscription.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: Math.max(0, (page - 1) * pageSize),
+        take: pageSize,
+        select: {
+          id: true,
+          ownerId: true,
+          careRecipientId: true,
+          planType: true,
+          status: true,
+          startDate: true,
+          monthlyPriceMinor: true,
+        },
+      }),
+    ]);
+
+    const [recipientNames, ownerNames] = await Promise.all([
+      this.recipientNames(rows.map((row) => row.careRecipientId)),
+      this.ownerNames(rows.map((row) => row.ownerId)),
+    ]);
+
+    return {
+      total,
+      rows: rows.map((row) => ({
+        id: row.id,
+        recipientName: recipientNames.get(row.careRecipientId) ?? null,
+        accountHolderName: ownerNames.get(row.ownerId) ?? null,
+        planType: row.planType,
+        status: row.status,
+        startDate: row.startDate,
+        monthlyPriceMinor: row.monthlyPriceMinor,
+      })),
+    };
+  }
+
+  private async recipientNames(ids: string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0) {
+      return new Map();
+    }
+    const rows = await this.prisma.careRecipient.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, name: true },
+    });
+    return new Map(rows.map((row) => [row.id, row.name]));
+  }
+
+  private async ownerNames(ids: string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0) {
+      return new Map();
+    }
+    const rows = await this.prisma.user.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    return new Map(rows.map((row) => [row.id, `${row.firstName} ${row.lastName}`.trim()]));
   }
 }
 
