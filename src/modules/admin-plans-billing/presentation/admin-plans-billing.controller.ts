@@ -26,6 +26,7 @@ import { AdvanceApplicationStageUseCase } from '../application/use-cases/advance
 import { ApproveCareRequestUseCase } from '../application/use-cases/approve-care-request.use-case';
 import { GetApplicationDetailUseCase } from '../application/use-cases/get-application-detail.use-case';
 import { AssignApplicationCoordinatorUseCase } from '../application/use-cases/assign-application-coordinator.use-case';
+import { BulkUpdateApplicationsUseCase } from '../application/use-cases/bulk-update-applications.use-case';
 import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-subscription-plan.use-case';
 import { DeclineCareRequestUseCase } from '../application/use-cases/decline-care-request.use-case';
@@ -49,6 +50,10 @@ import {
 import { ApplicationDetailResponseDto } from './dto/application-detail-response.dto';
 import { ApplicationListResponseDto } from './dto/application-list-response.dto';
 import { ApplicationsQueryDto } from './dto/applications-query.dto';
+import {
+  BulkApplicationsRequestDto,
+  BulkApplicationsResponseDto,
+} from './dto/bulk-applications.dto';
 import { CareRequestListResponseDto } from './dto/care-request-list-response.dto';
 import { CareRequestsQueryDto } from './dto/care-requests-query.dto';
 import { OnboardingPipelineResponseDto } from './dto/onboarding-pipeline-response.dto';
@@ -93,6 +98,7 @@ export class AdminPlansBillingController {
     private readonly assignCoordinator: AssignApplicationCoordinatorUseCase,
     private readonly setApplicationStatus: SetApplicationStatusUseCase,
     private readonly advanceApplication: AdvanceApplicationStageUseCase,
+    private readonly bulkUpdateApplications: BulkUpdateApplicationsUseCase,
     private readonly getSubscriptionStatus: GetSubscriptionStatusUseCase,
     private readonly getPlanPerformance: GetPlanPerformanceUseCase,
     private readonly getOperationalAlerts: GetOperationalAlertsUseCase,
@@ -319,5 +325,19 @@ export class AdminPlansBillingController {
       transition: body.transition,
       caregiverId: body.caregiverId ?? null,
     });
+  }
+
+  @Post('applications/bulk')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Bulk approve or reject a selection of onboarding applications' })
+  @ApiOkResponse({ type: BulkApplicationsResponseDto })
+  async bulkApplications(
+    @Body() body: BulkApplicationsRequestDto,
+  ): Promise<BulkApplicationsResponseDto> {
+    const result = await this.bulkUpdateApplications.execute({
+      ids: body.ids,
+      action: body.action,
+    });
+    return BulkApplicationsResponseDto.fromResult(result);
   }
 }

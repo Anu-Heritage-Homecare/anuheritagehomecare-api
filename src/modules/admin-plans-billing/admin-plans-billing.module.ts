@@ -7,6 +7,7 @@ import { ClientOnboardingModule } from '@modules/client-onboarding/client-onboar
 import { AdvanceApplicationStageUseCase } from './application/use-cases/advance-application-stage.use-case';
 import { ApproveCareRequestUseCase } from './application/use-cases/approve-care-request.use-case';
 import { AssignApplicationCoordinatorUseCase } from './application/use-cases/assign-application-coordinator.use-case';
+import { BulkUpdateApplicationsUseCase } from './application/use-cases/bulk-update-applications.use-case';
 import { CancelSubscriptionUseCase } from './application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from './application/use-cases/change-subscription-plan.use-case';
 import { DeclineCareRequestUseCase } from './application/use-cases/decline-care-request.use-case';
@@ -66,6 +67,7 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
     AssignApplicationCoordinatorUseCase,
     SetApplicationStatusUseCase,
     AdvanceApplicationStageUseCase,
+    BulkUpdateApplicationsUseCase,
     GetSubscriptionStatusUseCase,
     GetPlanPerformanceUseCase,
     GetOperationalAlertsUseCase,
