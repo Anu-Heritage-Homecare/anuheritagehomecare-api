@@ -1758,6 +1758,82 @@ model AdditionalCareRequest {
   @@map("additional_care_requests")
 }
 
+// Bounded context: client onboarding (the admin Plans and Billing lifecycle
+// funnel). An application is a family signing up a patient for a plan; it advances
+// forward through the onboarding stages to an activated subscription. Each entry
+// into a stage is recorded on ClientLifecycleEvent so the pipeline can report how
+// long each stage takes and the average activation time end to end.
+model ClientApplication {
+  id                      String                  @id @default(uuid()) @db.Uuid
+  ownerId                 String?                 @db.Uuid
+  careRecipientId         String?                 @db.Uuid
+  familyName              String                  @db.VarChar(200)
+  patientName             String                  @db.VarChar(200)
+  selectedPlanType        CarePlanType?
+  currency                Currency
+  monthlyPriceMinor       Int?
+  paymentStatus           OnboardingPaymentStatus @default(PENDING)
+  coordinatorId           String?                 @db.Uuid
+  caregiverId             String?                 @db.Uuid
+  stage                   OnboardingStage         @default(NEW_REQUEST)
+  status                  OnboardingStatus        @default(PENDING)
+  submittedAt             DateTime
+  activatedSubscriptionId String?                 @db.Uuid
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  events ClientLifecycleEvent[]
+
+  @@index([stage])
+  @@index([status])
+  @@index([currency, createdAt])
+  @@index([coordinatorId])
+  @@map("client_applications")
+}
+
+model ClientLifecycleEvent {
+  id            String            @id @default(uuid()) @db.Uuid
+  applicationId String            @db.Uuid
+  application   ClientApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  stage         OnboardingStage
+  enteredAt     DateTime
+  createdAt     DateTime          @default(now())
+
+  @@index([applicationId])
+  @@index([stage, enteredAt])
+  @@map("client_lifecycle_events")
+}
+
+enum OnboardingStage {
+  NEW_REQUEST
+  PLAN_SELECTED
+  PAYMENT_RECEIVED
+  PENDING_REVIEW
+  DOC_VERIFIED
+  COORDINATOR_ASSIGNED
+  CAREGIVER_SCHEDULED
+  SUB_ACTIVATED
+
+  @@map("onboarding_stage")
+}
+
+enum OnboardingStatus {
+  PENDING
+  UNDER_REVIEW
+  NEEDS_INFO
+  APPROVED
+  REJECTED
+
+  @@map("onboarding_status")
+}
+
+enum OnboardingPaymentStatus {
+  PENDING
+  PAID
+
+  @@map("onboarding_payment_status")
+}
+
 // Bounded context: KYC (identity verification of the family owner).
 //
 // US owners verify the last four of their SSN through Stripe; Nigeria owners

@@ -18,6 +18,7 @@ import { CareNotesModule } from './modules/care-notes/care-notes.module';
 import { CareRatingsModule } from './modules/care-ratings/care-ratings.module';
 import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
 import { CertificationsModule } from './modules/certifications/certifications.module';
+import { ClientOnboardingModule } from './modules/client-onboarding/client-onboarding.module';
 import { RecipientBillingModule } from './modules/recipient-billing/recipient-billing.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { ProfileModule } from './modules/profile/profile.module';
@@ -148,6 +149,7 @@ import { SharedModule } from './shared/shared.module';
     AdminDashboardModule,
     AdminCareRecipientsModule,
     AdminPlansBillingModule,
+    ClientOnboardingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
