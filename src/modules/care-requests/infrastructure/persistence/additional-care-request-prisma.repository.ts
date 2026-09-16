@@ -21,6 +21,9 @@ export class AdditionalCareRequestPrismaRepository implements AdditionalCareRequ
         durationMinutes: row.durationMinutes,
         reason: row.reason,
         status: row.status,
+        actionedByAdminId: row.actionedByAdminId,
+        actionedAt: row.actionedAt,
+        decisionNote: row.decisionNote,
         updatedAt: row.updatedAt,
       },
     });

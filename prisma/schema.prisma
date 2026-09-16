@@ -1745,11 +1745,16 @@ model AdditionalCareRequest {
   durationMinutes Int
   reason          String?           @db.VarChar(1000)
   status          CareRequestStatus @default(PENDING)
+  // Office decision audit: who actioned the request, when, and any decline note.
+  actionedByAdminId String?         @db.Uuid
+  actionedAt        DateTime?
+  decisionNote      String?         @db.VarChar(1000)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
   @@index([careRecipientId, createdAt])
   @@index([ownerId])
+  @@index([status, createdAt])
   @@map("additional_care_requests")
 }
 

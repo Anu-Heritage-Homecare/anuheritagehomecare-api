@@ -17,6 +17,9 @@ export class AdditionalCareRequestMapper {
       durationMinutes: row.durationMinutes,
       reason: row.reason,
       status: AdditionalCareRequestMapper.TO_DOMAIN_STATUS[row.status],
+      actionedByAdminId: row.actionedByAdminId,
+      actionedAt: row.actionedAt,
+      decisionNote: row.decisionNote,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -33,6 +36,9 @@ export class AdditionalCareRequestMapper {
       durationMinutes: request.durationMinutes,
       reason: request.reason,
       status: AdditionalCareRequestMapper.TO_PERSISTENCE_STATUS[request.status],
+      actionedByAdminId: request.actionedByAdminId,
+      actionedAt: request.actionedAt,
+      decisionNote: request.decisionNote,
       createdAt: request.createdAt,
       updatedAt: request.updatedAt,
     };

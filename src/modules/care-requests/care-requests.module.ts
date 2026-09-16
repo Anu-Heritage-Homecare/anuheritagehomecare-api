@@ -23,5 +23,6 @@ import { CareRequestsController } from './presentation/care-requests.controller'
     },
     { provide: CARE_RECIPIENT_OWNER_DIRECTORY, useClass: CareRecipientsOwnerDirectory },
   ],
+  exports: [ADDITIONAL_CARE_REQUEST_REPOSITORY],
 })
 export class CareRequestsModule {}

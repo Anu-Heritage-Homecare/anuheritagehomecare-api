@@ -11,6 +11,9 @@ interface AdditionalCareRequestProps {
   durationMinutes: number;
   reason: string | null;
   status: CareRequestStatus;
+  actionedByAdminId: string | null;
+  actionedAt: Date | null;
+  decisionNote: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,6 +90,9 @@ export class AdditionalCareRequest extends AggregateRoot<string> {
       durationMinutes: params.durationMinutes,
       reason,
       status: CareRequestStatus.Pending,
+      actionedByAdminId: null,
+      actionedAt: null,
+      decisionNote: null,
       createdAt: params.now,
       updatedAt: params.now,
     });
@@ -94,6 +100,34 @@ export class AdditionalCareRequest extends AggregateRoot<string> {
 
   public static rehydrate(id: string, props: AdditionalCareRequestProps): AdditionalCareRequest {
     return new AdditionalCareRequest(id, props);
+  }
+
+  /**
+   * Approve a pending request. Records the acting admin and the moment for the
+   * audit trail. Creating the resulting visit is a downstream concern (deferred).
+   */
+  public approve(adminUserId: string, now: Date): void {
+    this.assertPending('approved');
+    this.props.status = CareRequestStatus.Approved;
+    this.props.actionedByAdminId = adminUserId;
+    this.props.actionedAt = now;
+    this.props.updatedAt = now;
+  }
+
+  /** Decline a pending request, recording the acting admin and an optional note. */
+  public decline(adminUserId: string, note: string | null | undefined, now: Date): void {
+    this.assertPending('declined');
+    this.props.status = CareRequestStatus.Declined;
+    this.props.actionedByAdminId = adminUserId;
+    this.props.actionedAt = now;
+    this.props.decisionNote = AdditionalCareRequest.cleanReason(note);
+    this.props.updatedAt = now;
+  }
+
+  private assertPending(action: string): void {
+    if (this.props.status !== CareRequestStatus.Pending) {
+      throw new ValidationException(`Only a pending care request can be ${action}`);
+    }
   }
 
   private static cleanReason(raw: string | null | undefined): string | null {
@@ -146,6 +180,18 @@ export class AdditionalCareRequest extends AggregateRoot<string> {
 
   public get status(): CareRequestStatus {
     return this.props.status;
+  }
+
+  public get actionedByAdminId(): string | null {
+    return this.props.actionedByAdminId;
+  }
+
+  public get actionedAt(): Date | null {
+    return this.props.actionedAt;
+  }
+
+  public get decisionNote(): string | null {
+    return this.props.decisionNote;
   }
 
   public get createdAt(): Date {
