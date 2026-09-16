@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import {
   ActivationView,
+  ApplicationDetailView,
   ApplicationPageView,
   ApplicationQueueFilters,
   OnboardingReadModel,
@@ -227,6 +228,76 @@ export class OnboardingReadPrisma implements OnboardingReadModel {
     };
   }
 
+  async applicationDetail(id: string): Promise<ApplicationDetailView | null> {
+    const app = await this.prisma.clientApplication.findUnique({
+      where: { id },
+      include: { documents: { orderBy: { createdAt: 'asc' } } },
+    });
+    if (app === null) {
+      return null;
+    }
+
+    const [recipient, owner, coordinatorName] = await Promise.all([
+      app.careRecipientId === null
+        ? Promise.resolve(null)
+        : this.prisma.careRecipient.findUnique({
+            where: { id: app.careRecipientId },
+            select: { name: true, dateOfBirth: true, gender: true, medicalConditions: true },
+          }),
+      app.ownerId === null
+        ? Promise.resolve(null)
+        : this.prisma.user.findUnique({
+            where: { id: app.ownerId },
+            select: {
+              firstName: true,
+              lastName: true,
+              phone: true,
+              email: true,
+              addressLine1: true,
+              addressLine2: true,
+              city: true,
+              state: true,
+              postalCode: true,
+            },
+          }),
+      app.coordinatorId === null
+        ? Promise.resolve(null)
+        : this.prisma.adminUser
+            .findUnique({
+              where: { id: app.coordinatorId },
+              select: { firstName: true, lastName: true },
+            })
+            .then((row) => (row === null ? null : `${row.firstName} ${row.lastName}`.trim())),
+    ]);
+
+    return {
+      id: app.id,
+      reference: referenceFor(app.sequence, app.createdAt),
+      familyName: app.familyName,
+      patientName: recipient?.name ?? app.patientName,
+      selectedPlanType: app.selectedPlanType,
+      monthlyPriceMinor: app.monthlyPriceMinor,
+      currencyCode: app.currency,
+      priority: app.priority,
+      paymentStatus: app.paymentStatus,
+      docsStatus: app.docsStatus,
+      status: app.status,
+      coordinatorName,
+      submittedAt: app.submittedAt,
+      patientDateOfBirth: recipient?.dateOfBirth ?? app.patientDateOfBirth,
+      patientGender: recipient === null ? app.patientGender : titleCase(recipient.gender),
+      patientConditions: recipient?.medicalConditions ?? app.patientConditions,
+      contactName: owner === null ? app.contactName : `${owner.firstName} ${owner.lastName}`.trim(),
+      contactPhone: owner?.phone ?? app.contactPhone,
+      contactEmail: owner?.email ?? app.contactEmail,
+      contactAddress: owner === null ? app.contactAddress : formatAddress(owner),
+      requestedHoursPerWeek: app.requestedHoursPerWeek,
+      requestedSchedule: app.requestedSchedule,
+      specialNeeds: app.specialNeeds,
+      documents: app.documents.map((document) => ({ label: document.label, key: document.key })),
+    };
+  }
+
   private async adminNames(ids: string[]): Promise<Map<string, string>> {
     const unique = [...new Set(ids)];
     if (unique.length === 0) {
@@ -243,6 +314,27 @@ export class OnboardingReadPrisma implements OnboardingReadModel {
 /** Human readable application reference: CR-{year}-{zero padded sequence}. */
 function referenceFor(sequence: number, createdAt: Date): string {
   return `CR-${createdAt.getUTCFullYear()}-${String(sequence).padStart(3, '0')}`;
+}
+
+/** Turn an UPPER_SNAKE enum value into a Title Cased display string. */
+function titleCase(value: string): string {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((word) => (word.length === 0 ? word : word[0].toUpperCase() + word.slice(1)))
+    .join(' ');
+}
+
+/** One line address from a user's structured address fields. */
+function formatAddress(owner: {
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+}): string {
+  const line2 = owner.addressLine2 === null ? '' : `${owner.addressLine2}, `;
+  return `${owner.addressLine1}, ${line2}${owner.city}, ${owner.state} ${owner.postalCode}`;
 }
 
 /** Mean of the values, rounded to one decimal place, or null when empty. */

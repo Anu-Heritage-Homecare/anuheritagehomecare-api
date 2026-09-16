@@ -14,6 +14,27 @@ export interface StageEntry {
   enteredAt: Date;
 }
 
+/** An uploaded document (opaque storage key). */
+export interface DocumentEntry {
+  label: string;
+  key: string;
+}
+
+/** Intake snapshot and request specific detail captured when an application opens. */
+export interface ClientApplicationIntake {
+  patientDateOfBirth?: Date | null;
+  patientGender?: string | null;
+  patientConditions?: string[];
+  contactName?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
+  contactAddress?: string | null;
+  requestedHoursPerWeek?: number | null;
+  requestedSchedule?: string | null;
+  specialNeeds?: string | null;
+  documents?: DocumentEntry[];
+}
+
 interface ClientApplicationProps {
   ownerId: string | null;
   careRecipientId: string | null;
@@ -31,6 +52,16 @@ interface ClientApplicationProps {
   status: OnboardingStatus;
   submittedAt: Date;
   activatedSubscriptionId: string | null;
+  patientDateOfBirth: Date | null;
+  patientGender: string | null;
+  patientConditions: string[];
+  contactName: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  contactAddress: string | null;
+  requestedHoursPerWeek: number | null;
+  requestedSchedule: string | null;
+  specialNeeds: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,11 +79,19 @@ export class ClientApplication extends AggregateRoot<string> {
   private props: ClientApplicationProps;
   private readonly history: StageEntry[];
   private readonly pending: StageEntry[] = [];
+  private readonly documents: DocumentEntry[];
+  private readonly pendingDocuments: DocumentEntry[] = [];
 
-  private constructor(id: string, props: ClientApplicationProps, history: StageEntry[]) {
+  private constructor(
+    id: string,
+    props: ClientApplicationProps,
+    history: StageEntry[],
+    documents: DocumentEntry[],
+  ) {
     super(id);
     this.props = props;
     this.history = history;
+    this.documents = documents;
   }
 
   public static open(params: {
@@ -63,10 +102,12 @@ export class ClientApplication extends AggregateRoot<string> {
     patientName: string;
     currency: Currency;
     priority?: OnboardingPriority;
+    intake?: ClientApplicationIntake;
     now: Date;
   }): ClientApplication {
     const familyName = cleanName(params.familyName, 'A family name is required');
     const patientName = cleanName(params.patientName, 'A patient name is required');
+    const intake = params.intake ?? {};
 
     const application = new ClientApplication(
       params.id,
@@ -87,12 +128,26 @@ export class ClientApplication extends AggregateRoot<string> {
         status: OnboardingStatus.Pending,
         submittedAt: params.now,
         activatedSubscriptionId: null,
+        patientDateOfBirth: intake.patientDateOfBirth ?? null,
+        patientGender: intake.patientGender ?? null,
+        patientConditions: intake.patientConditions ?? [],
+        contactName: intake.contactName ?? null,
+        contactPhone: intake.contactPhone ?? null,
+        contactEmail: intake.contactEmail ?? null,
+        contactAddress: intake.contactAddress ?? null,
+        requestedHoursPerWeek: intake.requestedHoursPerWeek ?? null,
+        requestedSchedule: intake.requestedSchedule ?? null,
+        specialNeeds: intake.specialNeeds ?? null,
         createdAt: params.now,
         updatedAt: params.now,
       },
       [],
+      [],
     );
     application.enterStage(OnboardingStage.NewRequest, params.now);
+    for (const document of intake.documents ?? []) {
+      application.attachDocument(document.label, document.key, params.now);
+    }
     return application;
   }
 
@@ -100,8 +155,9 @@ export class ClientApplication extends AggregateRoot<string> {
     id: string,
     props: ClientApplicationProps,
     history: StageEntry[],
+    documents: DocumentEntry[],
   ): ClientApplication {
-    return new ClientApplication(id, props, history);
+    return new ClientApplication(id, props, history, documents);
   }
 
   /** Record the plan the family chose and its snapshotted monthly price. */
@@ -201,6 +257,19 @@ export class ClientApplication extends AggregateRoot<string> {
     this.pending.push(entry);
   }
 
+  /** Attach an uploaded document (opaque storage key). */
+  public attachDocument(label: string, key: string, now: Date): void {
+    const cleanLabel = label.trim();
+    const cleanKey = key.trim();
+    if (cleanLabel.length === 0 || cleanKey.length === 0) {
+      throw new ValidationException('A document needs a label and a key');
+    }
+    const document: DocumentEntry = { label: cleanLabel, key: cleanKey };
+    this.documents.push(document);
+    this.pendingDocuments.push(document);
+    this.props.updatedAt = now;
+  }
+
   /** Stage entries recorded since the aggregate was loaded, for persistence. */
   public pullPendingStageEntries(): StageEntry[] {
     const entries = [...this.pending];
@@ -208,8 +277,59 @@ export class ClientApplication extends AggregateRoot<string> {
     return entries;
   }
 
+  /** Documents attached since the aggregate was loaded, for persistence. */
+  public pullPendingDocuments(): DocumentEntry[] {
+    const documents = [...this.pendingDocuments];
+    this.pendingDocuments.length = 0;
+    return documents;
+  }
+
   public get stageHistory(): StageEntry[] {
     return [...this.history];
+  }
+
+  public get uploadedDocuments(): DocumentEntry[] {
+    return [...this.documents];
+  }
+
+  public get patientDateOfBirth(): Date | null {
+    return this.props.patientDateOfBirth;
+  }
+
+  public get patientGender(): string | null {
+    return this.props.patientGender;
+  }
+
+  public get patientConditions(): string[] {
+    return [...this.props.patientConditions];
+  }
+
+  public get contactName(): string | null {
+    return this.props.contactName;
+  }
+
+  public get contactPhone(): string | null {
+    return this.props.contactPhone;
+  }
+
+  public get contactEmail(): string | null {
+    return this.props.contactEmail;
+  }
+
+  public get contactAddress(): string | null {
+    return this.props.contactAddress;
+  }
+
+  public get requestedHoursPerWeek(): number | null {
+    return this.props.requestedHoursPerWeek;
+  }
+
+  public get requestedSchedule(): string | null {
+    return this.props.requestedSchedule;
+  }
+
+  public get specialNeeds(): string | null {
+    return this.props.specialNeeds;
   }
 
   public get ownerId(): string | null {

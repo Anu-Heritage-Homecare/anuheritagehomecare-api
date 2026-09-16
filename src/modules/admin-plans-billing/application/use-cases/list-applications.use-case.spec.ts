@@ -41,6 +41,7 @@ function useCase(captured?: { filters?: unknown }): ListApplicationsUseCase {
       }
       return Promise.resolve(page());
     },
+    applicationDetail: () => Promise.reject(new Error('unused')),
   };
   const plans: CarePlanRepository = {
     findByType: () => Promise.resolve(null),

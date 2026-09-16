@@ -54,6 +54,44 @@ export interface ActivationView {
   activatedCurrent: number;
 }
 
+/** An uploaded document reference. */
+export interface ApplicationDocumentView {
+  label: string;
+  key: string;
+}
+
+/**
+ * The full detail behind one application, composed hybrid: patient and contact come
+ * from the linked CareRecipient and User when the application is linked, else from
+ * the intake snapshot captured on the application.
+ */
+export interface ApplicationDetailView {
+  id: string;
+  reference: string;
+  familyName: string;
+  patientName: string;
+  selectedPlanType: PrismaCarePlanType | null;
+  monthlyPriceMinor: number | null;
+  currencyCode: string;
+  priority: PrismaPriority;
+  paymentStatus: PrismaPaymentStatus;
+  docsStatus: PrismaDocsStatus;
+  status: PrismaStatus;
+  coordinatorName: string | null;
+  submittedAt: Date;
+  patientDateOfBirth: Date | null;
+  patientGender: string | null;
+  patientConditions: string[];
+  contactName: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  contactAddress: string | null;
+  requestedHoursPerWeek: number | null;
+  requestedSchedule: string | null;
+  specialNeeds: string | null;
+  documents: ApplicationDocumentView[];
+}
+
 /**
  * Read model over the client onboarding tables for the admin pipeline, verification
  * queue and activation KPI. Currency scoped, consistent with the market selector.
@@ -67,6 +105,7 @@ export interface OnboardingReadModel {
     pageSize: number,
   ): Promise<ApplicationPageView>;
   activation(currency: PrismaCurrency, now: Date): Promise<ActivationView>;
+  applicationDetail(id: string): Promise<ApplicationDetailView | null>;
 }
 
 export const ONBOARDING_READ_MODEL = Symbol('ONBOARDING_READ_MODEL');

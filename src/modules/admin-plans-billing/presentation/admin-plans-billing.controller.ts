@@ -24,6 +24,7 @@ import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { AdvanceApplicationStageUseCase } from '../application/use-cases/advance-application-stage.use-case';
 import { ApproveCareRequestUseCase } from '../application/use-cases/approve-care-request.use-case';
+import { GetApplicationDetailUseCase } from '../application/use-cases/get-application-detail.use-case';
 import { AssignApplicationCoordinatorUseCase } from '../application/use-cases/assign-application-coordinator.use-case';
 import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-subscription-plan.use-case';
@@ -45,6 +46,7 @@ import {
   AssignCoordinatorRequestDto,
   SetApplicationStatusRequestDto,
 } from './dto/application-action.dto';
+import { ApplicationDetailResponseDto } from './dto/application-detail-response.dto';
 import { ApplicationListResponseDto } from './dto/application-list-response.dto';
 import { ApplicationsQueryDto } from './dto/applications-query.dto';
 import { CareRequestListResponseDto } from './dto/care-request-list-response.dto';
@@ -87,6 +89,7 @@ export class AdminPlansBillingController {
     private readonly getOperations: GetOperationsPanelUseCase,
     private readonly getPipeline: GetOnboardingPipelineUseCase,
     private readonly listApplications: ListApplicationsUseCase,
+    private readonly getApplicationDetail: GetApplicationDetailUseCase,
     private readonly assignCoordinator: AssignApplicationCoordinatorUseCase,
     private readonly setApplicationStatus: SetApplicationStatusUseCase,
     private readonly advanceApplication: AdvanceApplicationStageUseCase,
@@ -266,6 +269,16 @@ export class AdminPlansBillingController {
       pageSize: query.pageSize ?? 20,
     });
     return ApplicationListResponseDto.fromResult(result);
+  }
+
+  @Get('applications/:id')
+  @ApiOperation({ summary: 'The full detail panel for one onboarding application' })
+  @ApiOkResponse({ type: ApplicationDetailResponseDto })
+  async applicationDetail(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ApplicationDetailResponseDto> {
+    const result = await this.getApplicationDetail.execute(id);
+    return ApplicationDetailResponseDto.fromResult(result);
   }
 
   @Post('applications/:id/coordinator')

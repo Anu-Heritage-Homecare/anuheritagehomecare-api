@@ -10,6 +10,7 @@ import { AssignApplicationCoordinatorUseCase } from './application/use-cases/ass
 import { CancelSubscriptionUseCase } from './application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from './application/use-cases/change-subscription-plan.use-case';
 import { DeclineCareRequestUseCase } from './application/use-cases/decline-care-request.use-case';
+import { GetApplicationDetailUseCase } from './application/use-cases/get-application-detail.use-case';
 import { GetOnboardingPipelineUseCase } from './application/use-cases/get-onboarding-pipeline.use-case';
 import { GetOperationalAlertsUseCase } from './application/use-cases/get-operational-alerts.use-case';
 import { GetOperationsPanelUseCase } from './application/use-cases/get-operations-panel.use-case';
@@ -61,6 +62,7 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
     GetOperationsPanelUseCase,
     GetOnboardingPipelineUseCase,
     ListApplicationsUseCase,
+    GetApplicationDetailUseCase,
     AssignApplicationCoordinatorUseCase,
     SetApplicationStatusUseCase,
     AdvanceApplicationStageUseCase,

@@ -1783,10 +1783,24 @@ model ClientApplication {
   status                  OnboardingStatus        @default(PENDING)
   submittedAt             DateTime
   activatedSubscriptionId String?                 @db.Uuid
+  // Intake snapshot: used on the detail panel when the application is not yet
+  // linked to a CareRecipient or User (hybrid fallback), plus the request specific
+  // schedule and special needs, which are not clinical facts about the patient.
+  patientDateOfBirth    DateTime? @db.Date
+  patientGender         String?   @db.VarChar(20)
+  patientConditions     String[]  @default([])
+  contactName           String?   @db.VarChar(200)
+  contactPhone          String?   @db.VarChar(40)
+  contactEmail          String?   @db.VarChar(255)
+  contactAddress        String?   @db.VarChar(400)
+  requestedHoursPerWeek Int?
+  requestedSchedule     String?   @db.VarChar(300)
+  specialNeeds          String?   @db.VarChar(1000)
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
 
-  events ClientLifecycleEvent[]
+  events    ClientLifecycleEvent[]
+  documents ClientApplicationDocument[]
 
   @@index([stage])
   @@index([status])
@@ -1794,6 +1808,19 @@ model ClientApplication {
   @@index([coordinatorId])
   @@index([priority])
   @@map("client_applications")
+}
+
+model ClientApplicationDocument {
+  id            String            @id @default(uuid()) @db.Uuid
+  applicationId String            @db.Uuid
+  application   ClientApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  label         String            @db.VarChar(200)
+  // Opaque storage key; actual document storage is deferred, key only for now.
+  key           String            @db.VarChar(500)
+  createdAt     DateTime          @default(now())
+
+  @@index([applicationId])
+  @@map("client_application_documents")
 }
 
 model ClientLifecycleEvent {

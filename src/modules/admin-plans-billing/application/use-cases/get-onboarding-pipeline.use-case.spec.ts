@@ -26,6 +26,7 @@ function useCase(): GetOnboardingPipelineUseCase {
     pipeline: () => Promise.resolve(stages()),
     activation: () => Promise.resolve(activation()),
     verificationQueue: () => Promise.reject(new Error('unused')),
+    applicationDetail: () => Promise.reject(new Error('unused')),
   };
   return new GetOnboardingPipelineUseCase(reads, clock);
 }

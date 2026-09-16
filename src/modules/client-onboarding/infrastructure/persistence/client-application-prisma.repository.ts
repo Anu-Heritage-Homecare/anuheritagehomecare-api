@@ -28,6 +28,7 @@ export class ClientApplicationPrismaRepository implements ClientApplicationRepos
   async save(application: ClientApplication): Promise<void> {
     const data = this.toData(application);
     const entries = application.pullPendingStageEntries();
+    const documents = application.pullPendingDocuments();
     await this.prisma.$transaction(async (tx) => {
       await tx.clientApplication.upsert({
         where: { id: application.id },
@@ -48,6 +49,16 @@ export class ClientApplicationPrismaRepository implements ClientApplicationRepos
           stage: data.stage,
           status: data.status,
           activatedSubscriptionId: data.activatedSubscriptionId,
+          patientDateOfBirth: data.patientDateOfBirth,
+          patientGender: data.patientGender,
+          patientConditions: data.patientConditions,
+          contactName: data.contactName,
+          contactPhone: data.contactPhone,
+          contactEmail: data.contactEmail,
+          contactAddress: data.contactAddress,
+          requestedHoursPerWeek: data.requestedHoursPerWeek,
+          requestedSchedule: data.requestedSchedule,
+          specialNeeds: data.specialNeeds,
           updatedAt: data.updatedAt,
         },
       });
@@ -60,13 +71,25 @@ export class ClientApplicationPrismaRepository implements ClientApplicationRepos
           })),
         });
       }
+      if (documents.length > 0) {
+        await tx.clientApplicationDocument.createMany({
+          data: documents.map((document) => ({
+            applicationId: application.id,
+            label: document.label,
+            key: document.key,
+          })),
+        });
+      }
     });
   }
 
   async findById(id: string): Promise<ClientApplication | null> {
     const row = await this.prisma.clientApplication.findUnique({
       where: { id },
-      include: { events: { orderBy: { enteredAt: 'asc' } } },
+      include: {
+        events: { orderBy: { enteredAt: 'asc' } },
+        documents: { orderBy: { createdAt: 'asc' } },
+      },
     });
     if (row === null) {
       return null;
@@ -74,6 +97,10 @@ export class ClientApplicationPrismaRepository implements ClientApplicationRepos
     const history: StageEntry[] = row.events.map((event) => ({
       stage: TO_DOMAIN_STAGE[event.stage],
       enteredAt: event.enteredAt,
+    }));
+    const documents = row.documents.map((document) => ({
+      label: document.label,
+      key: document.key,
     }));
     return ClientApplication.rehydrate(
       row.id,
@@ -95,10 +122,21 @@ export class ClientApplicationPrismaRepository implements ClientApplicationRepos
         status: TO_DOMAIN_STATUS[row.status],
         submittedAt: row.submittedAt,
         activatedSubscriptionId: row.activatedSubscriptionId,
+        patientDateOfBirth: row.patientDateOfBirth,
+        patientGender: row.patientGender,
+        patientConditions: row.patientConditions,
+        contactName: row.contactName,
+        contactPhone: row.contactPhone,
+        contactEmail: row.contactEmail,
+        contactAddress: row.contactAddress,
+        requestedHoursPerWeek: row.requestedHoursPerWeek,
+        requestedSchedule: row.requestedSchedule,
+        specialNeeds: row.specialNeeds,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       },
       history,
+      documents,
     );
   }
 
@@ -124,6 +162,16 @@ export class ClientApplicationPrismaRepository implements ClientApplicationRepos
       status: TO_PERSISTENCE_STATUS[application.status],
       submittedAt: application.submittedAt,
       activatedSubscriptionId: application.activatedSubscriptionId,
+      patientDateOfBirth: application.patientDateOfBirth,
+      patientGender: application.patientGender,
+      patientConditions: application.patientConditions,
+      contactName: application.contactName,
+      contactPhone: application.contactPhone,
+      contactEmail: application.contactEmail,
+      contactAddress: application.contactAddress,
+      requestedHoursPerWeek: application.requestedHoursPerWeek,
+      requestedSchedule: application.requestedSchedule,
+      specialNeeds: application.specialNeeds,
       createdAt: application.createdAt,
       updatedAt: application.updatedAt,
     };
