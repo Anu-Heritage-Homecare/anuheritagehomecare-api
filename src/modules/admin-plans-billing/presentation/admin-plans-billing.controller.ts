@@ -22,7 +22,9 @@ import { Currency } from '@shared/domain/currency.enum';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
+import { AdvanceApplicationStageUseCase } from '../application/use-cases/advance-application-stage.use-case';
 import { ApproveCareRequestUseCase } from '../application/use-cases/approve-care-request.use-case';
+import { AssignApplicationCoordinatorUseCase } from '../application/use-cases/assign-application-coordinator.use-case';
 import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-subscription-plan.use-case';
 import { DeclineCareRequestUseCase } from '../application/use-cases/decline-care-request.use-case';
@@ -32,8 +34,14 @@ import { GetPlansBillingOverviewUseCase } from '../application/use-cases/get-pla
 import { GetRenewalsTimelineUseCase } from '../application/use-cases/get-renewals-timeline.use-case';
 import { ListApplicationsUseCase } from '../application/use-cases/list-applications.use-case';
 import { ListCareRequestsUseCase } from '../application/use-cases/list-care-requests.use-case';
+import { SetApplicationStatusUseCase } from '../application/use-cases/set-application-status.use-case';
 import { ListPlanSubscriptionsUseCase } from '../application/use-cases/list-plan-subscriptions.use-case';
 import { ListTransactionsUseCase } from '../application/use-cases/list-transactions.use-case';
+import {
+  AdvanceApplicationRequestDto,
+  AssignCoordinatorRequestDto,
+  SetApplicationStatusRequestDto,
+} from './dto/application-action.dto';
 import { ApplicationListResponseDto } from './dto/application-list-response.dto';
 import { ApplicationsQueryDto } from './dto/applications-query.dto';
 import { CareRequestListResponseDto } from './dto/care-request-list-response.dto';
@@ -73,6 +81,9 @@ export class AdminPlansBillingController {
     private readonly getOperations: GetOperationsPanelUseCase,
     private readonly getPipeline: GetOnboardingPipelineUseCase,
     private readonly listApplications: ListApplicationsUseCase,
+    private readonly assignCoordinator: AssignApplicationCoordinatorUseCase,
+    private readonly setApplicationStatus: SetApplicationStatusUseCase,
+    private readonly advanceApplication: AdvanceApplicationStageUseCase,
   ) {}
 
   @Get()
@@ -210,5 +221,45 @@ export class AdminPlansBillingController {
       pageSize: query.pageSize ?? 20,
     });
     return ApplicationListResponseDto.fromResult(result);
+  }
+
+  @Post('applications/:id/coordinator')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Assign the coordinator on an onboarding application' })
+  @ApiNoContentResponse()
+  async assignApplicationCoordinator(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AssignCoordinatorRequestDto,
+  ): Promise<void> {
+    await this.assignCoordinator.execute({
+      applicationId: id,
+      coordinatorId: body.coordinatorId,
+    });
+  }
+
+  @Post('applications/:id/status')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Set the verification status of an onboarding application' })
+  @ApiNoContentResponse()
+  async setApplicationStatusAction(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetApplicationStatusRequestDto,
+  ): Promise<void> {
+    await this.setApplicationStatus.execute({ applicationId: id, status: body.status });
+  }
+
+  @Post('applications/:id/advance')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Advance an onboarding application to the next funnel stage' })
+  @ApiNoContentResponse()
+  async advanceApplicationStage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AdvanceApplicationRequestDto,
+  ): Promise<void> {
+    await this.advanceApplication.execute({
+      applicationId: id,
+      transition: body.transition,
+      caregiverId: body.caregiverId ?? null,
+    });
   }
 }
