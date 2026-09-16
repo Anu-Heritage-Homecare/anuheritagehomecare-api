@@ -22,6 +22,10 @@ import {
   SubscriptionPageView,
 } from '../../application/ports/plans-billing-read.port';
 import {
+  SubscriptionStatusCountsView,
+  SubscriptionStatusReadModel,
+} from '../../application/ports/subscription-status-read.port';
+import {
   TransactionPageView,
   TransactionsReadModel,
 } from '../../application/ports/transactions-read.port';
@@ -40,7 +44,8 @@ export class PlansBillingReadPrisma
     PlansBillingReadModel,
     TransactionsReadModel,
     CareRequestsReadModel,
-    FlexibleHoursReadModel
+    FlexibleHoursReadModel,
+    SubscriptionStatusReadModel
 {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -319,6 +324,21 @@ export class PlansBillingReadPrisma
       revenueThisMonthMinor: thisMonth._sum.totalMinor ?? 0,
       upcomingBookings: upcoming._count._all,
       upcomingHours: upcoming._sum.hours ?? 0,
+    };
+  }
+
+  async statusCounts(currency: PrismaCurrency): Promise<SubscriptionStatusCountsView> {
+    const rows = await this.prisma.subscription.groupBy({
+      by: ['status'],
+      where: { currency },
+      _count: { _all: true },
+    });
+    const byStatus = new Map(rows.map((row) => [row.status, row._count._all]));
+    return {
+      active: byStatus.get(SubscriptionStatus.ACTIVE) ?? 0,
+      pendingPayment: byStatus.get(SubscriptionStatus.PENDING_PAYMENT) ?? 0,
+      pastDue: byStatus.get(SubscriptionStatus.PAST_DUE) ?? 0,
+      cancelled: byStatus.get(SubscriptionStatus.CANCELLED) ?? 0,
     };
   }
 }

@@ -14,6 +14,7 @@ import { GetOnboardingPipelineUseCase } from './application/use-cases/get-onboar
 import { GetOperationsPanelUseCase } from './application/use-cases/get-operations-panel.use-case';
 import { GetPlansBillingOverviewUseCase } from './application/use-cases/get-plans-billing-overview.use-case';
 import { GetRenewalsTimelineUseCase } from './application/use-cases/get-renewals-timeline.use-case';
+import { GetSubscriptionStatusUseCase } from './application/use-cases/get-subscription-status.use-case';
 import { ListApplicationsUseCase } from './application/use-cases/list-applications.use-case';
 import { ListCareRequestsUseCase } from './application/use-cases/list-care-requests.use-case';
 import { ListPlanSubscriptionsUseCase } from './application/use-cases/list-plan-subscriptions.use-case';
@@ -23,6 +24,7 @@ import { CARE_REQUESTS_READ_MODEL } from './application/ports/care-requests-read
 import { FLEXIBLE_HOURS_READ_MODEL } from './application/ports/flexible-hours-read.port';
 import { ONBOARDING_READ_MODEL } from './application/ports/onboarding-read.port';
 import { PLANS_BILLING_READ_MODEL } from './application/ports/plans-billing-read.port';
+import { SUBSCRIPTION_STATUS_READ_MODEL } from './application/ports/subscription-status-read.port';
 import { TRANSACTIONS_READ_MODEL } from './application/ports/transactions-read.port';
 import { OnboardingReadPrisma } from './infrastructure/persistence/onboarding-read.prisma';
 import { PlansBillingReadPrisma } from './infrastructure/persistence/plans-billing-read.prisma';
@@ -58,12 +60,14 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
     AssignApplicationCoordinatorUseCase,
     SetApplicationStatusUseCase,
     AdvanceApplicationStageUseCase,
+    GetSubscriptionStatusUseCase,
     // One Prisma read class backs the billing read ports on this panel.
     PlansBillingReadPrisma,
     { provide: PLANS_BILLING_READ_MODEL, useExisting: PlansBillingReadPrisma },
     { provide: TRANSACTIONS_READ_MODEL, useExisting: PlansBillingReadPrisma },
     { provide: CARE_REQUESTS_READ_MODEL, useExisting: PlansBillingReadPrisma },
     { provide: FLEXIBLE_HOURS_READ_MODEL, useExisting: PlansBillingReadPrisma },
+    { provide: SUBSCRIPTION_STATUS_READ_MODEL, useExisting: PlansBillingReadPrisma },
     // The onboarding read model backs the pipeline and verification queue.
     { provide: ONBOARDING_READ_MODEL, useClass: OnboardingReadPrisma },
   ],

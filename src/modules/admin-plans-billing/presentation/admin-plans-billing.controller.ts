@@ -32,6 +32,7 @@ import { GetOnboardingPipelineUseCase } from '../application/use-cases/get-onboa
 import { GetOperationsPanelUseCase } from '../application/use-cases/get-operations-panel.use-case';
 import { GetPlansBillingOverviewUseCase } from '../application/use-cases/get-plans-billing-overview.use-case';
 import { GetRenewalsTimelineUseCase } from '../application/use-cases/get-renewals-timeline.use-case';
+import { GetSubscriptionStatusUseCase } from '../application/use-cases/get-subscription-status.use-case';
 import { ListApplicationsUseCase } from '../application/use-cases/list-applications.use-case';
 import { ListCareRequestsUseCase } from '../application/use-cases/list-care-requests.use-case';
 import { SetApplicationStatusUseCase } from '../application/use-cases/set-application-status.use-case';
@@ -47,6 +48,7 @@ import { ApplicationsQueryDto } from './dto/applications-query.dto';
 import { CareRequestListResponseDto } from './dto/care-request-list-response.dto';
 import { CareRequestsQueryDto } from './dto/care-requests-query.dto';
 import { OnboardingPipelineResponseDto } from './dto/onboarding-pipeline-response.dto';
+import { SubscriptionStatusResponseDto } from './dto/subscription-status-response.dto';
 import { ChangeSubscriptionPlanRequestDto } from './dto/change-subscription-plan.dto';
 import { DeclineCareRequestRequestDto } from './dto/decline-care-request.dto';
 import { OperationsPanelResponseDto } from './dto/operations-panel-response.dto';
@@ -84,6 +86,7 @@ export class AdminPlansBillingController {
     private readonly assignCoordinator: AssignApplicationCoordinatorUseCase,
     private readonly setApplicationStatus: SetApplicationStatusUseCase,
     private readonly advanceApplication: AdvanceApplicationStageUseCase,
+    private readonly getSubscriptionStatus: GetSubscriptionStatusUseCase,
   ) {}
 
   @Get()
@@ -149,6 +152,18 @@ export class AdminPlansBillingController {
       currency: query.currency ?? Currency.UnitedStatesDollar,
     });
     return RenewalsResponseDto.fromResult(result);
+  }
+
+  @Get('subscription-status')
+  @ApiOperation({ summary: 'Subscription status distribution donut for one market' })
+  @ApiOkResponse({ type: SubscriptionStatusResponseDto })
+  async subscriptionStatus(
+    @Query() query: PlansBillingQueryDto,
+  ): Promise<SubscriptionStatusResponseDto> {
+    const result = await this.getSubscriptionStatus.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+    });
+    return SubscriptionStatusResponseDto.fromResult(result);
   }
 
   @Get('care-requests')
