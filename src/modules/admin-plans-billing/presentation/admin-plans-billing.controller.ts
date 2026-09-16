@@ -26,14 +26,19 @@ import { ApproveCareRequestUseCase } from '../application/use-cases/approve-care
 import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-subscription-plan.use-case';
 import { DeclineCareRequestUseCase } from '../application/use-cases/decline-care-request.use-case';
+import { GetOnboardingPipelineUseCase } from '../application/use-cases/get-onboarding-pipeline.use-case';
 import { GetOperationsPanelUseCase } from '../application/use-cases/get-operations-panel.use-case';
 import { GetPlansBillingOverviewUseCase } from '../application/use-cases/get-plans-billing-overview.use-case';
 import { GetRenewalsTimelineUseCase } from '../application/use-cases/get-renewals-timeline.use-case';
+import { ListApplicationsUseCase } from '../application/use-cases/list-applications.use-case';
 import { ListCareRequestsUseCase } from '../application/use-cases/list-care-requests.use-case';
 import { ListPlanSubscriptionsUseCase } from '../application/use-cases/list-plan-subscriptions.use-case';
 import { ListTransactionsUseCase } from '../application/use-cases/list-transactions.use-case';
+import { ApplicationListResponseDto } from './dto/application-list-response.dto';
+import { ApplicationsQueryDto } from './dto/applications-query.dto';
 import { CareRequestListResponseDto } from './dto/care-request-list-response.dto';
 import { CareRequestsQueryDto } from './dto/care-requests-query.dto';
+import { OnboardingPipelineResponseDto } from './dto/onboarding-pipeline-response.dto';
 import { ChangeSubscriptionPlanRequestDto } from './dto/change-subscription-plan.dto';
 import { DeclineCareRequestRequestDto } from './dto/decline-care-request.dto';
 import { OperationsPanelResponseDto } from './dto/operations-panel-response.dto';
@@ -66,6 +71,8 @@ export class AdminPlansBillingController {
     private readonly approveCareRequest: ApproveCareRequestUseCase,
     private readonly declineCareRequest: DeclineCareRequestUseCase,
     private readonly getOperations: GetOperationsPanelUseCase,
+    private readonly getPipeline: GetOnboardingPipelineUseCase,
+    private readonly listApplications: ListApplicationsUseCase,
   ) {}
 
   @Get()
@@ -180,5 +187,28 @@ export class AdminPlansBillingController {
       currency: query.currency ?? Currency.UnitedStatesDollar,
     });
     return OperationsPanelResponseDto.fromResult(result);
+  }
+
+  @Get('pipeline')
+  @ApiOperation({ summary: 'Commercial operations pipeline and the activation time KPI' })
+  @ApiOkResponse({ type: OnboardingPipelineResponseDto })
+  async pipeline(@Query() query: PlansBillingQueryDto): Promise<OnboardingPipelineResponseDto> {
+    const result = await this.getPipeline.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+    });
+    return OnboardingPipelineResponseDto.fromResult(result);
+  }
+
+  @Get('applications')
+  @ApiOperation({ summary: 'The client onboarding verification queue' })
+  @ApiOkResponse({ type: ApplicationListResponseDto })
+  async applications(@Query() query: ApplicationsQueryDto): Promise<ApplicationListResponseDto> {
+    const result = await this.listApplications.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+      status: query.status ?? null,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    });
+    return ApplicationListResponseDto.fromResult(result);
   }
 }
