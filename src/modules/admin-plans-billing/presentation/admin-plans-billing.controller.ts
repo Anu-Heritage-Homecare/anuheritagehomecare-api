@@ -22,11 +22,13 @@ import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-subscription-plan.use-case';
 import { GetPlansBillingOverviewUseCase } from '../application/use-cases/get-plans-billing-overview.use-case';
+import { GetRenewalsTimelineUseCase } from '../application/use-cases/get-renewals-timeline.use-case';
 import { ListPlanSubscriptionsUseCase } from '../application/use-cases/list-plan-subscriptions.use-case';
 import { ListTransactionsUseCase } from '../application/use-cases/list-transactions.use-case';
 import { ChangeSubscriptionPlanRequestDto } from './dto/change-subscription-plan.dto';
 import { PlansBillingOverviewResponseDto } from './dto/plans-billing-overview-response.dto';
 import { PlansBillingQueryDto } from './dto/plans-billing-query.dto';
+import { RenewalsResponseDto } from './dto/renewals-response.dto';
 import { SubscriptionListResponseDto } from './dto/subscription-list-response.dto';
 import { SubscriptionsQueryDto } from './dto/subscriptions-query.dto';
 import { TransactionListResponseDto } from './dto/transaction-list-response.dto';
@@ -48,6 +50,7 @@ export class AdminPlansBillingController {
     private readonly changePlan: ChangeSubscriptionPlanUseCase,
     private readonly cancelSubscription: CancelSubscriptionUseCase,
     private readonly listTransactions: ListTransactionsUseCase,
+    private readonly getRenewals: GetRenewalsTimelineUseCase,
   ) {}
 
   @Get()
@@ -103,5 +106,15 @@ export class AdminPlansBillingController {
       pageSize: query.pageSize ?? 20,
     });
     return TransactionListResponseDto.fromResult(result);
+  }
+
+  @Get('renewals')
+  @ApiOperation({ summary: 'Upcoming renewals timeline: today, this week, next week' })
+  @ApiOkResponse({ type: RenewalsResponseDto })
+  async renewals(@Query() query: PlansBillingQueryDto): Promise<RenewalsResponseDto> {
+    const result = await this.getRenewals.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+    });
+    return RenewalsResponseDto.fromResult(result);
   }
 }

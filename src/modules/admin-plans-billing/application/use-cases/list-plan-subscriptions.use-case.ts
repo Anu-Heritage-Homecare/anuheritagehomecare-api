@@ -15,6 +15,7 @@ import {
   SubscriptionRowView,
 } from '../ports/plans-billing-read.port';
 import { SubscriptionListResult, SubscriptionRowResult } from '../dto/subscription-list.result';
+import { nextMonthlyRenewal } from '../renewal-schedule';
 
 interface ListPlanSubscriptionsCommand {
   currency: Currency;
@@ -78,22 +79,4 @@ export class ListPlanSubscriptionsUseCase {
       remainingHours: null,
     };
   }
-}
-
-/** The next monthly billing date on or after `now`, keeping the start day of month. */
-function nextMonthlyRenewal(startDate: Date, now: Date): Date {
-  let renewal = startDate;
-  while (renewal.getTime() <= now.getTime()) {
-    renewal = new Date(
-      Date.UTC(
-        renewal.getUTCFullYear(),
-        renewal.getUTCMonth() + 1,
-        startDate.getUTCDate(),
-        startDate.getUTCHours(),
-        startDate.getUTCMinutes(),
-        startDate.getUTCSeconds(),
-      ),
-    );
-  }
-  return renewal;
 }

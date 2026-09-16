@@ -5,6 +5,7 @@ import { CarePlansModule } from '@modules/care-plans/care-plans.module';
 import { CancelSubscriptionUseCase } from './application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from './application/use-cases/change-subscription-plan.use-case';
 import { GetPlansBillingOverviewUseCase } from './application/use-cases/get-plans-billing-overview.use-case';
+import { GetRenewalsTimelineUseCase } from './application/use-cases/get-renewals-timeline.use-case';
 import { ListPlanSubscriptionsUseCase } from './application/use-cases/list-plan-subscriptions.use-case';
 import { ListTransactionsUseCase } from './application/use-cases/list-transactions.use-case';
 import { PLANS_BILLING_READ_MODEL } from './application/ports/plans-billing-read.port';
@@ -26,6 +27,7 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
     ChangeSubscriptionPlanUseCase,
     CancelSubscriptionUseCase,
     ListTransactionsUseCase,
+    GetRenewalsTimelineUseCase,
     // One Prisma read class backs every read port on this panel.
     PlansBillingReadPrisma,
     { provide: PLANS_BILLING_READ_MODEL, useExisting: PlansBillingReadPrisma },
