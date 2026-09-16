@@ -23,11 +23,14 @@ import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subsc
 import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-subscription-plan.use-case';
 import { GetPlansBillingOverviewUseCase } from '../application/use-cases/get-plans-billing-overview.use-case';
 import { ListPlanSubscriptionsUseCase } from '../application/use-cases/list-plan-subscriptions.use-case';
+import { ListTransactionsUseCase } from '../application/use-cases/list-transactions.use-case';
 import { ChangeSubscriptionPlanRequestDto } from './dto/change-subscription-plan.dto';
 import { PlansBillingOverviewResponseDto } from './dto/plans-billing-overview-response.dto';
 import { PlansBillingQueryDto } from './dto/plans-billing-query.dto';
 import { SubscriptionListResponseDto } from './dto/subscription-list-response.dto';
 import { SubscriptionsQueryDto } from './dto/subscriptions-query.dto';
+import { TransactionListResponseDto } from './dto/transaction-list-response.dto';
+import { TransactionsQueryDto } from './dto/transactions-query.dto';
 
 /**
  * Admin Plans and Billing control panel. Every read is scoped to a single currency
@@ -44,6 +47,7 @@ export class AdminPlansBillingController {
     private readonly listSubscriptions: ListPlanSubscriptionsUseCase,
     private readonly changePlan: ChangeSubscriptionPlanUseCase,
     private readonly cancelSubscription: CancelSubscriptionUseCase,
+    private readonly listTransactions: ListTransactionsUseCase,
   ) {}
 
   @Get()
@@ -86,5 +90,18 @@ export class AdminPlansBillingController {
   @ApiNoContentResponse()
   async cancel(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.cancelSubscription.execute({ subscriptionId: id });
+  }
+
+  @Get('transactions')
+  @ApiOperation({ summary: 'List payment transactions for one market' })
+  @ApiOkResponse({ type: TransactionListResponseDto })
+  async transactions(@Query() query: TransactionsQueryDto): Promise<TransactionListResponseDto> {
+    const result = await this.listTransactions.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+      status: query.status ?? null,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    });
+    return TransactionListResponseDto.fromResult(result);
   }
 }

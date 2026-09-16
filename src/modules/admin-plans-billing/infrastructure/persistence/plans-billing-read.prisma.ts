@@ -13,6 +13,10 @@ import {
   PlansBillingReadModel,
   SubscriptionPageView,
 } from '../../application/ports/plans-billing-read.port';
+import {
+  TransactionPageView,
+  TransactionsReadModel,
+} from '../../application/ports/transactions-read.port';
 
 /** Number of months shown on the revenue analytics chart, current month included. */
 const REVENUE_SERIES_MONTHS = 12;
@@ -23,7 +27,7 @@ const REVENUE_SERIES_MONTHS = 12;
  * series is bucketed in memory from a single bounded payment read.
  */
 @Injectable()
-export class PlansBillingReadPrisma implements PlansBillingReadModel {
+export class PlansBillingReadPrisma implements PlansBillingReadModel, TransactionsReadModel {
   constructor(private readonly prisma: PrismaService) {}
 
   async overview(currency: PrismaCurrency, now: Date): Promise<PlansBillingOverviewView> {
@@ -183,6 +187,50 @@ export class PlansBillingReadPrisma implements PlansBillingReadModel {
       select: { id: true, firstName: true, lastName: true },
     });
     return new Map(rows.map((row) => [row.id, `${row.firstName} ${row.lastName}`.trim()]));
+  }
+
+  async listTransactions(
+    currency: PrismaCurrency,
+    status: PaymentStatus | null,
+    page: number,
+    pageSize: number,
+  ): Promise<TransactionPageView> {
+    const where = { currency, ...(status === null ? {} : { status }) };
+    const [total, rows] = await this.prisma.$transaction([
+      this.prisma.payment.count({ where }),
+      this.prisma.payment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: Math.max(0, (page - 1) * pageSize),
+        take: pageSize,
+        select: {
+          id: true,
+          ownerId: true,
+          providerReference: true,
+          provider: true,
+          payableType: true,
+          amountMinor: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    const ownerNames = await this.ownerNames(rows.map((row) => row.ownerId));
+
+    return {
+      total,
+      rows: rows.map((row) => ({
+        id: row.id,
+        reference: row.providerReference,
+        ownerName: ownerNames.get(row.ownerId) ?? null,
+        provider: row.provider,
+        payableType: row.payableType,
+        amountMinor: row.amountMinor,
+        status: row.status,
+        createdAt: row.createdAt,
+      })),
+    };
   }
 }
 
