@@ -17,15 +17,24 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { CareRequestStatus } from '@prisma/client';
 import { Currency } from '@shared/domain/currency.enum';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
+import { AdminPrincipal } from '@shared/presentation/admin-principal';
+import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
+import { ApproveCareRequestUseCase } from '../application/use-cases/approve-care-request.use-case';
 import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-subscription-plan.use-case';
+import { DeclineCareRequestUseCase } from '../application/use-cases/decline-care-request.use-case';
 import { GetPlansBillingOverviewUseCase } from '../application/use-cases/get-plans-billing-overview.use-case';
 import { GetRenewalsTimelineUseCase } from '../application/use-cases/get-renewals-timeline.use-case';
+import { ListCareRequestsUseCase } from '../application/use-cases/list-care-requests.use-case';
 import { ListPlanSubscriptionsUseCase } from '../application/use-cases/list-plan-subscriptions.use-case';
 import { ListTransactionsUseCase } from '../application/use-cases/list-transactions.use-case';
+import { CareRequestListResponseDto } from './dto/care-request-list-response.dto';
+import { CareRequestsQueryDto } from './dto/care-requests-query.dto';
 import { ChangeSubscriptionPlanRequestDto } from './dto/change-subscription-plan.dto';
+import { DeclineCareRequestRequestDto } from './dto/decline-care-request.dto';
 import { PlansBillingOverviewResponseDto } from './dto/plans-billing-overview-response.dto';
 import { PlansBillingQueryDto } from './dto/plans-billing-query.dto';
 import { RenewalsResponseDto } from './dto/renewals-response.dto';
@@ -51,6 +60,9 @@ export class AdminPlansBillingController {
     private readonly cancelSubscription: CancelSubscriptionUseCase,
     private readonly listTransactions: ListTransactionsUseCase,
     private readonly getRenewals: GetRenewalsTimelineUseCase,
+    private readonly listCareRequests: ListCareRequestsUseCase,
+    private readonly approveCareRequest: ApproveCareRequestUseCase,
+    private readonly declineCareRequest: DeclineCareRequestUseCase,
   ) {}
 
   @Get()
@@ -116,5 +128,44 @@ export class AdminPlansBillingController {
       currency: query.currency ?? Currency.UnitedStatesDollar,
     });
     return RenewalsResponseDto.fromResult(result);
+  }
+
+  @Get('care-requests')
+  @ApiOperation({ summary: 'The care request queue (defaults to pending)' })
+  @ApiOkResponse({ type: CareRequestListResponseDto })
+  async careRequests(@Query() query: CareRequestsQueryDto): Promise<CareRequestListResponseDto> {
+    const result = await this.listCareRequests.execute({
+      status: query.status ?? CareRequestStatus.PENDING,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    });
+    return CareRequestListResponseDto.fromResult(result);
+  }
+
+  @Post('care-requests/:id/approve')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Approve a pending care request' })
+  @ApiNoContentResponse()
+  async approve(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.approveCareRequest.execute({ requestId: id, adminId: principal.adminUserId });
+  }
+
+  @Post('care-requests/:id/decline')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Decline a pending care request' })
+  @ApiNoContentResponse()
+  async decline(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: DeclineCareRequestRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.declineCareRequest.execute({
+      requestId: id,
+      adminId: principal.adminUserId,
+      note: body.note ?? null,
+    });
   }
 }

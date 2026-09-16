@@ -8,6 +8,10 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import {
+  CareRequestPageView,
+  CareRequestsReadModel,
+} from '../../application/ports/care-requests-read.port';
+import {
   MonthlyRevenuePointView,
   PlansBillingOverviewView,
   PlansBillingReadModel,
@@ -27,7 +31,9 @@ const REVENUE_SERIES_MONTHS = 12;
  * series is bucketed in memory from a single bounded payment read.
  */
 @Injectable()
-export class PlansBillingReadPrisma implements PlansBillingReadModel, TransactionsReadModel {
+export class PlansBillingReadPrisma
+  implements PlansBillingReadModel, TransactionsReadModel, CareRequestsReadModel
+{
   constructor(private readonly prisma: PrismaService) {}
 
   async overview(currency: PrismaCurrency, now: Date): Promise<PlansBillingOverviewView> {
@@ -227,6 +233,56 @@ export class PlansBillingReadPrisma implements PlansBillingReadModel, Transactio
         provider: row.provider,
         payableType: row.payableType,
         amountMinor: row.amountMinor,
+        status: row.status,
+        createdAt: row.createdAt,
+      })),
+    };
+  }
+
+  async listCareRequests(
+    status: CareRequestStatus | null,
+    page: number,
+    pageSize: number,
+  ): Promise<CareRequestPageView> {
+    const where = status === null ? {} : { status };
+    const [total, rows] = await this.prisma.$transaction([
+      this.prisma.additionalCareRequest.count({ where }),
+      this.prisma.additionalCareRequest.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: Math.max(0, (page - 1) * pageSize),
+        take: pageSize,
+        select: {
+          id: true,
+          ownerId: true,
+          careRecipientId: true,
+          careType: true,
+          requestedDate: true,
+          startMinute: true,
+          durationMinutes: true,
+          reason: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    const [familyNames, patientNames] = await Promise.all([
+      this.ownerNames(rows.map((row) => row.ownerId)),
+      this.recipientNames(rows.map((row) => row.careRecipientId)),
+    ]);
+
+    return {
+      total,
+      rows: rows.map((row) => ({
+        id: row.id,
+        familyName: familyNames.get(row.ownerId) ?? null,
+        patientName: patientNames.get(row.careRecipientId) ?? null,
+        careType: row.careType,
+        requestedDate: row.requestedDate,
+        startMinute: row.startMinute,
+        durationMinutes: row.durationMinutes,
+        reason: row.reason,
         status: row.status,
         createdAt: row.createdAt,
       })),
