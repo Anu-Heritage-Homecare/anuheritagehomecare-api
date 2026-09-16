@@ -9,6 +9,7 @@ import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
 import { AdminCareRecipientsModule } from './modules/admin-care-recipients/admin-care-recipients.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { AdminIdentityModule } from './modules/admin-identity/admin-identity.module';
+import { AdminPlansBillingModule } from './modules/admin-plans-billing/admin-plans-billing.module';
 import { AdminTasksModule } from './modules/admin-tasks/admin-tasks.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
@@ -146,6 +147,7 @@ import { SharedModule } from './shared/shared.module';
     FamilyContactsModule,
     AdminDashboardModule,
     AdminCareRecipientsModule,
+    AdminPlansBillingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
