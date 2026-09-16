@@ -8,6 +8,7 @@ import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import {
   ActivationView,
   ApplicationPageView,
+  ApplicationQueueFilters,
   OnboardingReadModel,
   StagePipelineView,
 } from '../../application/ports/onboarding-read.port';
@@ -120,11 +121,16 @@ export class OnboardingReadPrisma implements OnboardingReadModel {
 
   async verificationQueue(
     currency: PrismaCurrency,
-    status: PrismaStatus | null,
+    filters: ApplicationQueueFilters,
     page: number,
     pageSize: number,
   ): Promise<ApplicationPageView> {
-    const where = { currency, ...(status === null ? {} : { status }) };
+    const where = {
+      currency,
+      ...(filters.status === null ? {} : { status: filters.status }),
+      ...(filters.priority === null ? {} : { priority: filters.priority }),
+      ...(filters.planType === null ? {} : { selectedPlanType: filters.planType }),
+    };
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.clientApplication.count({ where }),
       this.prisma.clientApplication.findMany({
@@ -134,14 +140,18 @@ export class OnboardingReadPrisma implements OnboardingReadModel {
         take: pageSize,
         select: {
           id: true,
+          sequence: true,
           familyName: true,
           patientName: true,
           selectedPlanType: true,
           monthlyPriceMinor: true,
+          priority: true,
           paymentStatus: true,
+          docsStatus: true,
           coordinatorId: true,
           status: true,
           submittedAt: true,
+          createdAt: true,
         },
       }),
     ]);
@@ -154,11 +164,14 @@ export class OnboardingReadPrisma implements OnboardingReadModel {
       total,
       rows: rows.map((row) => ({
         id: row.id,
+        reference: referenceFor(row.sequence, row.createdAt),
         familyName: row.familyName,
         patientName: row.patientName,
         selectedPlanType: row.selectedPlanType,
         monthlyPriceMinor: row.monthlyPriceMinor,
+        priority: row.priority,
         paymentStatus: row.paymentStatus,
+        docsStatus: row.docsStatus,
         coordinatorName:
           row.coordinatorId === null ? null : (coordinatorNames.get(row.coordinatorId) ?? null),
         status: row.status,
@@ -225,6 +238,11 @@ export class OnboardingReadPrisma implements OnboardingReadModel {
     });
     return new Map(rows.map((row) => [row.id, `${row.firstName} ${row.lastName}`.trim()]));
   }
+}
+
+/** Human readable application reference: CR-{year}-{zero padded sequence}. */
+function referenceFor(sequence: number, createdAt: Date): string {
+  return `CR-${createdAt.getUTCFullYear()}-${String(sequence).padStart(3, '0')}`;
 }
 
 /** Mean of the values, rounded to one decimal place, or null when empty. */

@@ -2,4 +2,5 @@
 export enum OnboardingPaymentStatus {
   Pending = 'PENDING',
   Paid = 'PAID',
+  Failed = 'FAILED',
 }

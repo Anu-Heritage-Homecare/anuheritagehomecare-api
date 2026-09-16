@@ -260,6 +260,8 @@ export class AdminPlansBillingController {
     const result = await this.listApplications.execute({
       currency: query.currency ?? Currency.UnitedStatesDollar,
       status: query.status ?? null,
+      priority: query.priority ?? null,
+      planType: query.plan ?? null,
       page: query.page ?? 1,
       pageSize: query.pageSize ?? 20,
     });

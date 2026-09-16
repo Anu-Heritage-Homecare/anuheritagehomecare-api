@@ -2,7 +2,9 @@ import { CarePlanType } from '@modules/care-plans/domain/care-plan-type.enum';
 import { AggregateRoot } from '@shared/domain/aggregate-root.base';
 import { Currency } from '@shared/domain/currency.enum';
 import { ValidationException } from '@shared/domain/domain-exception';
+import { DocsStatus } from './docs-status.enum';
 import { OnboardingPaymentStatus } from './onboarding-payment-status.enum';
+import { OnboardingPriority } from './onboarding-priority.enum';
 import { OnboardingStage, stageOrder } from './onboarding-stage.enum';
 import { OnboardingStatus } from './onboarding-status.enum';
 
@@ -20,7 +22,9 @@ interface ClientApplicationProps {
   selectedPlanType: CarePlanType | null;
   currency: Currency;
   monthlyPriceMinor: number | null;
+  priority: OnboardingPriority;
   paymentStatus: OnboardingPaymentStatus;
+  docsStatus: DocsStatus;
   coordinatorId: string | null;
   caregiverId: string | null;
   stage: OnboardingStage;
@@ -58,6 +62,7 @@ export class ClientApplication extends AggregateRoot<string> {
     familyName: string;
     patientName: string;
     currency: Currency;
+    priority?: OnboardingPriority;
     now: Date;
   }): ClientApplication {
     const familyName = cleanName(params.familyName, 'A family name is required');
@@ -73,7 +78,9 @@ export class ClientApplication extends AggregateRoot<string> {
         selectedPlanType: null,
         currency: params.currency,
         monthlyPriceMinor: null,
+        priority: params.priority ?? OnboardingPriority.Medium,
         paymentStatus: OnboardingPaymentStatus.Pending,
+        docsStatus: DocsStatus.Missing,
         coordinatorId: null,
         caregiverId: null,
         stage: OnboardingStage.NewRequest,
@@ -111,6 +118,24 @@ export class ClientApplication extends AggregateRoot<string> {
   public recordPayment(now: Date): void {
     this.props.paymentStatus = OnboardingPaymentStatus.Paid;
     this.advanceTo(OnboardingStage.PaymentReceived, now);
+  }
+
+  /** Record that the first payment attempt failed, without moving the stage. */
+  public failPayment(now: Date): void {
+    this.props.paymentStatus = OnboardingPaymentStatus.Failed;
+    this.props.updatedAt = now;
+  }
+
+  /** Set the triage priority. */
+  public setPriority(priority: OnboardingPriority, now: Date): void {
+    this.props.priority = priority;
+    this.props.updatedAt = now;
+  }
+
+  /** Set the document completeness state. */
+  public setDocsStatus(docsStatus: DocsStatus, now: Date): void {
+    this.props.docsStatus = docsStatus;
+    this.props.updatedAt = now;
   }
 
   /** Submit the application into the verification queue. */
@@ -215,8 +240,16 @@ export class ClientApplication extends AggregateRoot<string> {
     return this.props.monthlyPriceMinor;
   }
 
+  public get priority(): OnboardingPriority {
+    return this.props.priority;
+  }
+
   public get paymentStatus(): OnboardingPaymentStatus {
     return this.props.paymentStatus;
+  }
+
+  public get docsStatus(): DocsStatus {
+    return this.props.docsStatus;
   }
 
   public get coordinatorId(): string | null {

@@ -1,7 +1,9 @@
 import {
   CarePlanType as PrismaCarePlanType,
   Currency as PrismaCurrency,
+  DocsStatus as PrismaDocsStatus,
   OnboardingPaymentStatus as PrismaPaymentStatus,
+  OnboardingPriority as PrismaPriority,
   OnboardingStage as PrismaStage,
   OnboardingStatus as PrismaStatus,
 } from '@prisma/client';
@@ -20,11 +22,14 @@ export interface StagePipelineView {
 /** One row of the Recent Care Requests verification queue. */
 export interface ApplicationRowView {
   id: string;
+  reference: string;
   familyName: string;
   patientName: string;
   selectedPlanType: PrismaCarePlanType | null;
   monthlyPriceMinor: number | null;
+  priority: PrismaPriority;
   paymentStatus: PrismaPaymentStatus;
+  docsStatus: PrismaDocsStatus;
   coordinatorName: string | null;
   status: PrismaStatus;
   submittedAt: Date;
@@ -33,6 +38,13 @@ export interface ApplicationRowView {
 export interface ApplicationPageView {
   total: number;
   rows: ApplicationRowView[];
+}
+
+/** Filters for the verification queue. Any combination may be applied. */
+export interface ApplicationQueueFilters {
+  status: PrismaStatus | null;
+  priority: PrismaPriority | null;
+  planType: PrismaCarePlanType | null;
 }
 
 /** End to end activation time, current window versus the previous one, for the trend. */
@@ -50,7 +62,7 @@ export interface OnboardingReadModel {
   pipeline(currency: PrismaCurrency, timingWindowStart: Date): Promise<StagePipelineView[]>;
   verificationQueue(
     currency: PrismaCurrency,
-    status: PrismaStatus | null,
+    filters: ApplicationQueueFilters,
     page: number,
     pageSize: number,
   ): Promise<ApplicationPageView>;

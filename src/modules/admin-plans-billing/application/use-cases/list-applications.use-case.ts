@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Currency as PrismaCurrency, OnboardingStatus as PrismaStatus } from '@prisma/client';
+import {
+  CarePlanType as PrismaCarePlanType,
+  Currency as PrismaCurrency,
+  OnboardingPriority as PrismaPriority,
+  OnboardingStatus as PrismaStatus,
+} from '@prisma/client';
 import {
   CARE_PLAN_REPOSITORY,
   CarePlanRepository,
@@ -11,14 +16,17 @@ import { ApplicationListResult } from '../dto/application-list.result';
 interface ListApplicationsCommand {
   currency: Currency;
   status: PrismaStatus | null;
+  priority: PrismaPriority | null;
+  planType: PrismaCarePlanType | null;
   page: number;
   pageSize: number;
 }
 
 /**
  * List client onboarding applications for the Recent Care Requests verification
- * queue, newest submitted first, with the selected plan name and coordinator
- * resolved. Currency scoped. Read only.
+ * queue, newest submitted first, with the reference, selected plan name and
+ * coordinator resolved. Currency scoped, with status, priority and plan filters.
+ * Read only.
  */
 @Injectable()
 export class ListApplicationsUseCase {
@@ -32,7 +40,12 @@ export class ListApplicationsUseCase {
       command.currency === Currency.NigerianNaira ? PrismaCurrency.NGN : PrismaCurrency.USD;
 
     const [page, catalog] = await Promise.all([
-      this.reads.verificationQueue(prismaCurrency, command.status, command.page, command.pageSize),
+      this.reads.verificationQueue(
+        prismaCurrency,
+        { status: command.status, priority: command.priority, planType: command.planType },
+        command.page,
+        command.pageSize,
+      ),
       this.plans.findAllActive(),
     ]);
     const names = new Map(catalog.map((plan) => [String(plan.type), plan.name]));
@@ -46,13 +59,16 @@ export class ListApplicationsUseCase {
         const planType = row.selectedPlanType === null ? null : String(row.selectedPlanType);
         return {
           id: row.id,
+          reference: row.reference,
           familyName: row.familyName,
           patientName: row.patientName,
           selectedPlanType: planType,
           planName: planType === null ? null : (names.get(planType) ?? planType),
           monthlyPriceMinor: row.monthlyPriceMinor,
           currency: String(command.currency),
+          priority: String(row.priority),
           paymentStatus: String(row.paymentStatus),
+          docsStatus: String(row.docsStatus),
           coordinatorName: row.coordinatorName,
           status: String(row.status),
           submittedAt: row.submittedAt.toISOString(),

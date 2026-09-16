@@ -6,13 +6,16 @@ import {
 
 class ApplicationRowDto implements ApplicationRowResult {
   @ApiProperty() id!: string;
+  @ApiProperty() reference!: string;
   @ApiProperty() familyName!: string;
   @ApiProperty() patientName!: string;
   @ApiProperty({ nullable: true, type: String }) selectedPlanType!: string | null;
   @ApiProperty({ nullable: true, type: String }) planName!: string | null;
   @ApiProperty({ nullable: true, type: Number }) monthlyPriceMinor!: number | null;
   @ApiProperty() currency!: string;
+  @ApiProperty() priority!: string;
   @ApiProperty() paymentStatus!: string;
+  @ApiProperty() docsStatus!: string;
   @ApiProperty({ nullable: true, type: String }) coordinatorName!: string | null;
   @ApiProperty() status!: string;
   @ApiProperty() submittedAt!: string;

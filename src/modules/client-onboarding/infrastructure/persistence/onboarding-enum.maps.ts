@@ -1,13 +1,17 @@
 import {
   CarePlanType as PrismaCarePlanType,
   Currency as PrismaCurrency,
+  DocsStatus as PrismaDocsStatus,
   OnboardingPaymentStatus as PrismaPaymentStatus,
+  OnboardingPriority as PrismaPriority,
   OnboardingStage as PrismaStage,
   OnboardingStatus as PrismaStatus,
 } from '@prisma/client';
 import { CarePlanType } from '@modules/care-plans/domain/care-plan-type.enum';
 import { Currency } from '@shared/domain/currency.enum';
+import { DocsStatus } from '../../domain/docs-status.enum';
 import { OnboardingPaymentStatus } from '../../domain/onboarding-payment-status.enum';
+import { OnboardingPriority } from '../../domain/onboarding-priority.enum';
 import { OnboardingStage } from '../../domain/onboarding-stage.enum';
 import { OnboardingStatus } from '../../domain/onboarding-status.enum';
 
@@ -52,11 +56,37 @@ export const TO_PERSISTENCE_STATUS: Record<OnboardingStatus, PrismaStatus> = {
 export const TO_DOMAIN_PAYMENT_STATUS: Record<PrismaPaymentStatus, OnboardingPaymentStatus> = {
   PENDING: OnboardingPaymentStatus.Pending,
   PAID: OnboardingPaymentStatus.Paid,
+  FAILED: OnboardingPaymentStatus.Failed,
 };
 
 export const TO_PERSISTENCE_PAYMENT_STATUS: Record<OnboardingPaymentStatus, PrismaPaymentStatus> = {
   [OnboardingPaymentStatus.Pending]: 'PENDING',
   [OnboardingPaymentStatus.Paid]: 'PAID',
+  [OnboardingPaymentStatus.Failed]: 'FAILED',
+};
+
+export const TO_DOMAIN_PRIORITY: Record<PrismaPriority, OnboardingPriority> = {
+  HIGH: OnboardingPriority.High,
+  MEDIUM: OnboardingPriority.Medium,
+  LOW: OnboardingPriority.Low,
+};
+
+export const TO_PERSISTENCE_PRIORITY: Record<OnboardingPriority, PrismaPriority> = {
+  [OnboardingPriority.High]: 'HIGH',
+  [OnboardingPriority.Medium]: 'MEDIUM',
+  [OnboardingPriority.Low]: 'LOW',
+};
+
+export const TO_DOMAIN_DOCS_STATUS: Record<PrismaDocsStatus, DocsStatus> = {
+  COMPLETE: DocsStatus.Complete,
+  INCOMPLETE: DocsStatus.Incomplete,
+  MISSING: DocsStatus.Missing,
+};
+
+export const TO_PERSISTENCE_DOCS_STATUS: Record<DocsStatus, PrismaDocsStatus> = {
+  [DocsStatus.Complete]: 'COMPLETE',
+  [DocsStatus.Incomplete]: 'INCOMPLETE',
+  [DocsStatus.Missing]: 'MISSING',
 };
 
 export const TO_DOMAIN_PLAN_TYPE: Record<PrismaCarePlanType, CarePlanType> = {

@@ -1765,6 +1765,8 @@ model AdditionalCareRequest {
 // long each stage takes and the average activation time end to end.
 model ClientApplication {
   id                      String                  @id @default(uuid()) @db.Uuid
+  // Human readable reference: rendered as CR-{year}-{sequence} on the queue.
+  sequence                Int                     @unique @default(autoincrement())
   ownerId                 String?                 @db.Uuid
   careRecipientId         String?                 @db.Uuid
   familyName              String                  @db.VarChar(200)
@@ -1772,7 +1774,9 @@ model ClientApplication {
   selectedPlanType        CarePlanType?
   currency                Currency
   monthlyPriceMinor       Int?
+  priority                OnboardingPriority      @default(MEDIUM)
   paymentStatus           OnboardingPaymentStatus @default(PENDING)
+  docsStatus              DocsStatus              @default(MISSING)
   coordinatorId           String?                 @db.Uuid
   caregiverId             String?                 @db.Uuid
   stage                   OnboardingStage         @default(NEW_REQUEST)
@@ -1788,6 +1792,7 @@ model ClientApplication {
   @@index([status])
   @@index([currency, createdAt])
   @@index([coordinatorId])
+  @@index([priority])
   @@map("client_applications")
 }
 
@@ -1830,8 +1835,25 @@ enum OnboardingStatus {
 enum OnboardingPaymentStatus {
   PENDING
   PAID
+  FAILED
 
   @@map("onboarding_payment_status")
+}
+
+enum OnboardingPriority {
+  HIGH
+  MEDIUM
+  LOW
+
+  @@map("onboarding_priority")
+}
+
+enum DocsStatus {
+  COMPLETE
+  INCOMPLETE
+  MISSING
+
+  @@map("docs_status")
 }
 
 // Bounded context: KYC (identity verification of the family owner).
