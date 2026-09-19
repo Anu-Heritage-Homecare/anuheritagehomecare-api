@@ -5,6 +5,7 @@ import { BookingsModule } from '@modules/bookings/bookings.module';
 import { CarePlansModule } from '@modules/care-plans/care-plans.module';
 import { CareRequestsModule } from '@modules/care-requests/care-requests.module';
 import { ClientOnboardingModule } from '@modules/client-onboarding/client-onboarding.module';
+import { SubscriptionManagementModule } from '@modules/subscription-management/subscription-management.module';
 import { AdvanceApplicationStageUseCase } from './application/use-cases/advance-application-stage.use-case';
 import { ApproveCareRequestUseCase } from './application/use-cases/approve-care-request.use-case';
 import { AssignApplicationCoordinatorUseCase } from './application/use-cases/assign-application-coordinator.use-case';
@@ -20,8 +21,15 @@ import { GetOnboardingPipelineUseCase } from './application/use-cases/get-onboar
 import { ListManagedPlansUseCase } from './application/use-cases/list-managed-plans.use-case';
 import { GetOperationalAlertsUseCase } from './application/use-cases/get-operational-alerts.use-case';
 import { GetOperationsPanelUseCase } from './application/use-cases/get-operations-panel.use-case';
+import { GetSubscriptionDetailUseCase } from './application/use-cases/get-subscription-detail.use-case';
 import { GetSubscriptionKpisUseCase } from './application/use-cases/get-subscription-kpis.use-case';
 import { ListEnrichedSubscriptionsUseCase } from './application/use-cases/list-enriched-subscriptions.use-case';
+import { SubscriptionHoursActionUseCase } from './application/use-cases/subscription-hours-action.use-case';
+import { SubscriptionLifecycleActionUseCase } from './application/use-cases/subscription-lifecycle-action.use-case';
+import {
+  AddSubscriptionNoteUseCase,
+  AssignSubscriptionRoleUseCase,
+} from './application/use-cases/subscription-overlay-assignment.use-case';
 import { GetPlanPerformanceUseCase } from './application/use-cases/get-plan-performance.use-case';
 import { GetPlansBillingOverviewUseCase } from './application/use-cases/get-plans-billing-overview.use-case';
 import { GetRenewalsTimelineUseCase } from './application/use-cases/get-renewals-timeline.use-case';
@@ -58,6 +66,7 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
     CareRequestsModule,
     ClientOnboardingModule,
     AdminCarePlansModule,
+    SubscriptionManagementModule,
   ],
   controllers: [AdminPlansBillingController],
   providers: [
@@ -87,6 +96,11 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
     EditManagedPlanUseCase,
     ListEnrichedSubscriptionsUseCase,
     GetSubscriptionKpisUseCase,
+    GetSubscriptionDetailUseCase,
+    SubscriptionLifecycleActionUseCase,
+    SubscriptionHoursActionUseCase,
+    AssignSubscriptionRoleUseCase,
+    AddSubscriptionNoteUseCase,
     // One Prisma read class backs the billing read ports on this panel.
     PlansBillingReadPrisma,
     { provide: PLANS_BILLING_READ_MODEL, useExisting: PlansBillingReadPrisma },

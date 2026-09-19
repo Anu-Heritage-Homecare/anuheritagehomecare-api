@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import {
   EnrichedSubscriptionPageView,
+  SubscriptionDetailView,
   SubscriptionKpisView,
   SubscriptionsAdminReadModel,
 } from '../../application/ports/subscriptions-admin-read.port';
@@ -142,6 +143,133 @@ export class SubscriptionsAdminReadPrisma implements SubscriptionsAdminReadModel
     };
   }
 
+  async subscriptionDetail(id: string): Promise<SubscriptionDetailView | null> {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        ownerId: true,
+        careRecipientId: true,
+        planType: true,
+        status: true,
+        autoRenew: true,
+        monthlyPriceMinor: true,
+        currency: true,
+        startDate: true,
+      },
+    });
+    if (subscription === null) {
+      return null;
+    }
+
+    const [recipient, owner, overlay, payments] = await Promise.all([
+      this.prisma.careRecipient.findUnique({
+        where: { id: subscription.careRecipientId },
+        select: { name: true, dateOfBirth: true, gender: true, medicalConditions: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: subscription.ownerId },
+        select: {
+          firstName: true,
+          lastName: true,
+          phone: true,
+          email: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          state: true,
+          postalCode: true,
+        },
+      }),
+      this.prisma.subscriptionOps.findUnique({
+        where: { subscriptionId: id },
+        include: {
+          events: { orderBy: { occurredAt: 'desc' } },
+          notes: { orderBy: { createdAt: 'desc' } },
+        },
+      }),
+      this.prisma.payment.findMany({
+        where: { payableType: 'SUBSCRIPTION', payableId: id },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          providerReference: true,
+          provider: true,
+          payableType: true,
+          amountMinor: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    const [coordinatorName, caregiverName] = await Promise.all([
+      overlay?.coordinatorId == null
+        ? Promise.resolve(null)
+        : this.singleAdminName(overlay.coordinatorId),
+      overlay?.caregiverId == null
+        ? Promise.resolve(null)
+        : this.singleUserName(overlay.caregiverId),
+    ]);
+
+    return {
+      id: subscription.id,
+      planType: subscription.planType,
+      status: subscription.status,
+      autoRenew: subscription.autoRenew,
+      monthlyPriceMinor: subscription.monthlyPriceMinor,
+      currencyCode: subscription.currency,
+      startDate: subscription.startDate,
+      recipientName: recipient?.name ?? null,
+      recipientDateOfBirth: recipient?.dateOfBirth ?? null,
+      recipientGender: recipient === null ? null : titleCase(recipient.gender),
+      recipientConditions: recipient?.medicalConditions ?? [],
+      ownerName: owner === null ? null : `${owner.firstName} ${owner.lastName}`.trim(),
+      ownerPhone: owner?.phone ?? null,
+      ownerEmail: owner?.email ?? null,
+      ownerAddress: owner === null ? null : formatAddress(owner),
+      coordinatorName,
+      caregiverName,
+      contractStartAt: overlay?.contractStartAt ?? null,
+      activatedAt: overlay?.activatedAt ?? null,
+      flexAllocatedTenths: overlay?.flexAllocatedTenths ?? null,
+      flexConsumedTenths: overlay?.flexConsumedTenths ?? null,
+      flexCycleEndsAt: overlay?.flexCycleEndsAt ?? null,
+      hasOverlay: overlay !== null,
+      events: (overlay?.events ?? []).map((event) => ({
+        type: event.type,
+        detail: event.detail,
+        hoursDeltaTenths: event.hoursDeltaTenths,
+        actorAdminId: event.actorAdminId,
+        actorLabel: event.actorLabel,
+        occurredAt: event.occurredAt,
+      })),
+      notes: (overlay?.notes ?? []).map((note) => ({
+        body: note.body,
+        authorAdminId: note.authorAdminId,
+        authorName: note.authorName,
+        createdAt: note.createdAt,
+      })),
+      payments: payments.map((payment) => ({
+        reference: payment.providerReference,
+        provider: payment.provider,
+        payableType: payment.payableType,
+        amountMinor: payment.amountMinor,
+        status: payment.status,
+        createdAt: payment.createdAt,
+      })),
+    };
+  }
+
+  private async singleAdminName(id: string): Promise<string | null> {
+    const names = await this.adminNames([id]);
+    return names.get(id) ?? null;
+  }
+
+  private async singleUserName(id: string): Promise<string | null> {
+    const names = await this.userNames([id]);
+    return names.get(id) ?? null;
+  }
+
   private async recipients(
     ids: string[],
   ): Promise<Map<string, { name: string; dateOfBirth: Date | null }>> {
@@ -179,4 +307,25 @@ export class SubscriptionsAdminReadPrisma implements SubscriptionsAdminReadModel
     });
     return new Map(rows.map((row) => [row.id, `${row.firstName} ${row.lastName}`.trim()]));
   }
+}
+
+/** Turn an UPPER_SNAKE enum value into a Title Cased display string. */
+function titleCase(value: string): string {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((word) => (word.length === 0 ? word : word[0].toUpperCase() + word.slice(1)))
+    .join(' ');
+}
+
+/** One line address from a user's structured address fields. */
+function formatAddress(owner: {
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+}): string {
+  const line2 = owner.addressLine2 === null ? '' : `${owner.addressLine2}, `;
+  return `${owner.addressLine1}, ${line2}${owner.city}, ${owner.state} ${owner.postalCode}`;
 }

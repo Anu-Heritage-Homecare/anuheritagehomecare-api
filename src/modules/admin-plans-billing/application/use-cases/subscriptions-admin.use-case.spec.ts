@@ -55,6 +55,7 @@ function reads(): SubscriptionsAdminReadModel {
   return {
     listEnriched: () => Promise.resolve(page()),
     subscriptionKpis: () => Promise.resolve(kpis()),
+    subscriptionDetail: () => Promise.resolve(null),
   };
 }
 

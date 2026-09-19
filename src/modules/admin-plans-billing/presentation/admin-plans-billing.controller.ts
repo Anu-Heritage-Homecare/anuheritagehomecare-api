@@ -30,8 +30,13 @@ import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { AdvanceApplicationStageUseCase } from '../application/use-cases/advance-application-stage.use-case';
 import { ApproveCareRequestUseCase } from '../application/use-cases/approve-care-request.use-case';
+import { AddSubscriptionNoteUseCase } from '../application/use-cases/subscription-overlay-assignment.use-case';
+import { AssignSubscriptionRoleUseCase } from '../application/use-cases/subscription-overlay-assignment.use-case';
 import { GetApplicationDetailUseCase } from '../application/use-cases/get-application-detail.use-case';
 import { GetManagedPlanDetailUseCase } from '../application/use-cases/get-managed-plan-detail.use-case';
+import { GetSubscriptionDetailUseCase } from '../application/use-cases/get-subscription-detail.use-case';
+import { SubscriptionHoursActionUseCase } from '../application/use-cases/subscription-hours-action.use-case';
+import { SubscriptionLifecycleActionUseCase } from '../application/use-cases/subscription-lifecycle-action.use-case';
 import { ListManagedPlansUseCase } from '../application/use-cases/list-managed-plans.use-case';
 import { AssignApplicationCoordinatorUseCase } from '../application/use-cases/assign-application-coordinator.use-case';
 import { BulkUpdateApplicationsUseCase } from '../application/use-cases/bulk-update-applications.use-case';
@@ -72,6 +77,13 @@ import {
   EnrichedSubscriptionListResponseDto,
   SubscriptionKpisResponseDto,
 } from './dto/enriched-subscription-response.dto';
+import {
+  AddSubscriptionNoteRequestDto,
+  AssignSubscriptionRoleRequestDto,
+  SubscriptionHoursRequestDto,
+  SubscriptionLifecycleRequestDto,
+} from './dto/subscription-action.dto';
+import { SubscriptionDetailResponseDto } from './dto/subscription-detail-response.dto';
 import { ManagedPlanCatalogueResponseDto } from './dto/managed-plan-catalogue-response.dto';
 import { ManagedPlanDetailResponseDto } from './dto/managed-plan-detail-response.dto';
 import {
@@ -137,6 +149,11 @@ export class AdminPlansBillingController {
     private readonly editManagedPlan: EditManagedPlanUseCase,
     private readonly listEnrichedSubscriptions: ListEnrichedSubscriptionsUseCase,
     private readonly getSubscriptionKpis: GetSubscriptionKpisUseCase,
+    private readonly getSubscriptionDetail: GetSubscriptionDetailUseCase,
+    private readonly subscriptionLifecycle: SubscriptionLifecycleActionUseCase,
+    private readonly subscriptionHours: SubscriptionHoursActionUseCase,
+    private readonly assignSubscriptionRole: AssignSubscriptionRoleUseCase,
+    private readonly addSubscriptionNote: AddSubscriptionNoteUseCase,
   ) {}
 
   @Get()
@@ -187,6 +204,86 @@ export class AdminPlansBillingController {
       pageSize: query.pageSize ?? 20,
     });
     return EnrichedSubscriptionListResponseDto.fromResult(result);
+  }
+
+  @Get('subscriptions/:id/detail')
+  @ApiOperation({ summary: 'The full subscription detail behind every tab' })
+  @ApiOkResponse({ type: SubscriptionDetailResponseDto })
+  async subscriptionDetail(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<SubscriptionDetailResponseDto> {
+    const result = await this.getSubscriptionDetail.execute(id);
+    return SubscriptionDetailResponseDto.fromResult(result);
+  }
+
+  @Post('subscriptions/:id/lifecycle')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Pause, resume, toggle auto renew or force renew a subscription' })
+  @ApiNoContentResponse()
+  async subscriptionLifecycleAction(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SubscriptionLifecycleRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.subscriptionLifecycle.execute({
+      subscriptionId: id,
+      adminId: principal.adminUserId,
+      action: body.action,
+    });
+  }
+
+  @Post('subscriptions/:id/hours')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Set, add, adjust or extend a subscription flexible hours cycle' })
+  @ApiNoContentResponse()
+  async subscriptionHoursAction(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SubscriptionHoursRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.subscriptionHours.execute({
+      subscriptionId: id,
+      adminId: principal.adminUserId,
+      action: body.action,
+      allocatedHours: body.allocatedHours,
+      usedHours: body.usedHours,
+      addHours: body.addHours,
+      cycleEndsAt: body.cycleEndsAt === undefined ? undefined : new Date(body.cycleEndsAt),
+    });
+  }
+
+  @Post('subscriptions/:id/assign')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Assign the coordinator or caregiver on a subscription' })
+  @ApiNoContentResponse()
+  async assignSubscription(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AssignSubscriptionRoleRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.assignSubscriptionRole.execute({
+      subscriptionId: id,
+      adminId: principal.adminUserId,
+      role: body.role,
+      personId: body.personId,
+    });
+  }
+
+  @Post('subscriptions/:id/notes')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Add a note to a subscription' })
+  @ApiNoContentResponse()
+  async addSubscriptionNoteAction(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AddSubscriptionNoteRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.addSubscriptionNote.execute({
+      subscriptionId: id,
+      adminId: principal.adminUserId,
+      body: body.body,
+      authorName: body.authorName ?? null,
+    });
   }
 
   @Post('subscriptions/:id/plan')
