@@ -8,6 +8,7 @@ import { validateEnv } from './config/env.validation';
 import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
 import { AdminCareRecipientsModule } from './modules/admin-care-recipients/admin-care-recipients.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
+import { AdminCarePlansModule } from './modules/admin-care-plans/admin-care-plans.module';
 import { AdminIdentityModule } from './modules/admin-identity/admin-identity.module';
 import { AdminPlansBillingModule } from './modules/admin-plans-billing/admin-plans-billing.module';
 import { AdminTasksModule } from './modules/admin-tasks/admin-tasks.module';
@@ -149,6 +150,7 @@ import { SharedModule } from './shared/shared.module';
     AdminDashboardModule,
     AdminCareRecipientsModule,
     AdminPlansBillingModule,
+    AdminCarePlansModule,
     ClientOnboardingModule,
   ],
   providers: [

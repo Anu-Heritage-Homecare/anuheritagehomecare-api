@@ -1883,6 +1883,86 @@ enum DocsStatus {
   @@map("docs_status")
 }
 
+// Bounded context: admin care plan management (the Plans and Billing Care Plans
+// screen). A managed plan carries the full editable configuration of a plan. A
+// core plan links to one of the four canonical CarePlanType values that checkout
+// uses (coreType, unique); a custom plan has no such link and is not wired into
+// booking or checkout yet. Services and volume discounts are stored as JSON since
+// they are always read and written as a whole with the plan; coverage areas and
+// eligibility rules are string arrays; every revision appends a version row.
+model ManagedCarePlan {
+  id                    String            @id @default(uuid()) @db.Uuid
+  coreType              CarePlanType?     @unique
+  isCore                Boolean           @default(false)
+  name                  String            @db.VarChar(120)
+  description           String            @db.VarChar(500)
+  targetAudience        String?           @db.VarChar(300)
+  billingModel          BillingModel
+  status                ManagedPlanStatus @default(ACTIVE)
+  countriesEnabled      Country[]         @default([])
+  supportedCurrencies   Currency[]        @default([])
+  minimumBillingHours   Int?
+  autoRenewal           Boolean           @default(true)
+  billingCycle          BillingCycle      @default(MONTHLY)
+  gracePeriodDays       Int               @default(7)
+  cancellationNoticeDays Int              @default(30)
+  services              Json              @default("[]")
+  volumeDiscounts       Json              @default("[]")
+  coverageAreas         String[]          @default([])
+  eligibilityRules      String[]          @default([])
+  currentVersion        Int               @default(0)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  prices   ManagedCarePlanPrice[]
+  versions ManagedCarePlanVersion[]
+
+  @@index([status])
+  @@map("managed_care_plans")
+}
+
+model ManagedCarePlanPrice {
+  id                        String          @id @default(uuid()) @db.Uuid
+  planId                    String          @db.Uuid
+  plan                      ManagedCarePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  currency                  Currency
+  monthlyPriceMinor         Int?
+  baseRateMinor             Int?
+  emergencyDispatchRateMinor Int?
+  weekendPremiumMinor       Int?
+
+  @@unique([planId, currency])
+  @@map("managed_care_plan_prices")
+}
+
+model ManagedCarePlanVersion {
+  id              String          @id @default(uuid()) @db.Uuid
+  planId          String          @db.Uuid
+  plan            ManagedCarePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  versionNumber   Int
+  summary         String          @db.VarChar(300)
+  changedByAdminId String?        @db.Uuid
+  createdAt       DateTime        @default(now())
+
+  @@index([planId, versionNumber])
+  @@map("managed_care_plan_versions")
+}
+
+enum ManagedPlanStatus {
+  ACTIVE
+  ARCHIVED
+
+  @@map("managed_plan_status")
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+
+  @@map("billing_cycle")
+}
+
 // Bounded context: KYC (identity verification of the family owner).
 //
 // US owners verify the last four of their SSN through Stripe; Nigeria owners
