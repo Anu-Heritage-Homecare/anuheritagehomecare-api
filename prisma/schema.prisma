@@ -1967,6 +1967,79 @@ enum BillingCycle {
   @@map("billing_cycle")
 }
 
+// Bounded context: subscription management (the admin Subscriptions workspace). An
+// operational overlay keyed to one bookings Subscription, holding the coordinator
+// and caregiver assignment, the onboarding dates, the flexible hours ledger, the
+// operational event log (activity timeline and audit log) and free text notes. The
+// pricing-critical bookings Subscription itself stays lean. Hours are integer tenths
+// of an hour.
+model SubscriptionOps {
+  id                  String    @id @default(uuid()) @db.Uuid
+  subscriptionId      String    @unique @db.Uuid
+  coordinatorId       String?   @db.Uuid
+  caregiverId         String?   @db.Uuid
+  contractStartAt     DateTime? @db.Date
+  activatedAt         DateTime? @db.Date
+  flexAllocatedTenths Int?
+  flexConsumedTenths  Int?
+  flexCycleEndsAt     DateTime? @db.Date
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  events SubscriptionOpsEvent[]
+  notes  SubscriptionOpsNote[]
+
+  @@map("subscription_ops")
+}
+
+model SubscriptionOpsEvent {
+  id               String                   @id @default(uuid()) @db.Uuid
+  opsId            String                   @db.Uuid
+  ops              SubscriptionOps          @relation(fields: [opsId], references: [id], onDelete: Cascade)
+  type             SubscriptionOpsEventType
+  detail           String                   @db.VarChar(300)
+  hoursDeltaTenths Int?
+  actorAdminId     String?                  @db.Uuid
+  actorLabel       String?                  @db.VarChar(80)
+  occurredAt       DateTime
+  createdAt        DateTime                 @default(now())
+
+  @@index([opsId, occurredAt])
+  @@map("subscription_ops_events")
+}
+
+model SubscriptionOpsNote {
+  id            String          @id @default(uuid()) @db.Uuid
+  opsId         String          @db.Uuid
+  ops           SubscriptionOps @relation(fields: [opsId], references: [id], onDelete: Cascade)
+  body          String          @db.VarChar(2000)
+  authorAdminId String?         @db.Uuid
+  authorName    String?         @db.VarChar(200)
+  createdAt     DateTime        @default(now())
+
+  @@index([opsId, createdAt])
+  @@map("subscription_ops_notes")
+}
+
+enum SubscriptionOpsEventType {
+  CREATED
+  ACTIVATED
+  RENEWAL_COMPLETED
+  HOURS_ADDED
+  HOURS_ADJUSTED
+  EXPIRY_EXTENDED
+  PAUSED
+  RESUMED
+  CANCELLED
+  AUTO_RENEW_ENABLED
+  AUTO_RENEW_DISABLED
+  COORDINATOR_ASSIGNED
+  CAREGIVER_ASSIGNED
+  PLAN_CHANGED
+
+  @@map("subscription_ops_event_type")
+}
+
 // Bounded context: KYC (identity verification of the family owner).
 //
 // US owners verify the last four of their SSN through Stripe; Nigeria owners
