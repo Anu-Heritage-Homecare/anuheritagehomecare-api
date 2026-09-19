@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -19,6 +20,11 @@ import {
 } from '@nestjs/swagger';
 import { CareRequestStatus } from '@prisma/client';
 import { Currency } from '@shared/domain/currency.enum';
+import {
+  PlanLifecycle,
+  PlanOverview,
+} from '@modules/admin-care-plans/domain/managed-care-plan.entity';
+import { ManagedPlanStatus } from '@modules/admin-care-plans/domain/managed-plan-status.enum';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
@@ -31,6 +37,8 @@ import { AssignApplicationCoordinatorUseCase } from '../application/use-cases/as
 import { BulkUpdateApplicationsUseCase } from '../application/use-cases/bulk-update-applications.use-case';
 import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from '../application/use-cases/change-subscription-plan.use-case';
+import { CreateManagedPlanUseCase } from '../application/use-cases/create-managed-plan.use-case';
+import { EditManagedPlanUseCase } from '../application/use-cases/edit-managed-plan.use-case';
 import { DeclineCareRequestUseCase } from '../application/use-cases/decline-care-request.use-case';
 import { GetOnboardingPipelineUseCase } from '../application/use-cases/get-onboarding-pipeline.use-case';
 import { GetOperationalAlertsUseCase } from '../application/use-cases/get-operational-alerts.use-case';
@@ -60,6 +68,16 @@ import { CareRequestListResponseDto } from './dto/care-request-list-response.dto
 import { CareRequestsQueryDto } from './dto/care-requests-query.dto';
 import { ManagedPlanCatalogueResponseDto } from './dto/managed-plan-catalogue-response.dto';
 import { ManagedPlanDetailResponseDto } from './dto/managed-plan-detail-response.dto';
+import {
+  CoverageRequestDto,
+  CreateManagedPlanRequestDto,
+  EligibilityRequestDto,
+  LifecycleDto,
+  OverviewDto,
+  PricingRequestDto,
+  ServicesRequestDto,
+  VolumeDiscountsRequestDto,
+} from './dto/managed-plan-write.dto';
 import { OnboardingPipelineResponseDto } from './dto/onboarding-pipeline-response.dto';
 import { OperationalAlertsResponseDto } from './dto/operational-alerts-response.dto';
 import { PlanPerformanceCardsResponseDto } from './dto/plan-performance-cards-response.dto';
@@ -109,6 +127,8 @@ export class AdminPlansBillingController {
     private readonly getOperationalAlerts: GetOperationalAlertsUseCase,
     private readonly listManagedPlans: ListManagedPlansUseCase,
     private readonly getManagedPlanDetail: GetManagedPlanDetailUseCase,
+    private readonly createManagedPlan: CreateManagedPlanUseCase,
+    private readonly editManagedPlan: EditManagedPlanUseCase,
   ) {}
 
   @Get()
@@ -372,4 +392,198 @@ export class AdminPlansBillingController {
     });
     return BulkApplicationsResponseDto.fromResult(result);
   }
+
+  @Post('plans')
+  @ApiOperation({ summary: 'Create a custom care plan (not wired into checkout yet)' })
+  @ApiOkResponse()
+  async createPlan(
+    @Body() body: CreateManagedPlanRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ id: string }> {
+    return this.createManagedPlan.execute({
+      adminId: principal.adminUserId,
+      overview: toOverview(body.overview),
+      lifecycle: toLifecycle(body.lifecycle),
+    });
+  }
+
+  @Put('plans/:id/general')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Update the general details of a care plan' })
+  @ApiNoContentResponse()
+  async editPlanGeneral(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: OverviewDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.editManagedPlan.execute({
+      planId: id,
+      adminId: principal.adminUserId,
+      section: 'GENERAL',
+      overview: toOverview(body),
+    });
+  }
+
+  @Put('plans/:id/pricing')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Update the pricing structures of a care plan' })
+  @ApiNoContentResponse()
+  async editPlanPricing(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: PricingRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.editManagedPlan.execute({
+      planId: id,
+      adminId: principal.adminUserId,
+      section: 'PRICING',
+      prices: body.prices.map((price) => ({
+        currency: price.currency,
+        monthlyPriceMinor: price.monthlyPriceMinor ?? null,
+        baseRateMinor: price.baseRateMinor ?? null,
+        emergencyDispatchRateMinor: price.emergencyDispatchRateMinor ?? null,
+        weekendPremiumMinor: price.weekendPremiumMinor ?? null,
+      })),
+    });
+  }
+
+  @Put('plans/:id/services')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Update the services included in a care plan' })
+  @ApiNoContentResponse()
+  async editPlanServices(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ServicesRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.editManagedPlan.execute({
+      planId: id,
+      adminId: principal.adminUserId,
+      section: 'SERVICES',
+      services: body.services.map((service) => ({ ...service })),
+    });
+  }
+
+  @Put('plans/:id/volume-discounts')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Update the volume discounts of a care plan' })
+  @ApiNoContentResponse()
+  async editPlanVolumeDiscounts(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: VolumeDiscountsRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.editManagedPlan.execute({
+      planId: id,
+      adminId: principal.adminUserId,
+      section: 'VOLUME_DISCOUNTS',
+      discounts: body.discounts.map((discount) => ({ ...discount })),
+    });
+  }
+
+  @Put('plans/:id/coverage')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Update the coverage areas of a care plan' })
+  @ApiNoContentResponse()
+  async editPlanCoverage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CoverageRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.editManagedPlan.execute({
+      planId: id,
+      adminId: principal.adminUserId,
+      section: 'COVERAGE',
+      coverageAreas: body.coverageAreas,
+    });
+  }
+
+  @Put('plans/:id/eligibility')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Update the eligibility rules of a care plan' })
+  @ApiNoContentResponse()
+  async editPlanEligibility(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: EligibilityRequestDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.editManagedPlan.execute({
+      planId: id,
+      adminId: principal.adminUserId,
+      section: 'ELIGIBILITY',
+      eligibilityRules: body.eligibilityRules,
+    });
+  }
+
+  @Put('plans/:id/lifecycle')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Update the renewal and billing lifecycle of a care plan' })
+  @ApiNoContentResponse()
+  async editPlanLifecycle(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: LifecycleDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.editManagedPlan.execute({
+      planId: id,
+      adminId: principal.adminUserId,
+      section: 'LIFECYCLE',
+      lifecycle: toLifecycle(body),
+    });
+  }
+
+  @Post('plans/:id/archive')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Archive a care plan' })
+  @ApiNoContentResponse()
+  async archivePlan(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.editManagedPlan.execute({
+      planId: id,
+      adminId: principal.adminUserId,
+      section: 'STATUS',
+      status: ManagedPlanStatus.Archived,
+    });
+  }
+
+  @Post('plans/:id/activate')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Reactivate an archived care plan' })
+  @ApiNoContentResponse()
+  async activatePlan(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.editManagedPlan.execute({
+      planId: id,
+      adminId: principal.adminUserId,
+      section: 'STATUS',
+      status: ManagedPlanStatus.Active,
+    });
+  }
+}
+
+/** Translate the overview request DTO into the domain overview shape. */
+function toOverview(dto: OverviewDto): PlanOverview {
+  return {
+    name: dto.name,
+    description: dto.description,
+    targetAudience: dto.targetAudience ?? null,
+    billingModel: dto.billingModel,
+    countriesEnabled: dto.countriesEnabled,
+    supportedCurrencies: dto.supportedCurrencies,
+    minimumBillingHours: dto.minimumBillingHours ?? null,
+  };
+}
+
+/** Translate the lifecycle request DTO into the domain lifecycle shape. */
+function toLifecycle(dto: LifecycleDto): PlanLifecycle {
+  return {
+    autoRenewal: dto.autoRenewal,
+    billingCycle: dto.billingCycle,
+    gracePeriodDays: dto.gracePeriodDays,
+    cancellationNoticeDays: dto.cancellationNoticeDays,
+  };
 }

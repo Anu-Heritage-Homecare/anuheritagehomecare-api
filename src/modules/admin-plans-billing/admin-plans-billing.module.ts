@@ -11,7 +11,9 @@ import { AssignApplicationCoordinatorUseCase } from './application/use-cases/ass
 import { BulkUpdateApplicationsUseCase } from './application/use-cases/bulk-update-applications.use-case';
 import { CancelSubscriptionUseCase } from './application/use-cases/cancel-subscription.use-case';
 import { ChangeSubscriptionPlanUseCase } from './application/use-cases/change-subscription-plan.use-case';
+import { CreateManagedPlanUseCase } from './application/use-cases/create-managed-plan.use-case';
 import { DeclineCareRequestUseCase } from './application/use-cases/decline-care-request.use-case';
+import { EditManagedPlanUseCase } from './application/use-cases/edit-managed-plan.use-case';
 import { GetApplicationDetailUseCase } from './application/use-cases/get-application-detail.use-case';
 import { GetManagedPlanDetailUseCase } from './application/use-cases/get-managed-plan-detail.use-case';
 import { GetOnboardingPipelineUseCase } from './application/use-cases/get-onboarding-pipeline.use-case';
@@ -77,6 +79,8 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
     GetOperationalAlertsUseCase,
     ListManagedPlansUseCase,
     GetManagedPlanDetailUseCase,
+    CreateManagedPlanUseCase,
+    EditManagedPlanUseCase,
     // One Prisma read class backs the billing read ports on this panel.
     PlansBillingReadPrisma,
     { provide: PLANS_BILLING_READ_MODEL, useExisting: PlansBillingReadPrisma },
