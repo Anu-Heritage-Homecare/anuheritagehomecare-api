@@ -21,6 +21,7 @@ export class SubscriptionMapper {
       startDate: row.startDate,
       monthlyPrice: Money.fromMinor(row.monthlyPriceMinor, currency),
       status: SubscriptionMapper.TO_DOMAIN_STATUS[row.status],
+      autoRenew: row.autoRenew,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -36,6 +37,7 @@ export class SubscriptionMapper {
       currency: SubscriptionMapper.TO_PERSISTENCE_CURRENCY[subscription.monthlyPrice.currency],
       monthlyPriceMinor: subscription.monthlyPrice.amountMinor,
       status: SubscriptionMapper.TO_PERSISTENCE_STATUS[subscription.status],
+      autoRenew: subscription.autoRenew,
       createdAt: subscription.createdAt,
       updatedAt: subscription.updatedAt,
     };
@@ -68,6 +70,7 @@ export class SubscriptionMapper {
   private static readonly TO_DOMAIN_STATUS: Record<PrismaSubscriptionStatus, SubscriptionStatus> = {
     PENDING_PAYMENT: SubscriptionStatus.PendingPayment,
     ACTIVE: SubscriptionStatus.Active,
+    PAUSED: SubscriptionStatus.Paused,
     PAST_DUE: SubscriptionStatus.PastDue,
     CANCELLED: SubscriptionStatus.Cancelled,
   };
@@ -78,6 +81,7 @@ export class SubscriptionMapper {
   > = {
     [SubscriptionStatus.PendingPayment]: 'PENDING_PAYMENT',
     [SubscriptionStatus.Active]: 'ACTIVE',
+    [SubscriptionStatus.Paused]: 'PAUSED',
     [SubscriptionStatus.PastDue]: 'PAST_DUE',
     [SubscriptionStatus.Cancelled]: 'CANCELLED',
   };

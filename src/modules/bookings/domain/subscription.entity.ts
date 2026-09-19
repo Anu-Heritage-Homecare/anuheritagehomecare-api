@@ -12,6 +12,7 @@ interface SubscriptionProps {
   startDate: Date;
   monthlyPrice: Money;
   status: SubscriptionStatus;
+  autoRenew: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +49,7 @@ export class Subscription extends AggregateRoot<string> {
       startDate: params.startDate,
       monthlyPrice: params.monthlyPrice,
       status: SubscriptionStatus.PendingPayment,
+      autoRenew: true,
       createdAt: params.now,
       updatedAt: params.now,
     });
@@ -95,6 +97,30 @@ export class Subscription extends AggregateRoot<string> {
     }
   }
 
+  /** Pause an active subscription; a cancelled one cannot be paused. */
+  public pause(now: Date): void {
+    if (this.props.status === SubscriptionStatus.Cancelled) {
+      throw new ValidationException('A cancelled subscription cannot be paused');
+    }
+    this.props.status = SubscriptionStatus.Paused;
+    this.props.updatedAt = now;
+  }
+
+  /** Resume a paused subscription back to active. */
+  public resume(now: Date): void {
+    if (this.props.status !== SubscriptionStatus.Paused) {
+      throw new ValidationException('Only a paused subscription can be resumed');
+    }
+    this.props.status = SubscriptionStatus.Active;
+    this.props.updatedAt = now;
+  }
+
+  /** Turn automatic renewal on or off. */
+  public setAutoRenew(autoRenew: boolean, now: Date): void {
+    this.props.autoRenew = autoRenew;
+    this.props.updatedAt = now;
+  }
+
   public cancel(now: Date): void {
     this.props.status = SubscriptionStatus.Cancelled;
     this.props.updatedAt = now;
@@ -122,6 +148,10 @@ export class Subscription extends AggregateRoot<string> {
 
   public get status(): SubscriptionStatus {
     return this.props.status;
+  }
+
+  public get autoRenew(): boolean {
+    return this.props.autoRenew;
   }
 
   public get createdAt(): Date {

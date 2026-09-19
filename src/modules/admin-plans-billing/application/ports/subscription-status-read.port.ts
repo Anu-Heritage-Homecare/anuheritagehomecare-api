@@ -4,6 +4,7 @@ import { Currency as PrismaCurrency } from '@prisma/client';
 export interface SubscriptionStatusCountsView {
   active: number;
   pendingPayment: number;
+  paused: number;
   pastDue: number;
   cancelled: number;
 }

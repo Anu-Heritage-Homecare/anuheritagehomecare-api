@@ -21,6 +21,7 @@ function subscription(): Subscription {
     startDate: new Date('2026-01-10T00:00:00.000Z'),
     monthlyPrice: Money.fromMinor(100_000, Currency.UnitedStatesDollar),
     status: SubscriptionStatus.Active,
+    autoRenew: true,
     createdAt: NOW,
     updatedAt: NOW,
   });

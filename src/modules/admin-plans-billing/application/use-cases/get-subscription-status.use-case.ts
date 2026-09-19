@@ -54,14 +54,17 @@ export class GetSubscriptionStatusUseCase {
     }).length;
 
     const activeNotSoon = Math.max(0, counts.active - renewingSoon);
-    const pausedOrCancelled = counts.pastDue + counts.cancelled;
-    const total = counts.active + counts.pendingPayment + pausedOrCancelled;
+    // Past due is folded into Cancelled here; the panel surfaces Paused separately.
+    const cancelled = counts.pastDue + counts.cancelled;
+    const total =
+      counts.active + counts.pendingPayment + counts.paused + counts.pastDue + counts.cancelled;
 
     const buckets: StatusBucketResult[] = [
       bucket('ACTIVE', 'Active', activeNotSoon, total),
       bucket('RENEWING_SOON', 'Renewing Soon', renewingSoon, total),
       bucket('PENDING_ACTIVATION', 'Pending Activation', counts.pendingPayment, total),
-      bucket('PAUSED_OR_CANCELLED', 'Paused or Cancelled', pausedOrCancelled, total),
+      bucket('PAUSED', 'Paused', counts.paused, total),
+      bucket('CANCELLED', 'Cancelled', cancelled, total),
     ];
 
     return {

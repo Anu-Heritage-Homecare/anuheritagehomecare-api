@@ -1299,11 +1299,14 @@ model Subscription {
   currency          Currency
   monthlyPriceMinor Int
   status            SubscriptionStatus @default(PENDING_PAYMENT)
+  // Whether the subscription renews automatically at the end of each cycle.
+  autoRenew         Boolean            @default(true)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
   @@index([ownerId])
   @@index([careRecipientId])
+  @@index([status])
   @@map("subscriptions")
 }
 
@@ -1568,6 +1571,7 @@ enum LocationMode {
 enum SubscriptionStatus {
   PENDING_PAYMENT
   ACTIVE
+  PAUSED
   PAST_DUE
   CANCELLED
 

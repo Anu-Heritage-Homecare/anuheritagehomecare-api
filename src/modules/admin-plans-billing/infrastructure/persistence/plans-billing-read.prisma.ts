@@ -347,6 +347,7 @@ export class PlansBillingReadPrisma
     return {
       active: byStatus.get(SubscriptionStatus.ACTIVE) ?? 0,
       pendingPayment: byStatus.get(SubscriptionStatus.PENDING_PAYMENT) ?? 0,
+      paused: byStatus.get(SubscriptionStatus.PAUSED) ?? 0,
       pastDue: byStatus.get(SubscriptionStatus.PAST_DUE) ?? 0,
       cancelled: byStatus.get(SubscriptionStatus.CANCELLED) ?? 0,
     };

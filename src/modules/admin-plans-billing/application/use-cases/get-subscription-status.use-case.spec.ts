@@ -38,7 +38,7 @@ function activePage(): SubscriptionPageView {
 function useCase(): GetSubscriptionStatusUseCase {
   const counts: SubscriptionStatusReadModel = {
     statusCounts: () =>
-      Promise.resolve({ active: 10, pendingPayment: 3, pastDue: 2, cancelled: 5 }),
+      Promise.resolve({ active: 10, pendingPayment: 3, paused: 4, pastDue: 2, cancelled: 5 }),
   };
   const reads: PlansBillingReadModel = {
     overview: () => Promise.reject(new Error('unused')),
@@ -55,14 +55,17 @@ describe('GetSubscriptionStatusUseCase', () => {
     expect(byKey.get('RENEWING_SOON')?.count).toBe(1);
     expect(byKey.get('ACTIVE')?.count).toBe(9);
     expect(byKey.get('PENDING_ACTIVATION')?.count).toBe(3);
-    expect(byKey.get('PAUSED_OR_CANCELLED')?.count).toBe(7);
-    // total = active(10) + pending(3) + pastDue(2) + cancelled(5)
-    expect(result.totalAccounts).toBe(20);
+    expect(byKey.get('PAUSED')?.count).toBe(4);
+    // Cancelled folds in past due: 2 + 5.
+    expect(byKey.get('CANCELLED')?.count).toBe(7);
+    // total = active(10) + pending(3) + paused(4) + pastDue(2) + cancelled(5)
+    expect(result.totalAccounts).toBe(24);
   });
 
   it('computes shares against the total accounts', async () => {
     const result = await useCase().execute({ currency: Currency.UnitedStatesDollar });
     const pending = result.buckets.find((b) => b.key === 'PENDING_ACTIVATION');
-    expect(pending?.sharePercent).toBe(15);
+    // 3 / 24 = 12.5
+    expect(pending?.sharePercent).toBe(12.5);
   });
 });
