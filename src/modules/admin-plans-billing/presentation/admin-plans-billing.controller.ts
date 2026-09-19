@@ -25,6 +25,8 @@ import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { AdvanceApplicationStageUseCase } from '../application/use-cases/advance-application-stage.use-case';
 import { ApproveCareRequestUseCase } from '../application/use-cases/approve-care-request.use-case';
 import { GetApplicationDetailUseCase } from '../application/use-cases/get-application-detail.use-case';
+import { GetManagedPlanDetailUseCase } from '../application/use-cases/get-managed-plan-detail.use-case';
+import { ListManagedPlansUseCase } from '../application/use-cases/list-managed-plans.use-case';
 import { AssignApplicationCoordinatorUseCase } from '../application/use-cases/assign-application-coordinator.use-case';
 import { BulkUpdateApplicationsUseCase } from '../application/use-cases/bulk-update-applications.use-case';
 import { CancelSubscriptionUseCase } from '../application/use-cases/cancel-subscription.use-case';
@@ -56,9 +58,12 @@ import {
 } from './dto/bulk-applications.dto';
 import { CareRequestListResponseDto } from './dto/care-request-list-response.dto';
 import { CareRequestsQueryDto } from './dto/care-requests-query.dto';
+import { ManagedPlanCatalogueResponseDto } from './dto/managed-plan-catalogue-response.dto';
+import { ManagedPlanDetailResponseDto } from './dto/managed-plan-detail-response.dto';
 import { OnboardingPipelineResponseDto } from './dto/onboarding-pipeline-response.dto';
 import { OperationalAlertsResponseDto } from './dto/operational-alerts-response.dto';
 import { PlanPerformanceCardsResponseDto } from './dto/plan-performance-cards-response.dto';
+import { PlansCatalogueQueryDto } from './dto/plans-catalogue-query.dto';
 import { SubscriptionStatusResponseDto } from './dto/subscription-status-response.dto';
 import { ChangeSubscriptionPlanRequestDto } from './dto/change-subscription-plan.dto';
 import { DeclineCareRequestRequestDto } from './dto/decline-care-request.dto';
@@ -102,6 +107,8 @@ export class AdminPlansBillingController {
     private readonly getSubscriptionStatus: GetSubscriptionStatusUseCase,
     private readonly getPlanPerformance: GetPlanPerformanceUseCase,
     private readonly getOperationalAlerts: GetOperationalAlertsUseCase,
+    private readonly listManagedPlans: ListManagedPlansUseCase,
+    private readonly getManagedPlanDetail: GetManagedPlanDetailUseCase,
   ) {}
 
   @Get()
@@ -201,6 +208,31 @@ export class AdminPlansBillingController {
       currency: query.currency ?? Currency.UnitedStatesDollar,
     });
     return OperationalAlertsResponseDto.fromResult(result);
+  }
+
+  @Get('plans')
+  @ApiOperation({ summary: 'The care plan catalogue cards for one market' })
+  @ApiOkResponse({ type: ManagedPlanCatalogueResponseDto })
+  async plans(@Query() query: PlansCatalogueQueryDto): Promise<ManagedPlanCatalogueResponseDto> {
+    const result = await this.listManagedPlans.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+      includeArchived: query.includeArchived ?? false,
+    });
+    return ManagedPlanCatalogueResponseDto.fromResult(result);
+  }
+
+  @Get('plans/:id')
+  @ApiOperation({ summary: 'The full configuration detail for one care plan' })
+  @ApiOkResponse({ type: ManagedPlanDetailResponseDto })
+  async planDetail(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: PlansBillingQueryDto,
+  ): Promise<ManagedPlanDetailResponseDto> {
+    const result = await this.getManagedPlanDetail.execute({
+      id,
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+    });
+    return ManagedPlanDetailResponseDto.fromResult(result);
   }
 
   @Get('care-requests')

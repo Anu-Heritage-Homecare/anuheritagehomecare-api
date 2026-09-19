@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
+import { AdminCarePlansModule } from '@modules/admin-care-plans/admin-care-plans.module';
 import { BookingsModule } from '@modules/bookings/bookings.module';
 import { CarePlansModule } from '@modules/care-plans/care-plans.module';
 import { CareRequestsModule } from '@modules/care-requests/care-requests.module';
@@ -12,7 +13,9 @@ import { CancelSubscriptionUseCase } from './application/use-cases/cancel-subscr
 import { ChangeSubscriptionPlanUseCase } from './application/use-cases/change-subscription-plan.use-case';
 import { DeclineCareRequestUseCase } from './application/use-cases/decline-care-request.use-case';
 import { GetApplicationDetailUseCase } from './application/use-cases/get-application-detail.use-case';
+import { GetManagedPlanDetailUseCase } from './application/use-cases/get-managed-plan-detail.use-case';
 import { GetOnboardingPipelineUseCase } from './application/use-cases/get-onboarding-pipeline.use-case';
+import { ListManagedPlansUseCase } from './application/use-cases/list-managed-plans.use-case';
 import { GetOperationalAlertsUseCase } from './application/use-cases/get-operational-alerts.use-case';
 import { GetOperationsPanelUseCase } from './application/use-cases/get-operations-panel.use-case';
 import { GetPlanPerformanceUseCase } from './application/use-cases/get-plan-performance.use-case';
@@ -48,6 +51,7 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
     BookingsModule,
     CareRequestsModule,
     ClientOnboardingModule,
+    AdminCarePlansModule,
   ],
   controllers: [AdminPlansBillingController],
   providers: [
@@ -71,6 +75,8 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
     GetSubscriptionStatusUseCase,
     GetPlanPerformanceUseCase,
     GetOperationalAlertsUseCase,
+    ListManagedPlansUseCase,
+    GetManagedPlanDetailUseCase,
     // One Prisma read class backs the billing read ports on this panel.
     PlansBillingReadPrisma,
     { provide: PLANS_BILLING_READ_MODEL, useExisting: PlansBillingReadPrisma },
