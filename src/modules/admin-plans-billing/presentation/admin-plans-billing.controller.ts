@@ -46,8 +46,10 @@ import { GetOperationsPanelUseCase } from '../application/use-cases/get-operatio
 import { GetPlanPerformanceUseCase } from '../application/use-cases/get-plan-performance.use-case';
 import { GetPlansBillingOverviewUseCase } from '../application/use-cases/get-plans-billing-overview.use-case';
 import { GetRenewalsTimelineUseCase } from '../application/use-cases/get-renewals-timeline.use-case';
+import { GetSubscriptionKpisUseCase } from '../application/use-cases/get-subscription-kpis.use-case';
 import { GetSubscriptionStatusUseCase } from '../application/use-cases/get-subscription-status.use-case';
 import { ListApplicationsUseCase } from '../application/use-cases/list-applications.use-case';
+import { ListEnrichedSubscriptionsUseCase } from '../application/use-cases/list-enriched-subscriptions.use-case';
 import { ListCareRequestsUseCase } from '../application/use-cases/list-care-requests.use-case';
 import { SetApplicationStatusUseCase } from '../application/use-cases/set-application-status.use-case';
 import { ListPlanSubscriptionsUseCase } from '../application/use-cases/list-plan-subscriptions.use-case';
@@ -66,6 +68,10 @@ import {
 } from './dto/bulk-applications.dto';
 import { CareRequestListResponseDto } from './dto/care-request-list-response.dto';
 import { CareRequestsQueryDto } from './dto/care-requests-query.dto';
+import {
+  EnrichedSubscriptionListResponseDto,
+  SubscriptionKpisResponseDto,
+} from './dto/enriched-subscription-response.dto';
 import { ManagedPlanCatalogueResponseDto } from './dto/managed-plan-catalogue-response.dto';
 import { ManagedPlanDetailResponseDto } from './dto/managed-plan-detail-response.dto';
 import {
@@ -129,6 +135,8 @@ export class AdminPlansBillingController {
     private readonly getManagedPlanDetail: GetManagedPlanDetailUseCase,
     private readonly createManagedPlan: CreateManagedPlanUseCase,
     private readonly editManagedPlan: EditManagedPlanUseCase,
+    private readonly listEnrichedSubscriptions: ListEnrichedSubscriptionsUseCase,
+    private readonly getSubscriptionKpis: GetSubscriptionKpisUseCase,
   ) {}
 
   @Get()
@@ -152,6 +160,33 @@ export class AdminPlansBillingController {
       pageSize: query.pageSize ?? 20,
     });
     return SubscriptionListResponseDto.fromResult(result);
+  }
+
+  @Get('subscriptions/kpis')
+  @ApiOperation({ summary: 'Subscriptions KPI bar for one market' })
+  @ApiOkResponse({ type: SubscriptionKpisResponseDto })
+  async subscriptionKpis(
+    @Query() query: PlansBillingQueryDto,
+  ): Promise<SubscriptionKpisResponseDto> {
+    const result = await this.getSubscriptionKpis.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+    });
+    return SubscriptionKpisResponseDto.fromResult(result);
+  }
+
+  @Get('subscriptions/enriched')
+  @ApiOperation({ summary: 'The Active Subscriptions table, enriched for the admin workspace' })
+  @ApiOkResponse({ type: EnrichedSubscriptionListResponseDto })
+  async enrichedSubscriptions(
+    @Query() query: SubscriptionsQueryDto,
+  ): Promise<EnrichedSubscriptionListResponseDto> {
+    const result = await this.listEnrichedSubscriptions.execute({
+      currency: query.currency ?? Currency.UnitedStatesDollar,
+      status: query.status ?? null,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 20,
+    });
+    return EnrichedSubscriptionListResponseDto.fromResult(result);
   }
 
   @Post('subscriptions/:id/plan')
