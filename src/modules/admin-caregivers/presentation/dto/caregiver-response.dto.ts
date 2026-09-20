@@ -34,6 +34,7 @@ export class CaregiverListResponseDto implements CaregiverListResult {
 }
 
 class PersonalDto {
+  @ApiProperty({ nullable: true, type: String }) gender!: string | null;
   @ApiProperty({ nullable: true, type: String }) phone!: string | null;
   @ApiProperty({ nullable: true, type: String }) email!: string | null;
   @ApiProperty({ nullable: true, type: String }) address!: string | null;
@@ -43,6 +44,7 @@ class PersonalDto {
   @ApiProperty({ nullable: true, type: String }) emergencyContactName!: string | null;
   @ApiProperty({ nullable: true, type: String }) emergencyContactPhone!: string | null;
   @ApiProperty({ nullable: true, type: String }) emergencyContactRelationship!: string | null;
+  @ApiProperty({ nullable: true, type: String }) emergencyContactEmail!: string | null;
 }
 
 class AssignmentDto implements CaregiverAssignmentResult {
@@ -105,6 +107,10 @@ export class CaregiverOverviewResponseDto implements CaregiverOverviewResult {
   @ApiProperty({ nullable: true, type: String }) employmentType!: string | null;
   @ApiProperty({ nullable: true, type: Number }) experienceYears!: number | null;
   @ApiProperty({ nullable: true, type: String }) joinedAt!: string | null;
+  @ApiProperty({ nullable: true, type: String }) supervisorName!: string | null;
+  @ApiProperty({ nullable: true, type: Number }) maxHoursPerWeek!: number | null;
+  @ApiProperty({ nullable: true, type: String }) preferredShift!: string | null;
+  @ApiProperty({ nullable: true, type: String }) preferencesNote!: string | null;
   @ApiProperty({ type: PersonalDto }) personal!: PersonalDto;
   @ApiProperty({ type: [AssignmentDto] }) assignments!: AssignmentDto[];
   @ApiProperty({ type: [TodayVisitDto] }) todaySchedule!: TodayVisitDto[];

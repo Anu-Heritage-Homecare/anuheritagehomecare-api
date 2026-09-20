@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -25,6 +26,7 @@ import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import {
   AddCaregiverNoteUseCase,
+  DeleteCaregiverUseCase,
   EditCaregiverUseCase,
 } from '../application/use-cases/edit-caregiver.use-case';
 import { GetCaregiverOverviewUseCase } from '../application/use-cases/get-caregiver-overview.use-case';
@@ -42,6 +44,7 @@ import {
   CaregiverEmergencyDto,
   CaregiverLanguagesDto,
   CaregiverNoteDto,
+  CaregiverPreferencesDto,
   CaregiverScheduleQueryDto,
   CaregiverSkillsDto,
   CaregiverStatusDto,
@@ -77,6 +80,7 @@ export class AdminCaregiversController {
     private readonly getSchedule: GetCaregiverScheduleUseCase,
     private readonly editCaregiver: EditCaregiverUseCase,
     private readonly addNote: AddCaregiverNoteUseCase,
+    private readonly deleteCaregiver: DeleteCaregiverUseCase,
   ) {}
 
   @Get()
@@ -127,9 +131,12 @@ export class AdminCaregiversController {
       fields: {
         title: body.title,
         branch: body.branch,
+        supervisorName: body.supervisorName,
         employmentType: toDomainEmployment(body.employmentType),
         experienceYears: body.experienceYears,
         joinedAt: body.joinedAt === undefined ? undefined : new Date(body.joinedAt),
+        maxHoursPerWeek: body.maxHoursPerWeek,
+        preferredShift: body.preferredShift,
       },
     });
   }
@@ -175,7 +182,23 @@ export class AdminCaregiversController {
         name: body.name ?? null,
         phone: body.phone ?? null,
         relationship: body.relationship ?? null,
+        email: body.email ?? null,
       },
+    });
+  }
+
+  @Put(':id/preferences')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Set the internal notes and caregiver preferences free text' })
+  @ApiNoContentResponse()
+  async editPreferences(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CaregiverPreferencesDto,
+  ): Promise<void> {
+    await this.editCaregiver.execute({
+      profileId: id,
+      section: 'PREFERENCES',
+      preferencesNote: body.preferencesNote ?? null,
     });
   }
 
@@ -209,5 +232,13 @@ export class AdminCaregiversController {
       body: body.body,
       authorName: body.authorName ?? null,
     });
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Archive a caregiver profile so it leaves the directory' })
+  @ApiNoContentResponse()
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.deleteCaregiver.execute(id);
   }
 }

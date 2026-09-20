@@ -4,6 +4,7 @@ import { CaregiverProfileModule } from '@modules/caregiver-profile/caregiver-pro
 import { CAREGIVER_READ_MODEL } from './application/ports/caregiver-read.port';
 import {
   AddCaregiverNoteUseCase,
+  DeleteCaregiverUseCase,
   EditCaregiverUseCase,
 } from './application/use-cases/edit-caregiver.use-case';
 import { GetCaregiverOverviewUseCase } from './application/use-cases/get-caregiver-overview.use-case';
@@ -26,6 +27,7 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
     GetCaregiverScheduleUseCase,
     EditCaregiverUseCase,
     AddCaregiverNoteUseCase,
+    DeleteCaregiverUseCase,
     { provide: CAREGIVER_READ_MODEL, useClass: CaregiverReadPrisma },
   ],
 })

@@ -17,6 +17,7 @@ export type EditCaregiverCommand = { profileId: string } & (
   | { section: 'LANGUAGES'; languages: string[] }
   | { section: 'EMERGENCY'; contact: EmergencyContact }
   | { section: 'STATUS'; status: CaregiverStatus }
+  | { section: 'PREFERENCES'; preferencesNote: string | null }
 );
 
 /** Edit one section of a caregiver profile. */
@@ -50,8 +51,29 @@ export class EditCaregiverUseCase {
       case 'STATUS':
         profile.setStatus(command.status, now);
         break;
+      case 'PREFERENCES':
+        profile.setPreferencesNote(command.preferencesNote, now);
+        break;
     }
 
+    await this.profiles.save(profile);
+  }
+}
+
+/** Soft archive a caregiver profile so it drops out of the directory. */
+@Injectable()
+export class DeleteCaregiverUseCase {
+  constructor(
+    @Inject(CAREGIVER_PROFILE_REPOSITORY) private readonly profiles: CaregiverProfileRepository,
+    @Inject(CLOCK) private readonly clock: Clock,
+  ) {}
+
+  async execute(profileId: string): Promise<void> {
+    const profile = await this.profiles.findById(profileId);
+    if (profile === null) {
+      throw new NotFoundDomainException('Caregiver not found');
+    }
+    profile.archive(this.clock.now());
     await this.profiles.save(profile);
   }
 }

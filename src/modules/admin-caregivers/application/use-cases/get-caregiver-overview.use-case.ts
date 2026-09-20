@@ -47,7 +47,12 @@ export class GetCaregiverOverviewUseCase {
       employmentType: view.employmentType === null ? null : String(view.employmentType),
       experienceYears: view.experienceYears,
       joinedAt: view.joinedAt === null ? null : view.joinedAt.toISOString(),
+      supervisorName: view.supervisorName,
+      maxHoursPerWeek: view.maxHoursPerWeek,
+      preferredShift: view.preferredShift,
+      preferencesNote: view.preferencesNote,
       personal: {
+        gender: view.gender === null ? null : String(view.gender),
         phone: view.phone,
         email: view.email,
         address: view.address,
@@ -57,6 +62,7 @@ export class GetCaregiverOverviewUseCase {
         emergencyContactName: view.emergencyContactName,
         emergencyContactPhone: view.emergencyContactPhone,
         emergencyContactRelationship: view.emergencyContactRelationship,
+        emergencyContactEmail: view.emergencyContactEmail,
       },
       assignments: view.assignments.map((a) => ({
         recipientName: a.recipientName,

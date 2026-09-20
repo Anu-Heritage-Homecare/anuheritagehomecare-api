@@ -69,7 +69,12 @@ export interface CaregiverOverviewResult {
   employmentType: string | null;
   experienceYears: number | null;
   joinedAt: string | null;
+  supervisorName: string | null;
+  maxHoursPerWeek: number | null;
+  preferredShift: string | null;
+  preferencesNote: string | null;
   personal: {
+    gender: string | null;
     phone: string | null;
     email: string | null;
     address: string | null;
@@ -79,6 +84,7 @@ export interface CaregiverOverviewResult {
     emergencyContactName: string | null;
     emergencyContactPhone: string | null;
     emergencyContactRelationship: string | null;
+    emergencyContactEmail: string | null;
   };
   assignments: CaregiverAssignmentResult[];
   todaySchedule: CaregiverTodayVisitResult[];

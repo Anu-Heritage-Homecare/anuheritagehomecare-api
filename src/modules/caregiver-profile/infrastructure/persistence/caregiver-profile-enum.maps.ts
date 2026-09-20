@@ -1,8 +1,10 @@
 import {
   CaregiverEmploymentType as PrismaEmploymentType,
   CaregiverStatus as PrismaStatus,
+  Gender as PrismaGender,
 } from '@prisma/client';
 import { CaregiverEmploymentType } from '../../domain/caregiver-employment-type.enum';
+import { CaregiverGender } from '../../domain/caregiver-gender.enum';
 import { CaregiverStatus } from '../../domain/caregiver-status.enum';
 
 export const TO_DOMAIN_EMPLOYMENT: Record<PrismaEmploymentType, CaregiverEmploymentType> = {
@@ -27,4 +29,14 @@ export const TO_PERSISTENCE_STATUS: Record<CaregiverStatus, PrismaStatus> = {
   [CaregiverStatus.Active]: 'ACTIVE',
   [CaregiverStatus.Inactive]: 'INACTIVE',
   [CaregiverStatus.OnLeave]: 'ON_LEAVE',
+};
+
+export const TO_DOMAIN_GENDER: Record<PrismaGender, CaregiverGender> = {
+  MALE: CaregiverGender.Male,
+  FEMALE: CaregiverGender.Female,
+};
+
+export const TO_PERSISTENCE_GENDER: Record<CaregiverGender, PrismaGender> = {
+  [CaregiverGender.Male]: 'MALE',
+  [CaregiverGender.Female]: 'FEMALE',
 };

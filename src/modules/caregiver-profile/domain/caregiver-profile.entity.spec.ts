@@ -1,5 +1,6 @@
 import { ValidationException } from '@shared/domain/domain-exception';
 import { CaregiverEmploymentType } from './caregiver-employment-type.enum';
+import { CaregiverGender } from './caregiver-gender.enum';
 import { CaregiverProfile } from './caregiver-profile.entity';
 import { CaregiverStatus } from './caregiver-status.enum';
 
@@ -41,12 +42,58 @@ describe('CaregiverProfile', () => {
   it('sets the emergency contact and status', () => {
     const p = profile();
     p.setEmergencyContact(
-      { name: 'Mark Williams', phone: '(555) 234-5679', relationship: 'Husband' },
+      {
+        name: 'Mark Williams',
+        phone: '(555) 234-5679',
+        relationship: 'Husband',
+        email: 'mark.w@email.com',
+      },
       LATER,
     );
     p.setStatus(CaregiverStatus.OnLeave, LATER);
     expect(p.emergencyContact.name).toBe('Mark Williams');
+    expect(p.emergencyContact.email).toBe('mark.w@email.com');
     expect(p.status).toBe(CaregiverStatus.OnLeave);
+  });
+
+  it('revises gender, supervisor, max hours and preferred shift', () => {
+    const p = profile();
+    p.reviseProfile(
+      {
+        gender: CaregiverGender.Female,
+        supervisorName: 'Mike Chen',
+        maxHoursPerWeek: 45,
+        preferredShift: 'Morning',
+      },
+      LATER,
+    );
+    expect(p.gender).toBe(CaregiverGender.Female);
+    expect(p.supervisorName).toBe('Mike Chen');
+    expect(p.maxHoursPerWeek).toBe(45);
+    expect(p.preferredShift).toBe('Morning');
+  });
+
+  it('rejects an out of range maximum hours per week', () => {
+    const p = profile();
+    expect(() => p.reviseProfile({ maxHoursPerWeek: 200 }, LATER)).toThrow(ValidationException);
+  });
+
+  it('sets and clears the preferences note', () => {
+    const p = profile();
+    p.setPreferencesNote('  Prefers morning shifts.  ', LATER);
+    expect(p.preferencesNote).toBe('Prefers morning shifts.');
+    p.setPreferencesNote(null, LATER);
+    expect(p.preferencesNote).toBeNull();
+  });
+
+  it('archives idempotently and reports it', () => {
+    const p = profile();
+    expect(p.isArchived).toBe(false);
+    p.archive(LATER);
+    expect(p.isArchived).toBe(true);
+    expect(p.archivedAt).toEqual(LATER);
+    p.archive(NOW);
+    expect(p.archivedAt).toEqual(LATER);
   });
 
   it('appends notes and pulls the pending ones once', () => {

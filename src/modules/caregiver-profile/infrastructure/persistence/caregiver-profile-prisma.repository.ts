@@ -5,8 +5,10 @@ import { CaregiverProfile } from '../../domain/caregiver-profile.entity';
 import { CaregiverProfileRepository } from '../../domain/caregiver-profile.repository';
 import {
   TO_DOMAIN_EMPLOYMENT,
+  TO_DOMAIN_GENDER,
   TO_DOMAIN_STATUS,
   TO_PERSISTENCE_EMPLOYMENT,
+  TO_PERSISTENCE_GENDER,
   TO_PERSISTENCE_STATUS,
 } from './caregiver-profile-enum.maps';
 
@@ -26,7 +28,9 @@ export class CaregiverProfilePrismaRepository implements CaregiverProfileReposit
         create: data,
         update: {
           title: data.title,
+          gender: data.gender,
           branch: data.branch,
+          supervisorName: data.supervisorName,
           employmentType: data.employmentType,
           experienceYears: data.experienceYears,
           joinedAt: data.joinedAt,
@@ -36,6 +40,11 @@ export class CaregiverProfilePrismaRepository implements CaregiverProfileReposit
           emergencyContactName: data.emergencyContactName,
           emergencyContactPhone: data.emergencyContactPhone,
           emergencyContactRelationship: data.emergencyContactRelationship,
+          emergencyContactEmail: data.emergencyContactEmail,
+          maxHoursPerWeek: data.maxHoursPerWeek,
+          preferredShift: data.preferredShift,
+          preferencesNote: data.preferencesNote,
+          archivedAt: data.archivedAt,
           updatedAt: data.updatedAt,
         },
       });
@@ -75,7 +84,9 @@ export class CaregiverProfilePrismaRepository implements CaregiverProfileReposit
       id: profile.id,
       userId: profile.userId,
       title: profile.title,
+      gender: profile.gender === null ? null : TO_PERSISTENCE_GENDER[profile.gender],
       branch: profile.branch,
+      supervisorName: profile.supervisorName,
       employmentType:
         profile.employmentType === null ? null : TO_PERSISTENCE_EMPLOYMENT[profile.employmentType],
       experienceYears: profile.experienceYears,
@@ -86,6 +97,11 @@ export class CaregiverProfilePrismaRepository implements CaregiverProfileReposit
       emergencyContactName: contact.name,
       emergencyContactPhone: contact.phone,
       emergencyContactRelationship: contact.relationship,
+      emergencyContactEmail: contact.email,
+      maxHoursPerWeek: profile.maxHoursPerWeek,
+      preferredShift: profile.preferredShift,
+      preferencesNote: profile.preferencesNote,
+      archivedAt: profile.archivedAt,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt,
     };
@@ -97,7 +113,9 @@ export class CaregiverProfilePrismaRepository implements CaregiverProfileReposit
       {
         userId: row.userId,
         title: row.title,
+        gender: row.gender === null ? null : TO_DOMAIN_GENDER[row.gender],
         branch: row.branch,
+        supervisorName: row.supervisorName,
         employmentType:
           row.employmentType === null ? null : TO_DOMAIN_EMPLOYMENT[row.employmentType],
         experienceYears: row.experienceYears,
@@ -108,6 +126,11 @@ export class CaregiverProfilePrismaRepository implements CaregiverProfileReposit
         emergencyContactName: row.emergencyContactName,
         emergencyContactPhone: row.emergencyContactPhone,
         emergencyContactRelationship: row.emergencyContactRelationship,
+        emergencyContactEmail: row.emergencyContactEmail,
+        maxHoursPerWeek: row.maxHoursPerWeek,
+        preferredShift: row.preferredShift,
+        preferencesNote: row.preferencesNote,
+        archivedAt: row.archivedAt,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       },

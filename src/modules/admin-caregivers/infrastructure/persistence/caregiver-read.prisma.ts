@@ -28,7 +28,7 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
     page: number,
     pageSize: number,
   ): Promise<CaregiverPageView> {
-    const where = status === null ? {} : { status };
+    const where = status === null ? { archivedAt: null } : { archivedAt: null, status };
     const [total, profiles] = await this.prisma.$transaction([
       this.prisma.caregiverProfile.count({ where }),
       this.prisma.caregiverProfile.findMany({
@@ -69,9 +69,9 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
   ): Promise<CaregiverScheduleVisitView[] | null> {
     const profile = await this.prisma.caregiverProfile.findUnique({
       where: { id: profileId },
-      select: { userId: true },
+      select: { userId: true, archivedAt: true },
     });
-    if (profile === null) {
+    if (profile === null || profile.archivedAt !== null) {
       return null;
     }
     const visits = await this.prisma.visit.findMany({
@@ -107,7 +107,7 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
       where: { id: profileId },
       include: { notes: { orderBy: { createdAt: 'desc' }, take: 5 } },
     });
-    if (profile === null) {
+    if (profile === null || profile.archivedAt !== null) {
       return null;
     }
     const caregiverId = profile.userId;
@@ -215,6 +215,11 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
       employmentType: profile.employmentType,
       experienceYears: profile.experienceYears,
       joinedAt: profile.joinedAt,
+      gender: profile.gender,
+      supervisorName: profile.supervisorName,
+      maxHoursPerWeek: profile.maxHoursPerWeek,
+      preferredShift: profile.preferredShift,
+      preferencesNote: profile.preferencesNote,
       phone: user?.phone ?? null,
       email: user?.email ?? null,
       address: user === null ? null : formatAddress(user),
@@ -223,6 +228,7 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
       emergencyContactName: profile.emergencyContactName,
       emergencyContactPhone: profile.emergencyContactPhone,
       emergencyContactRelationship: profile.emergencyContactRelationship,
+      emergencyContactEmail: profile.emergencyContactEmail,
       skills: profile.skills,
       assignments: assignments.map((a) => ({
         recipientName: recipientNames.get(a.careRecipientId) ?? 'Unknown',

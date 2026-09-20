@@ -2,7 +2,11 @@ import { CaregiverProfile } from '@modules/caregiver-profile/domain/caregiver-pr
 import { CaregiverProfileRepository } from '@modules/caregiver-profile/domain/caregiver-profile.repository';
 import { CaregiverStatus } from '@modules/caregiver-profile/domain/caregiver-status.enum';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
-import { AddCaregiverNoteUseCase, EditCaregiverUseCase } from './edit-caregiver.use-case';
+import {
+  AddCaregiverNoteUseCase,
+  DeleteCaregiverUseCase,
+  EditCaregiverUseCase,
+} from './edit-caregiver.use-case';
 
 const NOW = new Date('2026-09-20T10:00:00.000Z');
 const clock = { now: () => NOW };
@@ -47,6 +51,16 @@ describe('EditCaregiverUseCase', () => {
     expect(p.status).toBe(CaregiverStatus.OnLeave);
   });
 
+  it('sets the preferences note', async () => {
+    const p = profile();
+    await new EditCaregiverUseCase(repo(p), clock).execute({
+      profileId: 'cg-1',
+      section: 'PREFERENCES',
+      preferencesNote: 'Available for weekend emergency coverage.',
+    });
+    expect(p.preferencesNote).toBe('Available for weekend emergency coverage.');
+  });
+
   it('rejects an unknown caregiver', async () => {
     await expect(
       new EditCaregiverUseCase(repo(null), clock).execute({
@@ -54,6 +68,22 @@ describe('EditCaregiverUseCase', () => {
         section: 'SKILLS',
         skills: [],
       }),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+  });
+});
+
+describe('DeleteCaregiverUseCase', () => {
+  it('archives the profile', async () => {
+    const p = profile();
+    const store = repo(p);
+    await new DeleteCaregiverUseCase(store, clock).execute('cg-1');
+    expect(p.isArchived).toBe(true);
+    expect(store.saved).toHaveLength(1);
+  });
+
+  it('rejects an unknown caregiver', async () => {
+    await expect(
+      new DeleteCaregiverUseCase(repo(null), clock).execute('nope'),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 });

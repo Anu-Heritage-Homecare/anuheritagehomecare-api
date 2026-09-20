@@ -2090,7 +2090,9 @@ model CaregiverProfile {
   sequence                     Int                     @unique @default(autoincrement())
   userId                       String                  @unique @db.Uuid
   title                        String?                 @db.VarChar(120)
+  gender                       Gender?
   branch                       String?                 @db.VarChar(120)
+  supervisorName               String?                 @db.VarChar(200)
   employmentType               CaregiverEmploymentType?
   experienceYears              Int?
   joinedAt                     DateTime?               @db.Date
@@ -2100,6 +2102,11 @@ model CaregiverProfile {
   emergencyContactName         String?                 @db.VarChar(200)
   emergencyContactPhone        String?                 @db.VarChar(40)
   emergencyContactRelationship String?                 @db.VarChar(80)
+  emergencyContactEmail        String?                 @db.VarChar(255)
+  maxHoursPerWeek              Int?
+  preferredShift               String?                 @db.VarChar(40)
+  preferencesNote              String?
+  archivedAt                   DateTime?
   createdAt                    DateTime                @default(now())
   updatedAt                    DateTime                @updatedAt
 

@@ -3,6 +3,7 @@ import { CaregiverEmploymentType, CaregiverStatus } from '@prisma/client';
 import {
   ArrayMaxSize,
   IsArray,
+  IsEmail,
   IsIn,
   IsInt,
   IsISO8601,
@@ -16,10 +17,11 @@ import {
 const EMPLOYMENT_TYPES = Object.values(CaregiverEmploymentType);
 const STATUSES = Object.values(CaregiverStatus);
 
-/** Edit the general profile fields of a caregiver. */
+/** Edit the general profile and employment fields of a caregiver. */
 export class EditCaregiverProfileDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) title?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) branch?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) supervisorName?: string;
   @ApiPropertyOptional({ enum: EMPLOYMENT_TYPES })
   @IsOptional()
   @IsIn(EMPLOYMENT_TYPES)
@@ -29,6 +31,8 @@ export class EditCaregiverProfileDto {
   @IsOptional()
   @IsISO8601()
   joinedAt?: string;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) @Max(168) maxHoursPerWeek?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40) preferredShift?: string;
 }
 
 /** Set the skills of a caregiver. */
@@ -56,6 +60,16 @@ export class CaregiverEmergencyDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) name?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40) phone?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(80) relationship?: string;
+  @ApiPropertyOptional() @IsOptional() @IsEmail() @MaxLength(255) email?: string;
+}
+
+/** Set the internal notes and caregiver preferences free text. */
+export class CaregiverPreferencesDto {
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  preferencesNote?: string | null;
 }
 
 /** Set the status of a caregiver. */

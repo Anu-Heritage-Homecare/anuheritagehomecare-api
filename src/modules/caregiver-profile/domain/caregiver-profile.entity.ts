@@ -1,6 +1,7 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root.base';
 import { ValidationException } from '@shared/domain/domain-exception';
 import { CaregiverEmploymentType } from './caregiver-employment-type.enum';
+import { CaregiverGender } from './caregiver-gender.enum';
 import { CaregiverStatus } from './caregiver-status.enum';
 
 /** One free text note on a caregiver. */
@@ -14,7 +15,9 @@ export interface CaregiverNote {
 interface CaregiverProfileProps {
   userId: string;
   title: string | null;
+  gender: CaregiverGender | null;
   branch: string | null;
+  supervisorName: string | null;
   employmentType: CaregiverEmploymentType | null;
   experienceYears: number | null;
   joinedAt: Date | null;
@@ -24,24 +27,36 @@ interface CaregiverProfileProps {
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
   emergencyContactRelationship: string | null;
+  emergencyContactEmail: string | null;
+  maxHoursPerWeek: number | null;
+  preferredShift: string | null;
+  preferencesNote: string | null;
+  archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const MAX_NOTE = 2000;
+const MAX_PREFERENCES = 4000;
+const MAX_HOURS_PER_WEEK = 168;
 
 export interface CaregiverProfileFields {
   title?: string | null;
+  gender?: CaregiverGender | null;
   branch?: string | null;
+  supervisorName?: string | null;
   employmentType?: CaregiverEmploymentType | null;
   experienceYears?: number | null;
   joinedAt?: Date | null;
+  maxHoursPerWeek?: number | null;
+  preferredShift?: string | null;
 }
 
 export interface EmergencyContact {
   name: string | null;
   phone: string | null;
   relationship: string | null;
+  email: string | null;
 }
 
 /**
@@ -74,7 +89,9 @@ export class CaregiverProfile extends AggregateRoot<string> {
       {
         userId: requireId(params.userId, 'A caregiver user is required'),
         title: cleanOptional(fields.title),
+        gender: fields.gender ?? null,
         branch: cleanOptional(fields.branch),
+        supervisorName: cleanOptional(fields.supervisorName),
         employmentType: fields.employmentType ?? null,
         experienceYears: assertYears(fields.experienceYears ?? null),
         joinedAt: fields.joinedAt ?? null,
@@ -84,6 +101,11 @@ export class CaregiverProfile extends AggregateRoot<string> {
         emergencyContactName: null,
         emergencyContactPhone: null,
         emergencyContactRelationship: null,
+        emergencyContactEmail: null,
+        maxHoursPerWeek: assertMaxHours(fields.maxHoursPerWeek ?? null),
+        preferredShift: cleanOptional(fields.preferredShift),
+        preferencesNote: null,
+        archivedAt: null,
         createdAt: params.now,
         updatedAt: params.now,
       },
@@ -103,8 +125,14 @@ export class CaregiverProfile extends AggregateRoot<string> {
     if (fields.title !== undefined) {
       this.props.title = cleanOptional(fields.title);
     }
+    if (fields.gender !== undefined) {
+      this.props.gender = fields.gender;
+    }
     if (fields.branch !== undefined) {
       this.props.branch = cleanOptional(fields.branch);
+    }
+    if (fields.supervisorName !== undefined) {
+      this.props.supervisorName = cleanOptional(fields.supervisorName);
     }
     if (fields.employmentType !== undefined) {
       this.props.employmentType = fields.employmentType;
@@ -114,6 +142,12 @@ export class CaregiverProfile extends AggregateRoot<string> {
     }
     if (fields.joinedAt !== undefined) {
       this.props.joinedAt = fields.joinedAt;
+    }
+    if (fields.maxHoursPerWeek !== undefined) {
+      this.props.maxHoursPerWeek = assertMaxHours(fields.maxHoursPerWeek);
+    }
+    if (fields.preferredShift !== undefined) {
+      this.props.preferredShift = cleanOptional(fields.preferredShift);
     }
     this.props.updatedAt = now;
   }
@@ -132,11 +166,40 @@ export class CaregiverProfile extends AggregateRoot<string> {
     this.props.emergencyContactName = cleanOptional(contact.name);
     this.props.emergencyContactPhone = cleanOptional(contact.phone);
     this.props.emergencyContactRelationship = cleanOptional(contact.relationship);
+    this.props.emergencyContactEmail = cleanOptional(contact.email);
     this.props.updatedAt = now;
   }
 
   public setStatus(status: CaregiverStatus, now: Date): void {
     this.props.status = status;
+    this.props.updatedAt = now;
+  }
+
+  public setGender(gender: CaregiverGender | null, now: Date): void {
+    this.props.gender = gender;
+    this.props.updatedAt = now;
+  }
+
+  /** Set (or clear) the free text internal notes and caregiver preferences. */
+  public setPreferencesNote(note: string | null, now: Date): void {
+    const clean = cleanOptional(note);
+    if (clean !== null && clean.length > MAX_PREFERENCES) {
+      throw new ValidationException('The preferences note exceeds the maximum length');
+    }
+    this.props.preferencesNote = clean;
+    this.props.updatedAt = now;
+  }
+
+  /**
+   * Soft archive the profile so it drops out of the directory and detail reads.
+   * The identity account, visits, ratings and history are retained; only the
+   * admin overlay is retired. Archiving an already archived profile is a no-op.
+   */
+  public archive(now: Date): void {
+    if (this.props.archivedAt !== null) {
+      return;
+    }
+    this.props.archivedAt = now;
     this.props.updatedAt = now;
   }
 
@@ -165,8 +228,16 @@ export class CaregiverProfile extends AggregateRoot<string> {
     return this.props.title;
   }
 
+  public get gender(): CaregiverGender | null {
+    return this.props.gender;
+  }
+
   public get branch(): string | null {
     return this.props.branch;
+  }
+
+  public get supervisorName(): string | null {
+    return this.props.supervisorName;
   }
 
   public get employmentType(): CaregiverEmploymentType | null {
@@ -198,7 +269,28 @@ export class CaregiverProfile extends AggregateRoot<string> {
       name: this.props.emergencyContactName,
       phone: this.props.emergencyContactPhone,
       relationship: this.props.emergencyContactRelationship,
+      email: this.props.emergencyContactEmail,
     };
+  }
+
+  public get maxHoursPerWeek(): number | null {
+    return this.props.maxHoursPerWeek;
+  }
+
+  public get preferredShift(): string | null {
+    return this.props.preferredShift;
+  }
+
+  public get preferencesNote(): string | null {
+    return this.props.preferencesNote;
+  }
+
+  public get archivedAt(): Date | null {
+    return this.props.archivedAt;
+  }
+
+  public get isArchived(): boolean {
+    return this.props.archivedAt !== null;
   }
 
   public get noteLog(): CaregiverNote[] {
@@ -228,6 +320,16 @@ function assertYears(value: number | null): number | null {
   }
   if (!Number.isInteger(value) || value < 0 || value > 80) {
     throw new ValidationException('Experience years is out of range');
+  }
+  return value;
+}
+
+function assertMaxHours(value: number | null): number | null {
+  if (value === null) {
+    return null;
+  }
+  if (!Number.isInteger(value) || value < 0 || value > MAX_HOURS_PER_WEEK) {
+    throw new ValidationException('Maximum hours per week is out of range');
   }
   return value;
 }

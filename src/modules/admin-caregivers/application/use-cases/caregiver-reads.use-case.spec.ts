@@ -24,6 +24,11 @@ function overview(): CaregiverOverviewView {
     employmentType: 'FULL_TIME',
     experienceYears: 6,
     joinedAt: new Date('2019-03-01T00:00:00.000Z'),
+    gender: 'FEMALE',
+    supervisorName: 'Mike Chen',
+    maxHoursPerWeek: 45,
+    preferredShift: 'Morning',
+    preferencesNote: 'Prefers morning shifts.',
     phone: '(555) 234-5678',
     email: 'sarah.williams@careprofs.com',
     address: '234 Maple Drive, Springfield, IL 62701',
@@ -32,6 +37,7 @@ function overview(): CaregiverOverviewView {
     emergencyContactName: 'Mark Williams',
     emergencyContactPhone: '(555) 234-5679',
     emergencyContactRelationship: 'Husband',
+    emergencyContactEmail: 'mark.w@email.com',
     skills: ['Wound Care'],
     assignments: [
       {
@@ -109,6 +115,11 @@ describe('GetCaregiverOverviewUseCase', () => {
   it('composes the overview with derived age, performance and availability', async () => {
     const result = await new GetCaregiverOverviewUseCase(reads(overview()), clock).execute('cg-1');
     expect(result.reference).toBe('CG-001');
+    expect(result.supervisorName).toBe('Mike Chen');
+    expect(result.maxHoursPerWeek).toBe(45);
+    expect(result.preferredShift).toBe('Morning');
+    expect(result.personal.gender).toBe('FEMALE');
+    expect(result.personal.emergencyContactEmail).toBe('mark.w@email.com');
     expect(result.personal.age).toBe(38);
     expect(result.performance.satisfactionPercent).toBe(98);
     expect(result.performance.taskCompletionPercent).toBe(100);
