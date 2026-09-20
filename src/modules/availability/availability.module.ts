@@ -25,5 +25,6 @@ import { CaregiverAvailabilityController } from './presentation/caregiver-availa
     { provide: CAREGIVER_AVAILABILITY_REPOSITORY, useClass: CaregiverAvailabilityPrismaRepository },
     { provide: BOOKED_SLOTS_DIRECTORY, useClass: VisitsBookedSlotsDirectory },
   ],
+  exports: [CAREGIVER_AVAILABILITY_REPOSITORY],
 })
 export class AvailabilityModule {}

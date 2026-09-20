@@ -5,6 +5,7 @@ import {
   CaregiverOverviewView,
   CaregiverPageView,
   CaregiverReadModel,
+  CaregiverScheduleTabView,
   CaregiverScheduleVisitView,
 } from '../../application/ports/caregiver-read.port';
 
@@ -62,44 +63,97 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
     };
   }
 
-  async schedule(
+  async scheduleTab(
     profileId: string,
-    from: Date,
-    to: Date,
-  ): Promise<CaregiverScheduleVisitView[] | null> {
+    weekStart: Date,
+    now: Date,
+    upcomingLimit: number,
+  ): Promise<CaregiverScheduleTabView | null> {
     const profile = await this.prisma.caregiverProfile.findUnique({
       where: { id: profileId },
-      select: { userId: true, archivedAt: true },
+      select: { userId: true, archivedAt: true, maxHoursPerWeek: true, preferredShift: true },
     });
     if (profile === null || profile.archivedAt !== null) {
       return null;
     }
-    const visits = await this.prisma.visit.findMany({
-      where: { caregiverId: profile.userId, scheduledDate: { gte: from, lt: to } },
-      select: {
-        careRecipientId: true,
-        scheduledDate: true,
-        startMinute: true,
-        endMinute: true,
-        visitType: true,
-        status: true,
-      },
-      orderBy: [{ scheduledDate: 'asc' }, { startMinute: 'asc' }],
-    });
+    const caregiverId = profile.userId;
+    const weekEnd = new Date(weekStart.getTime() + 7 * DAY_MS);
+    const todayStart = startOfUtcDay(now);
+
+    const visitSelect = {
+      careRecipientId: true,
+      scheduledDate: true,
+      startMinute: true,
+      endMinute: true,
+      visitType: true,
+      status: true,
+    };
+
+    const [weekVisits, upcomingVisits, availability, payRate] = await Promise.all([
+      this.prisma.visit.findMany({
+        where: { caregiverId, scheduledDate: { gte: weekStart, lt: weekEnd } },
+        select: visitSelect,
+        orderBy: [{ scheduledDate: 'asc' }, { startMinute: 'asc' }],
+      }),
+      this.prisma.visit.findMany({
+        where: {
+          caregiverId,
+          scheduledDate: { gte: todayStart },
+          status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+        },
+        select: visitSelect,
+        orderBy: [{ scheduledDate: 'asc' }, { startMinute: 'asc' }],
+        take: upcomingLimit,
+      }),
+      this.prisma.caregiverAvailability.findMany({
+        where: { caregiverId, date: { gte: weekStart, lt: weekEnd } },
+        select: { date: true, slots: { select: { startMinute: true, endMinute: true } } },
+        orderBy: { date: 'asc' },
+      }),
+      this.prisma.caregiverPayRate.findUnique({
+        where: { caregiverId },
+        select: { overtimeMultiplierBps: true },
+      }),
+    ]);
+
+    const recipientIds = [
+      ...new Set([
+        ...weekVisits.map((v) => v.careRecipientId),
+        ...upcomingVisits.map((v) => v.careRecipientId),
+      ]),
+    ];
     const recipients = await this.prisma.careRecipient.findMany({
-      where: { id: { in: [...new Set(visits.map((v) => v.careRecipientId))] } },
+      where: { id: { in: recipientIds } },
       select: { id: true, name: true },
     });
     const names = new Map(recipients.map((r) => [r.id, r.name]));
 
-    return visits.map((visit) => ({
+    const toVisit = (visit: {
+      careRecipientId: string;
+      scheduledDate: Date;
+      startMinute: number;
+      endMinute: number;
+      visitType: string;
+      status: string;
+    }): CaregiverScheduleVisitView => ({
       scheduledDate: visit.scheduledDate,
       startMinute: visit.startMinute,
       endMinute: visit.endMinute,
       recipientName: names.get(visit.careRecipientId) ?? 'Unknown',
       visitType: String(visit.visitType),
       status: String(visit.status),
-    }));
+    });
+
+    return {
+      weekStart,
+      weekEnd,
+      maxHoursPerWeek: profile.maxHoursPerWeek,
+      preferredShift: profile.preferredShift,
+      overtimeMultiplierBps: payRate?.overtimeMultiplierBps ?? null,
+      weekVisits: weekVisits.map(toVisit),
+      upcomingVisits: upcomingVisits.map(toVisit),
+      availability: availability.map((a) => ({ date: a.date, slots: a.slots })),
+    };
   }
 
   async overview(profileId: string, now: Date): Promise<CaregiverOverviewView | null> {

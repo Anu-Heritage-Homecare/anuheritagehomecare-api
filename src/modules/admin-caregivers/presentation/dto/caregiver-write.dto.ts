@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CaregiverEmploymentType, CaregiverStatus, Gender } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -12,6 +13,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
 const EMPLOYMENT_TYPES = Object.values(CaregiverEmploymentType);
@@ -122,13 +124,37 @@ export class CertificationDto {
   @ApiProperty({ type: String, format: 'date' }) @IsISO8601() expiresAt!: string;
 }
 
-/** The date range for the caregiver Schedule tab. */
+/** The week to show on the caregiver Schedule tab; any date within it, default this week. */
 export class CaregiverScheduleQueryDto {
-  @ApiProperty({ type: String, format: 'date' })
+  @ApiPropertyOptional({ type: String, format: 'date' })
+  @IsOptional()
   @IsISO8601()
-  from!: string;
+  weekOf?: string;
+}
 
-  @ApiProperty({ type: String, format: 'date' })
-  @IsISO8601()
-  to!: string;
+/** One availability window, in minutes from midnight. */
+export class AvailabilitySlotDto {
+  @ApiProperty() @IsInt() @Min(0) @Max(1440) startMinute!: number;
+  @ApiProperty() @IsInt() @Min(0) @Max(1440) endMinute!: number;
+}
+
+/** One day of availability windows to set for a caregiver. */
+export class AvailabilityDayDto {
+  @ApiProperty({ type: String, format: 'date' }) @IsISO8601() date!: string;
+  @ApiProperty({ type: [AvailabilitySlotDto] })
+  @IsArray()
+  @ArrayMaxSize(12)
+  @ValidateNested({ each: true })
+  @Type(() => AvailabilitySlotDto)
+  slots!: AvailabilitySlotDto[];
+}
+
+/** Set (replace) a caregiver's availability for one or more days. */
+export class SetCaregiverAvailabilityDto {
+  @ApiProperty({ type: [AvailabilityDayDto] })
+  @IsArray()
+  @ArrayMaxSize(31)
+  @ValidateNested({ each: true })
+  @Type(() => AvailabilityDayDto)
+  days!: AvailabilityDayDto[];
 }

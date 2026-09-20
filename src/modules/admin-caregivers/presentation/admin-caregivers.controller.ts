@@ -39,11 +39,10 @@ import {
   RemoveCertificationUseCase,
 } from '../application/use-cases/manage-certifications.use-case';
 import { SetCaregiverHourlyRateUseCase } from '../application/use-cases/set-caregiver-hourly-rate.use-case';
-import {
-  CaregiverScheduleResult,
-  GetCaregiverScheduleUseCase,
-} from '../application/use-cases/get-caregiver-schedule.use-case';
+import { GetCaregiverScheduleUseCase } from '../application/use-cases/get-caregiver-schedule.use-case';
 import { ListCaregiversUseCase } from '../application/use-cases/list-caregivers.use-case';
+import { SetCaregiverAvailabilityUseCase } from '../application/use-cases/set-caregiver-availability.use-case';
+import { CaregiverScheduleResponseDto } from './dto/caregiver-schedule-response.dto';
 import {
   CaregiverListResponseDto,
   CaregiverOverviewResponseDto,
@@ -61,6 +60,7 @@ import {
   CaregiverStatusDto,
   CertificationDto,
   EditCaregiverProfileDto,
+  SetCaregiverAvailabilityDto,
 } from './dto/caregiver-write.dto';
 
 function toDomainStatus(status: string): CaregiverStatus {
@@ -105,6 +105,7 @@ export class AdminCaregiversController {
     private readonly removeCertification: RemoveCertificationUseCase,
     private readonly editPersonalInfo: EditCaregiverPersonalInfoUseCase,
     private readonly setHourlyRate: SetCaregiverHourlyRateUseCase,
+    private readonly setAvailability: SetCaregiverAvailabilityUseCase,
   ) {}
 
   @Get()
@@ -128,16 +129,30 @@ export class AdminCaregiversController {
   }
 
   @Get(':id/schedule')
-  @ApiOperation({ summary: 'The caregiver Schedule tab over a date range' })
-  @ApiOkResponse()
+  @ApiOperation({ summary: 'The caregiver Schedule tab for a week (default this week)' })
+  @ApiOkResponse({ type: CaregiverScheduleResponseDto })
   async schedule(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: CaregiverScheduleQueryDto,
-  ): Promise<CaregiverScheduleResult> {
-    return this.getSchedule.execute({
+  ): Promise<CaregiverScheduleResponseDto> {
+    const result = await this.getSchedule.execute({
       profileId: id,
-      from: new Date(query.from),
-      to: new Date(query.to),
+      weekOf: query.weekOf === undefined ? null : new Date(query.weekOf),
+    });
+    return CaregiverScheduleResponseDto.fromResult(result);
+  }
+
+  @Put(':id/availability')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Set (replace) a caregiver's availability windows per day" })
+  @ApiNoContentResponse()
+  async editAvailability(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetCaregiverAvailabilityDto,
+  ): Promise<void> {
+    await this.setAvailability.execute({
+      profileId: id,
+      days: body.days.map((day) => ({ date: new Date(day.date), slots: day.slots })),
     });
   }
 

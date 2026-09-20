@@ -89,7 +89,7 @@ export interface CaregiverOverviewView {
   recentNotes: { body: string; authorName: string | null; createdAt: Date }[];
 }
 
-/** One visit on the caregiver Schedule tab. */
+/** One visit on the caregiver Schedule tab (within the week or the upcoming list). */
 export interface CaregiverScheduleVisitView {
   scheduledDate: Date;
   startMinute: number;
@@ -97,6 +97,18 @@ export interface CaregiverScheduleVisitView {
   recipientName: string;
   visitType: string;
   status: string;
+}
+
+/** The composed Schedule tab: the week's visits, the upcoming visits and availability. */
+export interface CaregiverScheduleTabView {
+  weekStart: Date;
+  weekEnd: Date;
+  maxHoursPerWeek: number | null;
+  preferredShift: string | null;
+  overtimeMultiplierBps: number | null;
+  weekVisits: CaregiverScheduleVisitView[];
+  upcomingVisits: CaregiverScheduleVisitView[];
+  availability: CaregiverAvailabilityDayView[];
 }
 
 /**
@@ -110,7 +122,12 @@ export interface CaregiverReadModel {
     pageSize: number,
   ): Promise<CaregiverPageView>;
   overview(profileId: string, now: Date): Promise<CaregiverOverviewView | null>;
-  schedule(profileId: string, from: Date, to: Date): Promise<CaregiverScheduleVisitView[] | null>;
+  scheduleTab(
+    profileId: string,
+    weekStart: Date,
+    now: Date,
+    upcomingLimit: number,
+  ): Promise<CaregiverScheduleTabView | null>;
 }
 
 export const CAREGIVER_READ_MODEL = Symbol('CAREGIVER_READ_MODEL');

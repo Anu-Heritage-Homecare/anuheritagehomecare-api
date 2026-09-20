@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
+import { AvailabilityModule } from '@modules/availability/availability.module';
 import { CaregiverProfileModule } from '@modules/caregiver-profile/caregiver-profile.module';
 import { CertificationsModule } from '@modules/certifications/certifications.module';
 import { EarningsModule } from '@modules/earnings/earnings.module';
@@ -19,6 +20,7 @@ import {
   EditCertificationUseCase,
   RemoveCertificationUseCase,
 } from './application/use-cases/manage-certifications.use-case';
+import { SetCaregiverAvailabilityUseCase } from './application/use-cases/set-caregiver-availability.use-case';
 import { SetCaregiverHourlyRateUseCase } from './application/use-cases/set-caregiver-hourly-rate.use-case';
 import { CaregiverReadPrisma } from './infrastructure/persistence/caregiver-read.prisma';
 import { AdminCaregiversController } from './presentation/admin-caregivers.controller';
@@ -35,6 +37,7 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
     CertificationsModule,
     IdentityModule,
     EarningsModule,
+    AvailabilityModule,
   ],
   controllers: [AdminCaregiversController],
   providers: [
@@ -49,6 +52,7 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
     RemoveCertificationUseCase,
     EditCaregiverPersonalInfoUseCase,
     SetCaregiverHourlyRateUseCase,
+    SetCaregiverAvailabilityUseCase,
     { provide: CAREGIVER_READ_MODEL, useClass: CaregiverReadPrisma },
   ],
 })
