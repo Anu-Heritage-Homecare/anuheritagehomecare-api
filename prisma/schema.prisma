@@ -2080,6 +2080,64 @@ enum FamilyMemberStatus {
   @@map("family_member_status")
 }
 
+// Bounded context: caregiver profile (the admin Caregivers screen). One profile per
+// caregiver identity user, holding the admin managed employment details, skills,
+// languages, emergency contact and notes. The personal details (name, phone, email,
+// address, date of birth) are read live from the user, never duplicated. The human
+// readable reference renders as CG-{sequence}.
+model CaregiverProfile {
+  id                           String                  @id @default(uuid()) @db.Uuid
+  sequence                     Int                     @unique @default(autoincrement())
+  userId                       String                  @unique @db.Uuid
+  title                        String?                 @db.VarChar(120)
+  branch                       String?                 @db.VarChar(120)
+  employmentType               CaregiverEmploymentType?
+  experienceYears              Int?
+  joinedAt                     DateTime?               @db.Date
+  status                       CaregiverStatus         @default(ACTIVE)
+  skills                       String[]                @default([])
+  languages                    String[]                @default([])
+  emergencyContactName         String?                 @db.VarChar(200)
+  emergencyContactPhone        String?                 @db.VarChar(40)
+  emergencyContactRelationship String?                 @db.VarChar(80)
+  createdAt                    DateTime                @default(now())
+  updatedAt                    DateTime                @updatedAt
+
+  notes CaregiverProfileNote[]
+
+  @@index([status])
+  @@map("caregiver_profiles")
+}
+
+model CaregiverProfileNote {
+  id            String           @id @default(uuid()) @db.Uuid
+  profileId     String           @db.Uuid
+  profile       CaregiverProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  body          String           @db.VarChar(2000)
+  authorAdminId String?          @db.Uuid
+  authorName    String?          @db.VarChar(200)
+  createdAt     DateTime         @default(now())
+
+  @@index([profileId, createdAt])
+  @@map("caregiver_profile_notes")
+}
+
+enum CaregiverEmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+
+  @@map("caregiver_employment_type")
+}
+
+enum CaregiverStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+
+  @@map("caregiver_status")
+}
+
 // Bounded context: KYC (identity verification of the family owner).
 //
 // US owners verify the last four of their SSN through Stripe; Nigeria owners

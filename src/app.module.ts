@@ -19,6 +19,7 @@ import { CarePlansModule } from './modules/care-plans/care-plans.module';
 import { CareNotesModule } from './modules/care-notes/care-notes.module';
 import { CareRatingsModule } from './modules/care-ratings/care-ratings.module';
 import { CareRecipientsModule } from './modules/care-recipients/care-recipients.module';
+import { CaregiverProfileModule } from './modules/caregiver-profile/caregiver-profile.module';
 import { CertificationsModule } from './modules/certifications/certifications.module';
 import { ClientOnboardingModule } from './modules/client-onboarding/client-onboarding.module';
 import { FamilyDirectoryModule } from './modules/family-directory/family-directory.module';
@@ -158,6 +159,7 @@ import { SharedModule } from './shared/shared.module';
     SubscriptionManagementModule,
     FamilyDirectoryModule,
     AdminFamiliesModule,
+    CaregiverProfileModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
