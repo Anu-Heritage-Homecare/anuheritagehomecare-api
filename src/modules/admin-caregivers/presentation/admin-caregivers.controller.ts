@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
@@ -30,6 +31,11 @@ import {
   EditCaregiverUseCase,
 } from '../application/use-cases/edit-caregiver.use-case';
 import { GetCaregiverOverviewUseCase } from '../application/use-cases/get-caregiver-overview.use-case';
+import {
+  AddCertificationUseCase,
+  EditCertificationUseCase,
+  RemoveCertificationUseCase,
+} from '../application/use-cases/manage-certifications.use-case';
 import {
   CaregiverScheduleResult,
   GetCaregiverScheduleUseCase,
@@ -48,6 +54,7 @@ import {
   CaregiverScheduleQueryDto,
   CaregiverSkillsDto,
   CaregiverStatusDto,
+  CertificationDto,
   EditCaregiverProfileDto,
 } from './dto/caregiver-write.dto';
 
@@ -81,6 +88,9 @@ export class AdminCaregiversController {
     private readonly editCaregiver: EditCaregiverUseCase,
     private readonly addNote: AddCaregiverNoteUseCase,
     private readonly deleteCaregiver: DeleteCaregiverUseCase,
+    private readonly addCertification: AddCertificationUseCase,
+    private readonly editCertification: EditCertificationUseCase,
+    private readonly removeCertification: RemoveCertificationUseCase,
   ) {}
 
   @Get()
@@ -234,6 +244,43 @@ export class AdminCaregiversController {
     });
   }
 
+  @Post(':id/certifications')
+  @ApiOperation({ summary: 'Add a certification to a caregiver' })
+  @ApiCreatedResponse()
+  async addCert(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CertificationDto,
+  ): Promise<{ id: string }> {
+    return this.addCertification.execute({ profileId: id, ...toCertificationInput(body) });
+  }
+
+  @Put(':id/certifications/:certificationId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Edit a certification of a caregiver' })
+  @ApiNoContentResponse()
+  async editCert(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('certificationId', ParseUUIDPipe) certificationId: string,
+    @Body() body: CertificationDto,
+  ): Promise<void> {
+    await this.editCertification.execute({
+      profileId: id,
+      certificationId,
+      ...toCertificationInput(body),
+    });
+  }
+
+  @Delete(':id/certifications/:certificationId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove a certification from a caregiver' })
+  @ApiNoContentResponse()
+  async removeCert(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('certificationId', ParseUUIDPipe) certificationId: string,
+  ): Promise<void> {
+    await this.removeCertification.execute({ profileId: id, certificationId });
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Archive a caregiver profile so it leaves the directory' })
@@ -241,4 +288,18 @@ export class AdminCaregiversController {
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.deleteCaregiver.execute(id);
   }
+}
+
+function toCertificationInput(body: CertificationDto): {
+  name: string;
+  licenseNumber: string | null;
+  issuedAt: Date | null;
+  expiresAt: Date;
+} {
+  return {
+    name: body.name,
+    licenseNumber: body.licenseNumber ?? null,
+    issuedAt: body.issuedAt === undefined ? null : new Date(body.issuedAt),
+    expiresAt: new Date(body.expiresAt),
+  };
 }

@@ -63,7 +63,14 @@ function overview(): CaregiverOverviewView {
       completedVisits: 42,
     },
     certifications: [
-      { name: 'CNA License', expiresAt: new Date('2026-12-31T00:00:00.000Z'), valid: true },
+      {
+        id: 'cert-1',
+        name: 'CNA License',
+        licenseNumber: 'CNA-IL-45892',
+        issuedAt: new Date('2024-12-01T00:00:00.000Z'),
+        expiresAt: new Date('2026-12-31T00:00:00.000Z'),
+        valid: true,
+      },
     ],
     availability: [
       {

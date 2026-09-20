@@ -85,6 +85,17 @@ export class CaregiverNoteDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) authorName?: string;
 }
 
+/** Add or edit a caregiver certification. */
+export class CertificationDto {
+  @ApiProperty() @IsString() @MaxLength(120) name!: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) licenseNumber?: string;
+  @ApiPropertyOptional({ type: String, format: 'date' })
+  @IsOptional()
+  @IsISO8601()
+  issuedAt?: string;
+  @ApiProperty({ type: String, format: 'date' }) @IsISO8601() expiresAt!: string;
+}
+
 /** The date range for the caregiver Schedule tab. */
 export class CaregiverScheduleQueryDto {
   @ApiProperty({ type: String, format: 'date' })

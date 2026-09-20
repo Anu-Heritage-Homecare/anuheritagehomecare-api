@@ -72,7 +72,10 @@ class PerformanceDto implements CaregiverPerformanceResult {
 }
 
 class CertificationDto implements CaregiverCertificationResult {
+  @ApiProperty() id!: string;
   @ApiProperty() name!: string;
+  @ApiProperty({ nullable: true, type: String }) licenseNumber!: string | null;
+  @ApiProperty({ nullable: true, type: String }) issuedAt!: string | null;
   @ApiProperty() expiresAt!: string;
   @ApiProperty() valid!: boolean;
 }

@@ -41,7 +41,10 @@ export interface CaregiverPerformanceResult {
 }
 
 export interface CaregiverCertificationResult {
+  id: string;
   name: string;
+  licenseNumber: string | null;
+  issuedAt: string | null;
   expiresAt: string;
   valid: boolean;
 }

@@ -27,4 +27,23 @@ describe('Certification', () => {
       }),
     ).toThrow(ValidationException);
   });
+
+  it('records and trims a licence number, clearing an empty one', () => {
+    const cert = Certification.record({
+      id: 'c1',
+      caregiverId: 'caregiver-1',
+      name: 'CNA License',
+      licenseNumber: '  CNA-IL-45892  ',
+      expiresAt: new Date('2026-12-31T00:00:00.000Z'),
+      now: NOW,
+    });
+    expect(cert.licenseNumber).toBe('CNA-IL-45892');
+    cert.revise({
+      name: 'CNA License',
+      licenseNumber: '   ',
+      expiresAt: new Date('2027-12-31T00:00:00.000Z'),
+    });
+    expect(cert.licenseNumber).toBeNull();
+    expect(cert.expiresAt).toEqual(new Date('2027-12-31T00:00:00.000Z'));
+  });
 });

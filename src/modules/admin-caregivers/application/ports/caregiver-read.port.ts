@@ -30,7 +30,10 @@ export interface CaregiverTodayVisitView {
 }
 
 export interface CaregiverCertificationView {
+  id: string;
   name: string;
+  licenseNumber: string | null;
+  issuedAt: Date | null;
   expiresAt: Date;
   valid: boolean;
 }

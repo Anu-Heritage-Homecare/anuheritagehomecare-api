@@ -16,10 +16,20 @@ export class CertificationPrismaRepository implements CertificationRepository {
       create: row,
       update: {
         name: row.name,
+        licenseNumber: row.licenseNumber,
         issuedAt: row.issuedAt,
         expiresAt: row.expiresAt,
       },
     });
+  }
+
+  async findById(id: string): Promise<Certification | null> {
+    const row = await this.prisma.certification.findUnique({ where: { id } });
+    return row === null ? null : CertificationMapper.toDomain(row);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.certification.delete({ where: { id } });
   }
 
   async listExpiringBefore(cutoff: Date): Promise<Certification[]> {

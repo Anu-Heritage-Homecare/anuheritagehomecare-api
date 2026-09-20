@@ -134,6 +134,8 @@ function admins(): AdminUserRepository {
 function certifications(): CertificationRepository {
   return {
     save: () => Promise.resolve(),
+    findById: () => Promise.resolve(null),
+    delete: () => Promise.resolve(),
     listExpiringBefore: () => Promise.resolve([]),
     listForCaregiver: (caregiverId) =>
       Promise.resolve(
@@ -142,6 +144,7 @@ function certifications(): CertificationRepository {
               Certification.rehydrate(`c${index}`, {
                 caregiverId,
                 name,
+                licenseNumber: null,
                 issuedAt: new Date('2025-01-01T00:00:00.000Z'),
                 expiresAt: new Date('2027-01-01T00:00:00.000Z'),
                 createdAt: new Date('2025-01-01T00:00:00.000Z'),

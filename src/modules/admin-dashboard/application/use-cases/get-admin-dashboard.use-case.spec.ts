@@ -82,6 +82,8 @@ const ratingRepo: CareRatingRepository = {
 
 const certRepo: CertificationRepository = {
   save: () => Promise.resolve(),
+  findById: () => Promise.resolve(null),
+  delete: () => Promise.resolve(),
   listExpiringBefore: () => Promise.resolve<Certification[]>([]),
   listForCaregiver: () => Promise.resolve<Certification[]>([]),
 };

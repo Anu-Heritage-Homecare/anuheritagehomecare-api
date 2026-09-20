@@ -32,7 +32,10 @@ export class GetCaregiverOverviewUseCase {
     const perf = view.performance;
     const total = perf.completedVisits + perf.missedVisits;
     const certifications = view.certifications.map((c) => ({
+      id: c.id,
       name: c.name,
+      licenseNumber: c.licenseNumber,
+      issuedAt: c.issuedAt === null ? null : c.issuedAt.toISOString(),
       expiresAt: c.expiresAt.toISOString(),
       valid: c.valid,
     }));

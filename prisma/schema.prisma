@@ -2390,12 +2390,13 @@ model CareRating {
 // operations dashboard watches these to raise a Certification Expiring alert.
 // Management surface (Caregivers screen) deferred.
 model Certification {
-  id          String    @id @default(uuid()) @db.Uuid
-  caregiverId String    @db.Uuid
-  name        String    @db.VarChar(120)
-  issuedAt    DateTime?
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
+  id            String    @id @default(uuid()) @db.Uuid
+  caregiverId   String    @db.Uuid
+  name          String    @db.VarChar(120)
+  licenseNumber String?   @db.VarChar(120)
+  issuedAt      DateTime?
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
 
   @@index([expiresAt])
   @@index([caregiverId])

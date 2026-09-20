@@ -7,6 +7,7 @@ export class CertificationMapper {
     return Certification.rehydrate(row.id, {
       caregiverId: row.caregiverId,
       name: row.name,
+      licenseNumber: row.licenseNumber,
       issuedAt: row.issuedAt,
       expiresAt: row.expiresAt,
       createdAt: row.createdAt,
@@ -18,6 +19,7 @@ export class CertificationMapper {
       id: certification.id,
       caregiverId: certification.caregiverId,
       name: certification.name,
+      licenseNumber: certification.licenseNumber,
       issuedAt: certification.issuedAt,
       expiresAt: certification.expiresAt,
       createdAt: certification.createdAt,

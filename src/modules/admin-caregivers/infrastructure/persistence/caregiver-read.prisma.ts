@@ -163,7 +163,13 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
         }),
         this.prisma.certification.findMany({
           where: { caregiverId },
-          select: { name: true, expiresAt: true },
+          select: {
+            id: true,
+            name: true,
+            licenseNumber: true,
+            issuedAt: true,
+            expiresAt: true,
+          },
           orderBy: { expiresAt: 'asc' },
         }),
         this.prisma.caregiverAvailability.findMany({
@@ -251,7 +257,10 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
         completedVisits: completed.length,
       },
       certifications: certifications.map((c) => ({
+        id: c.id,
         name: c.name,
+        licenseNumber: c.licenseNumber,
+        issuedAt: c.issuedAt,
         expiresAt: c.expiresAt,
         valid: c.expiresAt.getTime() > now.getTime(),
       })),
