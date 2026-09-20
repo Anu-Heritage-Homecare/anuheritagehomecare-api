@@ -78,6 +78,16 @@ export interface CaregiverOverviewView {
   recentNotes: { body: string; authorName: string | null; createdAt: Date }[];
 }
 
+/** One visit on the caregiver Schedule tab. */
+export interface CaregiverScheduleVisitView {
+  scheduledDate: Date;
+  startMinute: number;
+  endMinute: number;
+  recipientName: string;
+  visitType: string;
+  status: string;
+}
+
 /**
  * Read model over the caregiver profile overlay, composed with the identity user,
  * assignments, visits, ratings, certifications and availability.
@@ -89,6 +99,7 @@ export interface CaregiverReadModel {
     pageSize: number,
   ): Promise<CaregiverPageView>;
   overview(profileId: string, now: Date): Promise<CaregiverOverviewView | null>;
+  schedule(profileId: string, from: Date, to: Date): Promise<CaregiverScheduleVisitView[] | null>;
 }
 
 export const CAREGIVER_READ_MODEL = Symbol('CAREGIVER_READ_MODEL');

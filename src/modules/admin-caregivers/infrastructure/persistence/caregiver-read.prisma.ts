@@ -5,6 +5,7 @@ import {
   CaregiverOverviewView,
   CaregiverPageView,
   CaregiverReadModel,
+  CaregiverScheduleVisitView,
 } from '../../application/ports/caregiver-read.port';
 
 const DAY_MS = 86_400_000;
@@ -59,6 +60,46 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
         };
       }),
     };
+  }
+
+  async schedule(
+    profileId: string,
+    from: Date,
+    to: Date,
+  ): Promise<CaregiverScheduleVisitView[] | null> {
+    const profile = await this.prisma.caregiverProfile.findUnique({
+      where: { id: profileId },
+      select: { userId: true },
+    });
+    if (profile === null) {
+      return null;
+    }
+    const visits = await this.prisma.visit.findMany({
+      where: { caregiverId: profile.userId, scheduledDate: { gte: from, lt: to } },
+      select: {
+        careRecipientId: true,
+        scheduledDate: true,
+        startMinute: true,
+        endMinute: true,
+        visitType: true,
+        status: true,
+      },
+      orderBy: [{ scheduledDate: 'asc' }, { startMinute: 'asc' }],
+    });
+    const recipients = await this.prisma.careRecipient.findMany({
+      where: { id: { in: [...new Set(visits.map((v) => v.careRecipientId))] } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(recipients.map((r) => [r.id, r.name]));
+
+    return visits.map((visit) => ({
+      scheduledDate: visit.scheduledDate,
+      startMinute: visit.startMinute,
+      endMinute: visit.endMinute,
+      recipientName: names.get(visit.careRecipientId) ?? 'Unknown',
+      visitType: String(visit.visitType),
+      status: String(visit.status),
+    }));
   }
 
   async overview(profileId: string, now: Date): Promise<CaregiverOverviewView | null> {

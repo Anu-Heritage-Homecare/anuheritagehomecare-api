@@ -1,0 +1,74 @@
+import { CaregiverProfile } from '@modules/caregiver-profile/domain/caregiver-profile.entity';
+import { CaregiverProfileRepository } from '@modules/caregiver-profile/domain/caregiver-profile.repository';
+import { CaregiverStatus } from '@modules/caregiver-profile/domain/caregiver-status.enum';
+import { NotFoundDomainException } from '@shared/domain/domain-exception';
+import { AddCaregiverNoteUseCase, EditCaregiverUseCase } from './edit-caregiver.use-case';
+
+const NOW = new Date('2026-09-20T10:00:00.000Z');
+const clock = { now: () => NOW };
+
+function profile(): CaregiverProfile {
+  return CaregiverProfile.create({ id: 'cg-1', userId: 'user-1', now: NOW });
+}
+
+function repo(
+  found: CaregiverProfile | null,
+): CaregiverProfileRepository & { saved: CaregiverProfile[] } {
+  const saved: CaregiverProfile[] = [];
+  return {
+    saved,
+    save: (p) => {
+      saved.push(p);
+      return Promise.resolve();
+    },
+    findById: () => Promise.resolve(found),
+    findByUserId: () => Promise.resolve(null),
+  };
+}
+
+describe('EditCaregiverUseCase', () => {
+  it('sets skills on the profile', async () => {
+    const p = profile();
+    await new EditCaregiverUseCase(repo(p), clock).execute({
+      profileId: 'cg-1',
+      section: 'SKILLS',
+      skills: ['Wound Care', 'Dementia Care'],
+    });
+    expect(p.skills).toEqual(['Wound Care', 'Dementia Care']);
+  });
+
+  it('sets the status on the profile', async () => {
+    const p = profile();
+    await new EditCaregiverUseCase(repo(p), clock).execute({
+      profileId: 'cg-1',
+      section: 'STATUS',
+      status: CaregiverStatus.OnLeave,
+    });
+    expect(p.status).toBe(CaregiverStatus.OnLeave);
+  });
+
+  it('rejects an unknown caregiver', async () => {
+    await expect(
+      new EditCaregiverUseCase(repo(null), clock).execute({
+        profileId: 'nope',
+        section: 'SKILLS',
+        skills: [],
+      }),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+  });
+});
+
+describe('AddCaregiverNoteUseCase', () => {
+  it('appends a note to the profile', async () => {
+    const p = profile();
+    const store = repo(p);
+    await new AddCaregiverNoteUseCase(store, clock).execute({
+      profileId: 'cg-1',
+      adminId: 'admin-1',
+      body: 'Excellent handling of medication change.',
+      authorName: 'Mike Chen',
+    });
+    expect(p.noteLog[0].body).toBe('Excellent handling of medication change.');
+    expect(store.saved).toHaveLength(1);
+  });
+});

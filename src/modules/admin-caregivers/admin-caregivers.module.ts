@@ -2,7 +2,12 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { CaregiverProfileModule } from '@modules/caregiver-profile/caregiver-profile.module';
 import { CAREGIVER_READ_MODEL } from './application/ports/caregiver-read.port';
+import {
+  AddCaregiverNoteUseCase,
+  EditCaregiverUseCase,
+} from './application/use-cases/edit-caregiver.use-case';
 import { GetCaregiverOverviewUseCase } from './application/use-cases/get-caregiver-overview.use-case';
+import { GetCaregiverScheduleUseCase } from './application/use-cases/get-caregiver-schedule.use-case';
 import { ListCaregiversUseCase } from './application/use-cases/list-caregivers.use-case';
 import { CaregiverReadPrisma } from './infrastructure/persistence/caregiver-read.prisma';
 import { AdminCaregiversController } from './presentation/admin-caregivers.controller';
@@ -18,6 +23,9 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
   providers: [
     ListCaregiversUseCase,
     GetCaregiverOverviewUseCase,
+    GetCaregiverScheduleUseCase,
+    EditCaregiverUseCase,
+    AddCaregiverNoteUseCase,
     { provide: CAREGIVER_READ_MODEL, useClass: CaregiverReadPrisma },
   ],
 })
