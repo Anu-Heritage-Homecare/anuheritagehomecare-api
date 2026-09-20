@@ -30,6 +30,6 @@ import { CaregiverEarningsController } from './presentation/caregiver-earnings.c
     { provide: PAYSLIP_REPOSITORY, useClass: PayslipPrismaRepository },
     { provide: CAREGIVER_TIMESHEET_DIRECTORY, useClass: VisitsCaregiverTimesheet },
   ],
-  exports: [RunPayrollUseCase],
+  exports: [RunPayrollUseCase, CAREGIVER_PAY_RATE_REPOSITORY],
 })
 export class EarningsModule {}

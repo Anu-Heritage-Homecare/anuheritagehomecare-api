@@ -37,6 +37,11 @@ export class InMemoryCaregiverPayRateRepository implements CaregiverPayRateRepos
   findByCaregiver(caregiverId: string): Promise<CaregiverPayRate | null> {
     return Promise.resolve(this.rates.get(caregiverId) ?? null);
   }
+
+  save(rate: CaregiverPayRate): Promise<void> {
+    this.rates.set(rate.caregiverId, rate);
+    return Promise.resolve();
+  }
 }
 
 export class FakeCaregiverTimesheetDirectory implements CaregiverTimesheetDirectory {

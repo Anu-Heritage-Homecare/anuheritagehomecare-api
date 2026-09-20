@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { CaregiverEmploymentType, CaregiverStatus } from '@prisma/client';
+import { CaregiverEmploymentType, CaregiverStatus, Gender } from '@prisma/client';
 import {
   ArrayMaxSize,
   IsArray,
@@ -16,6 +16,7 @@ import {
 
 const EMPLOYMENT_TYPES = Object.values(CaregiverEmploymentType);
 const STATUSES = Object.values(CaregiverStatus);
+const GENDERS = Object.values(Gender);
 
 /** Edit the general profile and employment fields of a caregiver. */
 export class EditCaregiverProfileDto {
@@ -83,6 +84,31 @@ export class CaregiverStatusDto {
 export class CaregiverNoteDto {
   @ApiProperty() @IsString() @MaxLength(2000) body!: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) authorName?: string;
+}
+
+/** Edit a caregiver's personal information (writes through to the identity account). */
+export class CaregiverPersonalInfoDto {
+  @ApiProperty() @IsString() @MaxLength(80) firstName!: string;
+  @ApiProperty() @IsString() @MaxLength(80) lastName!: string;
+  @ApiProperty() @IsString() @MaxLength(40) phone!: string;
+  @ApiPropertyOptional() @IsOptional() @IsEmail() @MaxLength(255) email?: string;
+  @ApiPropertyOptional({ type: String, format: 'date' })
+  @IsOptional()
+  @IsISO8601()
+  dateOfBirth?: string;
+  @ApiPropertyOptional({ enum: GENDERS }) @IsOptional() @IsIn(GENDERS) gender?: Gender;
+  @ApiProperty() @IsString() @MaxLength(200) addressLine1!: string;
+  @ApiProperty() @IsString() @MaxLength(120) city!: string;
+  @ApiProperty() @IsString() @MaxLength(120) state!: string;
+  @ApiProperty() @IsString() @MaxLength(20) postalCode!: string;
+}
+
+/** Set a caregiver's hourly rate, in integer minor currency units. */
+export class CaregiverHourlyRateDto {
+  @ApiProperty({ description: 'Hourly rate in minor units, e.g. 2850 for 28.50' })
+  @IsInt()
+  @Min(0)
+  hourlyRateMinor!: number;
 }
 
 /** Add or edit a caregiver certification. */

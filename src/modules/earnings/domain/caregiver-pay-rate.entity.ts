@@ -67,6 +67,17 @@ export class CaregiverPayRate extends Entity<string> {
     return new CaregiverPayRate(id, props);
   }
 
+  /**
+   * Set the hourly rate (integer minor units) and its currency. The overtime,
+   * regular hours cap, weekend bonus and tax rules keep their current values; the
+   * back office captures those on the dedicated payroll surface.
+   */
+  public updateHourlyRate(hourlyRateMinor: number, currency: Currency): void {
+    CaregiverPayRate.assertNonNegativeInteger(hourlyRateMinor, 'Hourly rate');
+    this.props.hourlyRateMinor = hourlyRateMinor;
+    this.props.currency = currency;
+  }
+
   private static assertNonNegativeInteger(value: number, label: string): void {
     if (!Number.isInteger(value) || value < 0) {
       throw new ValidationException(`${label} must be a non negative integer`);

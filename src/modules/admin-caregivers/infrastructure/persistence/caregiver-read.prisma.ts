@@ -118,7 +118,7 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
     const weekStart = startOfUtcWeek(now);
     const weekEnd = new Date(weekStart.getTime() + 7 * DAY_MS);
 
-    const [user, assignments, todayVisits, scanVisits, certifications, availability] =
+    const [user, assignments, todayVisits, scanVisits, certifications, availability, payRate] =
       await Promise.all([
         this.prisma.user.findUnique({
           where: { id: caregiverId },
@@ -177,6 +177,10 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
           select: { date: true, slots: { select: { startMinute: true, endMinute: true } } },
           orderBy: { date: 'asc' },
         }),
+        this.prisma.caregiverPayRate.findUnique({
+          where: { caregiverId },
+          select: { hourlyRateMinor: true, currency: true },
+        }),
       ]);
 
     const recipientIds = [
@@ -226,6 +230,8 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
       maxHoursPerWeek: profile.maxHoursPerWeek,
       preferredShift: profile.preferredShift,
       preferencesNote: profile.preferencesNote,
+      hourlyRateMinor: payRate?.hourlyRateMinor ?? null,
+      payCurrency: payRate === null ? null : String(payRate.currency),
       phone: user?.phone ?? null,
       email: user?.email ?? null,
       address: user === null ? null : formatAddress(user),

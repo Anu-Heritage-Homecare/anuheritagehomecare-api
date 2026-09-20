@@ -54,6 +54,8 @@ export class GetCaregiverOverviewUseCase {
       maxHoursPerWeek: view.maxHoursPerWeek,
       preferredShift: view.preferredShift,
       preferencesNote: view.preferencesNote,
+      hourlyRateMinor: view.hourlyRateMinor,
+      payCurrency: view.payCurrency,
       personal: {
         gender: view.gender === null ? null : String(view.gender),
         phone: view.phone,

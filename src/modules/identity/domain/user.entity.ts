@@ -179,6 +179,16 @@ export class User extends AggregateRoot<string> {
     this.props.updatedAt = params.now;
   }
 
+  /**
+   * Replace the account email. Used by the back office to correct a caregiver's
+   * email; the caller is responsible for enforcing uniqueness. Verification state
+   * is preserved, since an administrator is making a deliberate correction.
+   */
+  public changeEmailAddress(email: EmailAddress, now: Date): void {
+    this.props.email = email;
+    this.props.updatedAt = now;
+  }
+
   /** Set (or clear) the profile photo, stored as an opaque object store key. */
   public setPhotoKey(photoKey: string | null, now: Date): void {
     this.props.photoKey = photoKey;

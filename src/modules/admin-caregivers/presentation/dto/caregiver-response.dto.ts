@@ -114,6 +114,8 @@ export class CaregiverOverviewResponseDto implements CaregiverOverviewResult {
   @ApiProperty({ nullable: true, type: Number }) maxHoursPerWeek!: number | null;
   @ApiProperty({ nullable: true, type: String }) preferredShift!: string | null;
   @ApiProperty({ nullable: true, type: String }) preferencesNote!: string | null;
+  @ApiProperty({ nullable: true, type: Number }) hourlyRateMinor!: number | null;
+  @ApiProperty({ nullable: true, type: String }) payCurrency!: string | null;
   @ApiProperty({ type: PersonalDto }) personal!: PersonalDto;
   @ApiProperty({ type: [AssignmentDto] }) assignments!: AssignmentDto[];
   @ApiProperty({ type: [TodayVisitDto] }) todaySchedule!: TodayVisitDto[];

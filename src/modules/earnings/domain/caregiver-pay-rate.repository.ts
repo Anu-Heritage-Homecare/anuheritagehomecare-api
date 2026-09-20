@@ -7,6 +7,8 @@ import { CaregiverPayRate } from './caregiver-pay-rate.entity';
  */
 export interface CaregiverPayRateRepository {
   findByCaregiver(caregiverId: string): Promise<CaregiverPayRate | null>;
+  /** Create or replace the caregiver's pay rate (the back office capture). */
+  save(payRate: CaregiverPayRate): Promise<void>;
 }
 
 /** Injection token, since TypeScript interfaces do not exist at runtime. */

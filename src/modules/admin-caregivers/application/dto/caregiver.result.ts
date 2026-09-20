@@ -76,6 +76,8 @@ export interface CaregiverOverviewResult {
   maxHoursPerWeek: number | null;
   preferredShift: string | null;
   preferencesNote: string | null;
+  hourlyRateMinor: number | null;
+  payCurrency: string | null;
   personal: {
     gender: string | null;
     phone: string | null;

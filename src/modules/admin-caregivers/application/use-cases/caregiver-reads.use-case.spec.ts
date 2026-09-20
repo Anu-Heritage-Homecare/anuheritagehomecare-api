@@ -29,6 +29,8 @@ function overview(): CaregiverOverviewView {
     maxHoursPerWeek: 45,
     preferredShift: 'Morning',
     preferencesNote: 'Prefers morning shifts.',
+    hourlyRateMinor: 2850,
+    payCurrency: 'USD',
     phone: '(555) 234-5678',
     email: 'sarah.williams@careprofs.com',
     address: '234 Maple Drive, Springfield, IL 62701',

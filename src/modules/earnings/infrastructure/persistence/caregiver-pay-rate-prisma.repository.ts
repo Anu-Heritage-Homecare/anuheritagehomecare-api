@@ -13,4 +13,20 @@ export class CaregiverPayRatePrismaRepository implements CaregiverPayRateReposit
     const row = await this.prisma.caregiverPayRate.findUnique({ where: { caregiverId } });
     return row ? CaregiverPayRateMapper.toDomain(row) : null;
   }
+
+  async save(payRate: CaregiverPayRate): Promise<void> {
+    const data = CaregiverPayRateMapper.toData(payRate);
+    await this.prisma.caregiverPayRate.upsert({
+      where: { caregiverId: data.caregiverId },
+      create: data,
+      update: {
+        currency: data.currency,
+        hourlyRateMinor: data.hourlyRateMinor,
+        overtimeMultiplierBps: data.overtimeMultiplierBps,
+        regularHoursCap: data.regularHoursCap,
+        weekendBonusMinor: data.weekendBonusMinor,
+        taxRateBps: data.taxRateBps,
+      },
+    });
+  }
 }

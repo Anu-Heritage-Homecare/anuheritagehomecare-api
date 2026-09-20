@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { CaregiverProfileModule } from '@modules/caregiver-profile/caregiver-profile.module';
 import { CertificationsModule } from '@modules/certifications/certifications.module';
+import { EarningsModule } from '@modules/earnings/earnings.module';
+import { IdentityModule } from '@modules/identity/identity.module';
 import { CAREGIVER_READ_MODEL } from './application/ports/caregiver-read.port';
 import {
   AddCaregiverNoteUseCase,
@@ -9,6 +11,7 @@ import {
   EditCaregiverUseCase,
 } from './application/use-cases/edit-caregiver.use-case';
 import { GetCaregiverOverviewUseCase } from './application/use-cases/get-caregiver-overview.use-case';
+import { EditCaregiverPersonalInfoUseCase } from './application/use-cases/edit-caregiver-personal-info.use-case';
 import { GetCaregiverScheduleUseCase } from './application/use-cases/get-caregiver-schedule.use-case';
 import { ListCaregiversUseCase } from './application/use-cases/list-caregivers.use-case';
 import {
@@ -16,6 +19,7 @@ import {
   EditCertificationUseCase,
   RemoveCertificationUseCase,
 } from './application/use-cases/manage-certifications.use-case';
+import { SetCaregiverHourlyRateUseCase } from './application/use-cases/set-caregiver-hourly-rate.use-case';
 import { CaregiverReadPrisma } from './infrastructure/persistence/caregiver-read.prisma';
 import { AdminCaregiversController } from './presentation/admin-caregivers.controller';
 
@@ -25,7 +29,13 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
  * availability. Separate admin auth applies at the controller.
  */
 @Module({
-  imports: [PassportModule, CaregiverProfileModule, CertificationsModule],
+  imports: [
+    PassportModule,
+    CaregiverProfileModule,
+    CertificationsModule,
+    IdentityModule,
+    EarningsModule,
+  ],
   controllers: [AdminCaregiversController],
   providers: [
     ListCaregiversUseCase,
@@ -37,6 +47,8 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
     AddCertificationUseCase,
     EditCertificationUseCase,
     RemoveCertificationUseCase,
+    EditCaregiverPersonalInfoUseCase,
+    SetCaregiverHourlyRateUseCase,
     { provide: CAREGIVER_READ_MODEL, useClass: CaregiverReadPrisma },
   ],
 })

@@ -22,8 +22,29 @@ export class CaregiverPayRateMapper {
     });
   }
 
+  /** The mutable columns of a pay rate row, for an upsert (timestamps are database set). */
+  static toData(
+    payRate: CaregiverPayRate,
+  ): Omit<PrismaCaregiverPayRate, 'createdAt' | 'updatedAt'> {
+    return {
+      id: payRate.id,
+      caregiverId: payRate.caregiverId,
+      currency: CaregiverPayRateMapper.TO_PERSISTENCE_CURRENCY[payRate.currency],
+      hourlyRateMinor: payRate.hourlyRateMinor,
+      overtimeMultiplierBps: payRate.overtimeMultiplierBps,
+      regularHoursCap: payRate.regularHoursCap,
+      weekendBonusMinor: payRate.weekendBonusMinor,
+      taxRateBps: payRate.taxRateBps,
+    };
+  }
+
   private static readonly TO_DOMAIN_CURRENCY: Record<PrismaCurrency, Currency> = {
     USD: Currency.UnitedStatesDollar,
     NGN: Currency.NigerianNaira,
+  };
+
+  private static readonly TO_PERSISTENCE_CURRENCY: Record<Currency, PrismaCurrency> = {
+    [Currency.UnitedStatesDollar]: 'USD',
+    [Currency.NigerianNaira]: 'NGN',
   };
 }

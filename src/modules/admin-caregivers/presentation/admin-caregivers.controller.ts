@@ -21,6 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CaregiverEmploymentType } from '@modules/caregiver-profile/domain/caregiver-employment-type.enum';
+import { CaregiverGender } from '@modules/caregiver-profile/domain/caregiver-gender.enum';
 import { CaregiverStatus } from '@modules/caregiver-profile/domain/caregiver-status.enum';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { AdminPrincipal } from '@shared/presentation/admin-principal';
@@ -30,12 +31,14 @@ import {
   DeleteCaregiverUseCase,
   EditCaregiverUseCase,
 } from '../application/use-cases/edit-caregiver.use-case';
+import { EditCaregiverPersonalInfoUseCase } from '../application/use-cases/edit-caregiver-personal-info.use-case';
 import { GetCaregiverOverviewUseCase } from '../application/use-cases/get-caregiver-overview.use-case';
 import {
   AddCertificationUseCase,
   EditCertificationUseCase,
   RemoveCertificationUseCase,
 } from '../application/use-cases/manage-certifications.use-case';
+import { SetCaregiverHourlyRateUseCase } from '../application/use-cases/set-caregiver-hourly-rate.use-case';
 import {
   CaregiverScheduleResult,
   GetCaregiverScheduleUseCase,
@@ -48,8 +51,10 @@ import {
 import { CaregiversQueryDto } from './dto/caregivers-query.dto';
 import {
   CaregiverEmergencyDto,
+  CaregiverHourlyRateDto,
   CaregiverLanguagesDto,
   CaregiverNoteDto,
+  CaregiverPersonalInfoDto,
   CaregiverPreferencesDto,
   CaregiverScheduleQueryDto,
   CaregiverSkillsDto,
@@ -72,6 +77,13 @@ function toDomainEmployment(value: string | undefined): CaregiverEmploymentType 
   return Object.values(CaregiverEmploymentType).find((v) => String(v) === value);
 }
 
+function toDomainGender(value: string | undefined): CaregiverGender | null {
+  if (value === undefined) {
+    return null;
+  }
+  return Object.values(CaregiverGender).find((v) => String(v) === value) ?? null;
+}
+
 /**
  * Admin Caregivers panel: the directory, the profile Overview and Schedule tabs, and
  * the profile edit actions. Requires a valid admin token. Controllers stay thin.
@@ -91,6 +103,8 @@ export class AdminCaregiversController {
     private readonly addCertification: AddCertificationUseCase,
     private readonly editCertification: EditCertificationUseCase,
     private readonly removeCertification: RemoveCertificationUseCase,
+    private readonly editPersonalInfo: EditCaregiverPersonalInfoUseCase,
+    private readonly setHourlyRate: SetCaregiverHourlyRateUseCase,
   ) {}
 
   @Get()
@@ -149,6 +163,42 @@ export class AdminCaregiversController {
         preferredShift: body.preferredShift,
       },
     });
+  }
+
+  @Put(':id/personal')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: "Edit a caregiver's personal information, writing through to the account",
+  })
+  @ApiNoContentResponse()
+  async editPersonal(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CaregiverPersonalInfoDto,
+  ): Promise<void> {
+    await this.editPersonalInfo.execute({
+      profileId: id,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      phone: body.phone,
+      email: body.email ?? null,
+      dateOfBirth: body.dateOfBirth === undefined ? null : new Date(body.dateOfBirth),
+      gender: toDomainGender(body.gender),
+      addressLine1: body.addressLine1,
+      city: body.city,
+      state: body.state,
+      postalCode: body.postalCode,
+    });
+  }
+
+  @Put(':id/hourly-rate')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Set a caregiver's hourly pay rate" })
+  @ApiNoContentResponse()
+  async editHourlyRate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CaregiverHourlyRateDto,
+  ): Promise<void> {
+    await this.setHourlyRate.execute({ profileId: id, hourlyRateMinor: body.hourlyRateMinor });
   }
 
   @Put(':id/skills')
