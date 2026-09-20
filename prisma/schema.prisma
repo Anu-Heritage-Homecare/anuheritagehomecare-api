@@ -2040,6 +2040,46 @@ enum SubscriptionOpsEventType {
   @@map("subscription_ops_event_type")
 }
 
+// Bounded context: family directory (the admin Families screen). One entry per
+// family member. An account entry links to an identity user (name, phone and email
+// composed live); a contact entry captures those inline. Either way the entry owns
+// the admin managed fields (status, quick notes, emergency contact verified flag,
+// primary recipient). The human readable reference renders as FAM-{sequence}.
+model FamilyDirectoryEntry {
+  id                       String                     @id @default(uuid()) @db.Uuid
+  sequence                 Int                        @unique @default(autoincrement())
+  subjectKind              FamilyDirectorySubjectKind
+  userId                   String?                    @unique @db.Uuid
+  fullName                 String                     @db.VarChar(200)
+  phone                    String?                    @db.VarChar(40)
+  email                    String?                    @db.VarChar(255)
+  relationship             String?                    @db.VarChar(120)
+  primaryRecipientId       String?                    @db.Uuid
+  status                   FamilyMemberStatus         @default(ACTIVE)
+  quickNotes               String?                    @db.VarChar(1000)
+  emergencyContactVerified Boolean                    @default(false)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+
+  @@index([status])
+  @@map("family_directory_entries")
+}
+
+enum FamilyDirectorySubjectKind {
+  ACCOUNT
+  CONTACT
+
+  @@map("family_directory_subject_kind")
+}
+
+enum FamilyMemberStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_VERIFICATION
+
+  @@map("family_member_status")
+}
+
 // Bounded context: KYC (identity verification of the family owner).
 //
 // US owners verify the last four of their SSN through Stripe; Nigeria owners
