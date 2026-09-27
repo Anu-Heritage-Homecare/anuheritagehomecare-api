@@ -2405,18 +2405,104 @@ enum RatingReviewerType {
 }
 
 // A caregiver credential with an expiry (for example a CPR certificate). The
-// operations dashboard watches these to raise a Certification Expiring alert.
-// Management surface (Caregivers screen) deferred.
+// operations dashboard watches these to raise a Certification Expiring alert, and
+// the caregiver Documents tab lists them with a derived status. The stored file is
+// an opaque documentKey; blob storage and signed downloads are deferred.
 model Certification {
-  id            String    @id @default(uuid()) @db.Uuid
-  caregiverId   String    @db.Uuid
-  name          String    @db.VarChar(120)
-  licenseNumber String?   @db.VarChar(120)
+  id            String         @id @default(uuid()) @db.Uuid
+  caregiverId   String         @db.Uuid
+  name          String         @db.VarChar(120)
+  kind          CredentialKind @default(CERTIFICATION)
+  licenseNumber String?        @db.VarChar(120)
   issuedAt      DateTime?
   expiresAt     DateTime
-  createdAt     DateTime  @default(now())
+  documentKey   String?        @db.VarChar(500)
+  fileName      String?        @db.VarChar(255)
+  uploadedBy    String?        @db.VarChar(120)
+  createdAt     DateTime       @default(now())
 
   @@index([expiresAt])
   @@index([caregiverId])
   @@map("certifications")
+}
+
+// The kind of credential, which drives the status label the Documents tab shows
+// while the credential is in date (a licence or certification reads Valid, a
+// background check reads Cleared, a health screening reads Current).
+enum CredentialKind {
+  LICENSE
+  CERTIFICATION
+  BACKGROUND_CHECK
+  HEALTH_SCREENING
+  OTHER
+
+  @@map("credential_kind")
+}
+
+// Bounded context: caregiver documents (the Documents tab). An employment document
+// is an HR record on file (contract, tax form, agreement); a training record is a
+// completed or in progress course. The file itself is an opaque documentKey; blob
+// storage and signed downloads are deferred.
+model CaregiverDocument {
+  id           String                  @id @default(uuid()) @db.Uuid
+  caregiverId  String                  @db.Uuid
+  name         String                  @db.VarChar(200)
+  category     CaregiverDocumentCategory
+  status       CaregiverDocumentStatus @default(ACTIVE)
+  documentDate DateTime?               @db.Date
+  documentKey  String?                 @db.VarChar(500)
+  fileName     String?                 @db.VarChar(255)
+  uploadedBy   String?                 @db.VarChar(120)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  @@index([caregiverId])
+  @@map("caregiver_documents")
+}
+
+model CaregiverTraining {
+  id             String                  @id @default(uuid()) @db.Uuid
+  caregiverId    String                  @db.Uuid
+  name           String                  @db.VarChar(200)
+  status         CaregiverTrainingStatus @default(COMPLETED)
+  completedAt    DateTime?               @db.Date
+  certificate    Boolean                 @default(false)
+  hoursCompleted Int                     @default(0)
+  hoursRequired  Int?
+  documentKey    String?                 @db.VarChar(500)
+  fileName       String?                 @db.VarChar(255)
+  uploadedBy     String?                 @db.VarChar(120)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([caregiverId])
+  @@map("caregiver_trainings")
+}
+
+enum CaregiverDocumentCategory {
+  LEGAL
+  TAX
+  PAYROLL
+  HR
+  OTHER
+
+  @@map("caregiver_document_category")
+}
+
+enum CaregiverDocumentStatus {
+  ACTIVE
+  CURRENT
+  VERIFIED
+  SIGNED
+  EXPIRED
+  ARCHIVED
+
+  @@map("caregiver_document_status")
+}
+
+enum CaregiverTrainingStatus {
+  COMPLETED
+  IN_PROGRESS
+
+  @@map("caregiver_training_status")
 }

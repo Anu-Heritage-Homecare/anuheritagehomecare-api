@@ -16,9 +16,13 @@ export class CertificationPrismaRepository implements CertificationRepository {
       create: row,
       update: {
         name: row.name,
+        kind: row.kind,
         licenseNumber: row.licenseNumber,
         issuedAt: row.issuedAt,
         expiresAt: row.expiresAt,
+        documentKey: row.documentKey,
+        fileName: row.fileName,
+        uploadedBy: row.uploadedBy,
       },
     });
   }
