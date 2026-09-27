@@ -31,6 +31,7 @@ interface CaregiverProfileProps {
   maxHoursPerWeek: number | null;
   preferredShift: string | null;
   preferencesNote: string | null;
+  areasForGrowth: string[];
   archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -39,6 +40,7 @@ interface CaregiverProfileProps {
 const MAX_NOTE = 2000;
 const MAX_PREFERENCES = 4000;
 const MAX_HOURS_PER_WEEK = 168;
+const MAX_AREAS_FOR_GROWTH = 20;
 
 export interface CaregiverProfileFields {
   title?: string | null;
@@ -105,6 +107,7 @@ export class CaregiverProfile extends AggregateRoot<string> {
         maxHoursPerWeek: assertMaxHours(fields.maxHoursPerWeek ?? null),
         preferredShift: cleanOptional(fields.preferredShift),
         preferencesNote: null,
+        areasForGrowth: [],
         archivedAt: null,
         createdAt: params.now,
         updatedAt: params.now,
@@ -187,6 +190,12 @@ export class CaregiverProfile extends AggregateRoot<string> {
       throw new ValidationException('The preferences note exceeds the maximum length');
     }
     this.props.preferencesNote = clean;
+    this.props.updatedAt = now;
+  }
+
+  /** Set (or clear) the office flagged coaching areas for growth. */
+  public setAreasForGrowth(areas: string[], now: Date): void {
+    this.props.areasForGrowth = dedupeTrimmed(areas).slice(0, MAX_AREAS_FOR_GROWTH);
     this.props.updatedAt = now;
   }
 
@@ -283,6 +292,10 @@ export class CaregiverProfile extends AggregateRoot<string> {
 
   public get preferencesNote(): string | null {
     return this.props.preferencesNote;
+  }
+
+  public get areasForGrowth(): string[] {
+    return [...this.props.areasForGrowth];
   }
 
   public get archivedAt(): Date | null {
