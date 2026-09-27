@@ -18,6 +18,7 @@ export type EditCaregiverCommand = { profileId: string } & (
   | { section: 'EMERGENCY'; contact: EmergencyContact }
   | { section: 'STATUS'; status: CaregiverStatus }
   | { section: 'PREFERENCES'; preferencesNote: string | null }
+  | { section: 'AREAS_FOR_GROWTH'; areasForGrowth: string[] }
 );
 
 /** Edit one section of a caregiver profile. */
@@ -53,6 +54,9 @@ export class EditCaregiverUseCase {
         break;
       case 'PREFERENCES':
         profile.setPreferencesNote(command.preferencesNote, now);
+        break;
+      case 'AREAS_FOR_GROWTH':
+        profile.setAreasForGrowth(command.areasForGrowth, now);
         break;
     }
 

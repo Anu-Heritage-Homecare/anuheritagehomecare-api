@@ -65,6 +65,7 @@ function reads(view: CaregiverScheduleTabView | null): CaregiverReadModel {
           ? null
           : { ...view, weekStart, weekEnd: new Date(weekStart.getTime() + 7 * DAY_MS) },
       ),
+    performanceTab: () => Promise.resolve(null),
   };
 }
 

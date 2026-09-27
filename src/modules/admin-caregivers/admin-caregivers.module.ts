@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { AvailabilityModule } from '@modules/availability/availability.module';
 import { CaregiverProfileModule } from '@modules/caregiver-profile/caregiver-profile.module';
+import { CareRatingsModule } from '@modules/care-ratings/care-ratings.module';
 import { CertificationsModule } from '@modules/certifications/certifications.module';
 import { EarningsModule } from '@modules/earnings/earnings.module';
 import { IdentityModule } from '@modules/identity/identity.module';
@@ -12,6 +13,7 @@ import {
   EditCaregiverUseCase,
 } from './application/use-cases/edit-caregiver.use-case';
 import { GetCaregiverOverviewUseCase } from './application/use-cases/get-caregiver-overview.use-case';
+import { GetCaregiverPerformanceUseCase } from './application/use-cases/get-caregiver-performance.use-case';
 import { EditCaregiverPersonalInfoUseCase } from './application/use-cases/edit-caregiver-personal-info.use-case';
 import { GetCaregiverScheduleUseCase } from './application/use-cases/get-caregiver-schedule.use-case';
 import { ListCaregiversUseCase } from './application/use-cases/list-caregivers.use-case';
@@ -20,6 +22,7 @@ import {
   EditCertificationUseCase,
   RemoveCertificationUseCase,
 } from './application/use-cases/manage-certifications.use-case';
+import { RecordCaregiverReviewUseCase } from './application/use-cases/record-caregiver-review.use-case';
 import { SetCaregiverAvailabilityUseCase } from './application/use-cases/set-caregiver-availability.use-case';
 import { SetCaregiverHourlyRateUseCase } from './application/use-cases/set-caregiver-hourly-rate.use-case';
 import { CaregiverReadPrisma } from './infrastructure/persistence/caregiver-read.prisma';
@@ -38,12 +41,14 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
     IdentityModule,
     EarningsModule,
     AvailabilityModule,
+    CareRatingsModule,
   ],
   controllers: [AdminCaregiversController],
   providers: [
     ListCaregiversUseCase,
     GetCaregiverOverviewUseCase,
     GetCaregiverScheduleUseCase,
+    GetCaregiverPerformanceUseCase,
     EditCaregiverUseCase,
     AddCaregiverNoteUseCase,
     DeleteCaregiverUseCase,
@@ -53,6 +58,7 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
     EditCaregiverPersonalInfoUseCase,
     SetCaregiverHourlyRateUseCase,
     SetCaregiverAvailabilityUseCase,
+    RecordCaregiverReviewUseCase,
     { provide: CAREGIVER_READ_MODEL, useClass: CaregiverReadPrisma },
   ],
 })

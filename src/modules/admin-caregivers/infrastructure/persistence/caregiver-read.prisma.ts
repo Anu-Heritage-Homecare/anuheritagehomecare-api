@@ -4,6 +4,7 @@ import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import {
   CaregiverOverviewView,
   CaregiverPageView,
+  CaregiverPerformanceTabView,
   CaregiverReadModel,
   CaregiverScheduleTabView,
   CaregiverScheduleVisitView,
@@ -13,6 +14,9 @@ const DAY_MS = 86_400_000;
 /** Visits scanned for the performance figures, so the read stays bounded. */
 const VISIT_SCAN_DAYS = 90;
 const VISIT_SCAN_LIMIT = 5000;
+/** The Performance tab looks back six calendar months (this month plus five). */
+const PERFORMANCE_MONTHS_BACK = 5;
+const RATING_SCAN_LIMIT = 2000;
 
 /**
  * Prisma read model for the Caregivers screen. Composes the caregiver profile overlay
@@ -153,6 +157,91 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
       weekVisits: weekVisits.map(toVisit),
       upcomingVisits: upcomingVisits.map(toVisit),
       availability: availability.map((a) => ({ date: a.date, slots: a.slots })),
+    };
+  }
+
+  async performanceTab(profileId: string, now: Date): Promise<CaregiverPerformanceTabView | null> {
+    const profile = await this.prisma.caregiverProfile.findUnique({
+      where: { id: profileId },
+      select: { userId: true, archivedAt: true, areasForGrowth: true },
+    });
+    if (profile === null || profile.archivedAt !== null) {
+      return null;
+    }
+    const caregiverId = profile.userId;
+    const historyStart = startOfUtcMonth(now, PERFORMANCE_MONTHS_BACK);
+
+    const [visits, ratings] = await Promise.all([
+      this.prisma.visit.findMany({
+        where: { caregiverId, scheduledDate: { gte: historyStart } },
+        select: {
+          scheduledDate: true,
+          startMinute: true,
+          endMinute: true,
+          status: true,
+          clockInAt: true,
+          clockOutAt: true,
+          breaks: { select: { startedAt: true, endedAt: true } },
+        },
+        take: VISIT_SCAN_LIMIT,
+      }),
+      this.prisma.careRating.findMany({
+        where: { caregiverId, createdAt: { gte: historyStart } },
+        select: {
+          score: true,
+          comment: true,
+          reviewerType: true,
+          reviewerName: true,
+          reviewerRelationship: true,
+          careRecipientId: true,
+          traits: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: RATING_SCAN_LIMIT,
+      }),
+    ]);
+
+    const recipientIds = [
+      ...new Set(ratings.map((r) => r.careRecipientId).filter((id): id is string => id !== null)),
+    ];
+    const recipients =
+      recipientIds.length === 0
+        ? []
+        : await this.prisma.careRecipient.findMany({
+            where: { id: { in: recipientIds } },
+            select: { id: true, name: true },
+          });
+    const recipientNames = new Map(recipients.map((r) => [r.id, r.name]));
+
+    return {
+      areasForGrowth: profile.areasForGrowth,
+      visits: visits.map((v) => ({
+        scheduledDate: v.scheduledDate,
+        startMinute: v.startMinute,
+        endMinute: v.endMinute,
+        status: String(v.status),
+        clockInAt: v.clockInAt,
+        clockOutAt: v.clockOutAt,
+        breakSeconds: v.breaks.reduce(
+          (sum, b) =>
+            b.endedAt === null
+              ? sum
+              : sum + Math.max(0, Math.floor((b.endedAt.getTime() - b.startedAt.getTime()) / 1000)),
+          0,
+        ),
+      })),
+      ratings: ratings.map((r) => ({
+        score: r.score,
+        comment: r.comment,
+        reviewerType: String(r.reviewerType),
+        reviewerName: r.reviewerName,
+        reviewerRelationship: r.reviewerRelationship,
+        recipientName:
+          r.careRecipientId === null ? null : (recipientNames.get(r.careRecipientId) ?? null),
+        traits: r.traits,
+        createdAt: r.createdAt,
+      })),
     };
   }
 
@@ -337,6 +426,11 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
 /** Midnight (UTC) of the day the instant falls on. */
 function startOfUtcDay(value: Date): Date {
   return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
+}
+
+/** First day (UTC) of the month `monthsBack` before the instant. */
+function startOfUtcMonth(value: Date, monthsBack: number): Date {
+  return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth() - monthsBack, 1));
 }
 
 /** Monday (UTC) of the week the instant falls in. */

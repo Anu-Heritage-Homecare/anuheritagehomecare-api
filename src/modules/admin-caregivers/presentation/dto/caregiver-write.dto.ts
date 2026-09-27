@@ -10,6 +10,7 @@ import {
   IsISO8601,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -73,6 +74,38 @@ export class CaregiverPreferencesDto {
   @IsString()
   @MaxLength(4000)
   preferencesNote?: string | null;
+}
+
+/** Set the office flagged coaching areas for growth shown on the Performance tab. */
+export class CaregiverAreasForGrowthDto {
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @MaxLength(120, { each: true })
+  areasForGrowth!: string[];
+}
+
+/** Record a coordinator review of a caregiver from the Performance tab. */
+export class RecordCaregiverReviewDto {
+  @ApiProperty({ minimum: 1, maximum: 5 }) @IsInt() @Min(1) @Max(5) score!: number;
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  comment?: string | null;
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @MaxLength(60, { each: true })
+  traits?: string[];
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) reviewerName?: string;
+  @ApiPropertyOptional({ description: 'Optional care recipient this review relates to' })
+  @IsOptional()
+  @IsUUID()
+  careRecipientId?: string;
 }
 
 /** Set the status of a caregiver. */

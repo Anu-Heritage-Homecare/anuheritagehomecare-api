@@ -33,6 +33,8 @@ import {
 } from '../application/use-cases/edit-caregiver.use-case';
 import { EditCaregiverPersonalInfoUseCase } from '../application/use-cases/edit-caregiver-personal-info.use-case';
 import { GetCaregiverOverviewUseCase } from '../application/use-cases/get-caregiver-overview.use-case';
+import { GetCaregiverPerformanceUseCase } from '../application/use-cases/get-caregiver-performance.use-case';
+import { RecordCaregiverReviewUseCase } from '../application/use-cases/record-caregiver-review.use-case';
 import {
   AddCertificationUseCase,
   EditCertificationUseCase,
@@ -42,6 +44,7 @@ import { SetCaregiverHourlyRateUseCase } from '../application/use-cases/set-care
 import { GetCaregiverScheduleUseCase } from '../application/use-cases/get-caregiver-schedule.use-case';
 import { ListCaregiversUseCase } from '../application/use-cases/list-caregivers.use-case';
 import { SetCaregiverAvailabilityUseCase } from '../application/use-cases/set-caregiver-availability.use-case';
+import { CaregiverPerformanceResponseDto } from './dto/caregiver-performance-response.dto';
 import { CaregiverScheduleResponseDto } from './dto/caregiver-schedule-response.dto';
 import {
   CaregiverListResponseDto,
@@ -49,6 +52,7 @@ import {
 } from './dto/caregiver-response.dto';
 import { CaregiversQueryDto } from './dto/caregivers-query.dto';
 import {
+  CaregiverAreasForGrowthDto,
   CaregiverEmergencyDto,
   CaregiverHourlyRateDto,
   CaregiverLanguagesDto,
@@ -60,6 +64,7 @@ import {
   CaregiverStatusDto,
   CertificationDto,
   EditCaregiverProfileDto,
+  RecordCaregiverReviewDto,
   SetCaregiverAvailabilityDto,
 } from './dto/caregiver-write.dto';
 
@@ -97,6 +102,7 @@ export class AdminCaregiversController {
     private readonly listCaregivers: ListCaregiversUseCase,
     private readonly getOverview: GetCaregiverOverviewUseCase,
     private readonly getSchedule: GetCaregiverScheduleUseCase,
+    private readonly getPerformance: GetCaregiverPerformanceUseCase,
     private readonly editCaregiver: EditCaregiverUseCase,
     private readonly addNote: AddCaregiverNoteUseCase,
     private readonly deleteCaregiver: DeleteCaregiverUseCase,
@@ -106,6 +112,7 @@ export class AdminCaregiversController {
     private readonly editPersonalInfo: EditCaregiverPersonalInfoUseCase,
     private readonly setHourlyRate: SetCaregiverHourlyRateUseCase,
     private readonly setAvailability: SetCaregiverAvailabilityUseCase,
+    private readonly recordReview: RecordCaregiverReviewUseCase,
   ) {}
 
   @Get()
@@ -140,6 +147,16 @@ export class AdminCaregiversController {
       weekOf: query.weekOf === undefined ? null : new Date(query.weekOf),
     });
     return CaregiverScheduleResponseDto.fromResult(result);
+  }
+
+  @Get(':id/performance')
+  @ApiOperation({ summary: 'The caregiver Performance tab' })
+  @ApiOkResponse({ type: CaregiverPerformanceResponseDto })
+  async performance(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<CaregiverPerformanceResponseDto> {
+    const result = await this.getPerformance.execute({ profileId: id });
+    return CaregiverPerformanceResponseDto.fromResult(result);
   }
 
   @Put(':id/availability')
@@ -274,6 +291,40 @@ export class AdminCaregiversController {
       profileId: id,
       section: 'PREFERENCES',
       preferencesNote: body.preferencesNote ?? null,
+    });
+  }
+
+  @Put(':id/areas-for-growth')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Set the office flagged coaching areas for growth' })
+  @ApiNoContentResponse()
+  async editAreasForGrowth(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CaregiverAreasForGrowthDto,
+  ): Promise<void> {
+    await this.editCaregiver.execute({
+      profileId: id,
+      section: 'AREAS_FOR_GROWTH',
+      areasForGrowth: body.areasForGrowth,
+    });
+  }
+
+  @Post(':id/reviews')
+  @ApiOperation({ summary: 'Record a coordinator review of a caregiver' })
+  @ApiCreatedResponse()
+  async review(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: RecordCaregiverReviewDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<{ id: string }> {
+    return this.recordReview.execute({
+      profileId: id,
+      adminId: principal.adminUserId,
+      reviewerName: body.reviewerName ?? null,
+      score: body.score,
+      comment: body.comment ?? null,
+      traits: body.traits ?? [],
+      careRecipientId: body.careRecipientId ?? null,
     });
   }
 

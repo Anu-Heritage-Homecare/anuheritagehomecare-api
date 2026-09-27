@@ -111,6 +111,36 @@ export interface CaregiverScheduleTabView {
   availability: CaregiverAvailabilityDayView[];
 }
 
+/** One visit in the performance scan window, with the timing the metrics derive from. */
+export interface CaregiverPerformanceVisitView {
+  scheduledDate: Date;
+  startMinute: number;
+  endMinute: number;
+  status: string;
+  clockInAt: Date | null;
+  clockOutAt: Date | null;
+  breakSeconds: number;
+}
+
+/** One rating in the performance scan window, with the reviewer snapshot. */
+export interface CaregiverPerformanceRatingView {
+  score: number;
+  comment: string | null;
+  reviewerType: string;
+  reviewerName: string | null;
+  reviewerRelationship: string | null;
+  recipientName: string | null;
+  traits: string[];
+  createdAt: Date;
+}
+
+/** The raw material for the Performance tab: the scanned visits, ratings and coaching flags. */
+export interface CaregiverPerformanceTabView {
+  areasForGrowth: string[];
+  visits: CaregiverPerformanceVisitView[];
+  ratings: CaregiverPerformanceRatingView[];
+}
+
 /**
  * Read model over the caregiver profile overlay, composed with the identity user,
  * assignments, visits, ratings, certifications and availability.
@@ -128,6 +158,7 @@ export interface CaregiverReadModel {
     now: Date,
     upcomingLimit: number,
   ): Promise<CaregiverScheduleTabView | null>;
+  performanceTab(profileId: string, now: Date): Promise<CaregiverPerformanceTabView | null>;
 }
 
 export const CAREGIVER_READ_MODEL = Symbol('CAREGIVER_READ_MODEL');

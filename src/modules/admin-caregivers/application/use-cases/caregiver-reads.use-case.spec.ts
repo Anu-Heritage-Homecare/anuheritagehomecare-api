@@ -105,6 +105,7 @@ function reads(found: CaregiverOverviewView | null): CaregiverReadModel {
       }),
     overview: () => Promise.resolve(found),
     scheduleTab: () => Promise.resolve(null),
+    performanceTab: () => Promise.resolve(null),
   };
 }
 
