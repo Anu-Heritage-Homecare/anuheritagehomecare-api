@@ -8,6 +8,7 @@ export enum VisitPriority {
   Normal = 'NORMAL',
   High = 'HIGH',
   Urgent = 'URGENT',
+  Critical = 'CRITICAL',
 }
 
 /** Every valid visit priority, used to validate incoming filter values. */

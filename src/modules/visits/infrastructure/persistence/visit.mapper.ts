@@ -266,6 +266,7 @@ export class VisitMapper {
     NORMAL: VisitPriority.Normal,
     HIGH: VisitPriority.High,
     URGENT: VisitPriority.Urgent,
+    CRITICAL: VisitPriority.Critical,
   };
 
   private static readonly TO_PERSISTENCE_PRIORITY: Record<VisitPriority, PrismaVisitPriority> = {
@@ -273,6 +274,7 @@ export class VisitMapper {
     [VisitPriority.Normal]: 'NORMAL',
     [VisitPriority.High]: 'HIGH',
     [VisitPriority.Urgent]: 'URGENT',
+    [VisitPriority.Critical]: 'CRITICAL',
   };
 
   private static readonly TO_DOMAIN_STATUS: Record<PrismaVisitStatus, VisitStatus> = {

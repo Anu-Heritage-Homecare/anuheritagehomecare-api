@@ -77,6 +77,28 @@ describe('Visit', () => {
     const visit = schedule({ tasks: [VisitTask.create('Blood Pressure', true)] });
     expect(visit.tasks).toEqual([VisitTask.create('Blood Pressure', true)]);
   });
+
+  it('reschedules a scheduled visit to a new day and window', () => {
+    const visit = schedule();
+    const newDate = new Date('2026-07-15T00:00:00.000Z');
+    visit.reschedule(newDate, VisitWindow.create(14 * 60, 15 * 60), NOW);
+    expect(visit.scheduledDate).toEqual(newDate);
+    expect(visit.window.startMinute).toBe(14 * 60);
+    expect(visit.window.endMinute).toBe(15 * 60);
+  });
+
+  it('refuses to reschedule a visit already under way', () => {
+    const visit = schedule();
+    visit.clockIn({
+      at: Coordinates.create(37.3861, -122.0839),
+      geofenceCenter: Coordinates.create(37.3861, -122.0839),
+      radiusMeters: 150,
+      now: NOW,
+    });
+    expect(() => visit.reschedule(NOW, VisitWindow.create(14 * 60, 15 * 60), NOW)).toThrow(
+      ValidationException,
+    );
+  });
 });
 
 describe('Visit clock in and out', () => {

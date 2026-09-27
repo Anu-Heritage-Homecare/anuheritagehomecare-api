@@ -237,6 +237,20 @@ export class Visit extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
+  /**
+   * Move a scheduled visit to a new day and/or time window. Only a visit that has
+   * not started can be rescheduled; once it is under way or finished the timing is
+   * fixed. The window invariants are enforced by the VisitWindow value object.
+   */
+  public reschedule(scheduledDate: Date, window: VisitWindow, now: Date): void {
+    if (this.props.status !== VisitStatus.Scheduled) {
+      throw new ValidationException('Only a scheduled visit can be rescheduled');
+    }
+    this.props.scheduledDate = scheduledDate;
+    this.props.window = window;
+    this.props.updatedAt = now;
+  }
+
   /** Begin a break. The visit must be under way; it moves to ON_BREAK. */
   public startBreak(now: Date): void {
     if (this.props.status !== VisitStatus.InProgress) {

@@ -1531,6 +1531,7 @@ enum VisitPriority {
   NORMAL
   HIGH
   URGENT
+  CRITICAL
 
   @@map("visit_priority")
 }
