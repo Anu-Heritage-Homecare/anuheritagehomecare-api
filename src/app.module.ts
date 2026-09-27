@@ -11,6 +11,7 @@ import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.
 import { AdminCarePlansModule } from './modules/admin-care-plans/admin-care-plans.module';
 import { AdminCaregiversModule } from './modules/admin-caregivers/admin-caregivers.module';
 import { AdminFamiliesModule } from './modules/admin-families/admin-families.module';
+import { AdminSchedulingModule } from './modules/admin-scheduling/admin-scheduling.module';
 import { AdminIdentityModule } from './modules/admin-identity/admin-identity.module';
 import { AdminPlansBillingModule } from './modules/admin-plans-billing/admin-plans-billing.module';
 import { AdminTasksModule } from './modules/admin-tasks/admin-tasks.module';
@@ -162,6 +163,7 @@ import { SharedModule } from './shared/shared.module';
     AdminFamiliesModule,
     CaregiverProfileModule,
     AdminCaregiversModule,
+    AdminSchedulingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
