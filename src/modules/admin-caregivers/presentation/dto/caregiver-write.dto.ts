@@ -1,9 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CaregiverEmploymentType, CaregiverStatus, Gender } from '@prisma/client';
+import { CaregiverDocumentCategory } from '@modules/caregiver-documents/domain/caregiver-document-category.enum';
+import { CaregiverDocumentStatus } from '@modules/caregiver-documents/domain/caregiver-document-status.enum';
+import { CredentialKind } from '@modules/certifications/domain/credential-kind.enum';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsEmail,
   IsIn,
   IsInt,
@@ -146,15 +150,65 @@ export class CaregiverHourlyRateDto {
   hourlyRateMinor!: number;
 }
 
+const CREDENTIAL_KINDS = Object.values(CredentialKind);
+
 /** Add or edit a caregiver certification. */
 export class CertificationDto {
   @ApiProperty() @IsString() @MaxLength(120) name!: string;
+  @ApiPropertyOptional({ enum: CREDENTIAL_KINDS })
+  @IsOptional()
+  @IsIn(CREDENTIAL_KINDS)
+  kind?: CredentialKind;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) licenseNumber?: string;
   @ApiPropertyOptional({ type: String, format: 'date' })
   @IsOptional()
   @IsISO8601()
   issuedAt?: string;
   @ApiProperty({ type: String, format: 'date' }) @IsISO8601() expiresAt!: string;
+  @ApiPropertyOptional({ description: 'Opaque storage key for the uploaded file' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  documentKey?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(255) fileName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) uploadedBy?: string;
+}
+
+const DOCUMENT_CATEGORIES = Object.values(CaregiverDocumentCategory);
+const DOCUMENT_STATUSES = Object.values(CaregiverDocumentStatus);
+
+/** Add an employment document to a caregiver. The file is an opaque key. */
+export class AddCaregiverDocumentDto {
+  @ApiProperty() @IsString() @MaxLength(200) name!: string;
+  @ApiProperty({ enum: DOCUMENT_CATEGORIES })
+  @IsIn(DOCUMENT_CATEGORIES)
+  category!: CaregiverDocumentCategory;
+  @ApiPropertyOptional({ enum: DOCUMENT_STATUSES })
+  @IsOptional()
+  @IsIn(DOCUMENT_STATUSES)
+  status?: CaregiverDocumentStatus;
+  @ApiPropertyOptional({ type: String, format: 'date' })
+  @IsOptional()
+  @IsISO8601()
+  documentDate?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(500) documentKey?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(255) fileName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) uploadedBy?: string;
+}
+
+/** Record a training course a caregiver has taken or is taking. */
+export class RecordCaregiverTrainingDto {
+  @ApiProperty() @IsString() @MaxLength(200) name!: string;
+  @ApiPropertyOptional({ type: String, format: 'date' })
+  @IsOptional()
+  @IsISO8601()
+  completedAt?: string;
+  @ApiPropertyOptional({ default: false }) @IsOptional() @IsBoolean() certificate?: boolean;
+  @ApiPropertyOptional({ default: 0 }) @IsOptional() @IsInt() @Min(0) hoursCompleted?: number;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) hoursRequired?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(500) documentKey?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(255) fileName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) uploadedBy?: string;
 }
 
 /** The week to show on the caregiver Schedule tab; any date within it, default this week. */

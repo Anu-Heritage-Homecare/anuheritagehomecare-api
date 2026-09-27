@@ -4,7 +4,11 @@ import {
   CAREGIVER_PROFILE_REPOSITORY,
   CaregiverProfileRepository,
 } from '@modules/caregiver-profile/domain/caregiver-profile.repository';
-import { Certification } from '@modules/certifications/domain/certification.entity';
+import {
+  Certification,
+  CredentialDocument,
+} from '@modules/certifications/domain/certification.entity';
+import { CredentialKind } from '@modules/certifications/domain/credential-kind.enum';
 import {
   CERTIFICATION_REPOSITORY,
   CertificationRepository,
@@ -15,9 +19,11 @@ import { NotFoundDomainException } from '@shared/domain/domain-exception';
 
 interface CertificationInput {
   name: string;
+  kind?: CredentialKind;
   licenseNumber: string | null;
   issuedAt: Date | null;
   expiresAt: Date;
+  document?: CredentialDocument;
 }
 
 /**
@@ -52,9 +58,11 @@ export class AddCertificationUseCase {
       id: this.ids.generate(),
       caregiverId: profile.userId,
       name: command.name,
+      kind: command.kind,
       licenseNumber: command.licenseNumber,
       issuedAt: command.issuedAt,
       expiresAt: command.expiresAt,
+      document: command.document,
       now: this.clock.now(),
     });
     await this.certifications.save(certification);
@@ -80,9 +88,11 @@ export class EditCertificationUseCase {
     }
     certification.revise({
       name: command.name,
+      kind: command.kind,
       licenseNumber: command.licenseNumber,
       issuedAt: command.issuedAt,
       expiresAt: command.expiresAt,
+      document: command.document,
     });
     await this.certifications.save(certification);
   }

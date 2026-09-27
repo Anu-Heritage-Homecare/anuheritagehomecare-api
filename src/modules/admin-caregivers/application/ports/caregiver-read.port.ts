@@ -141,6 +141,55 @@ export interface CaregiverPerformanceTabView {
   ratings: CaregiverPerformanceRatingView[];
 }
 
+/** One certification row for the Documents tab. */
+export interface CaregiverCredentialView {
+  id: string;
+  name: string;
+  kind: string;
+  licenseNumber: string | null;
+  issuedAt: Date | null;
+  expiresAt: Date;
+  documentKey: string | null;
+  fileName: string | null;
+  uploadedBy: string | null;
+  createdAt: Date;
+}
+
+/** One employment document row for the Documents tab. */
+export interface CaregiverDocumentRowView {
+  id: string;
+  name: string;
+  category: string;
+  status: string;
+  documentDate: Date | null;
+  documentKey: string | null;
+  fileName: string | null;
+  uploadedBy: string | null;
+  createdAt: Date;
+}
+
+/** One training record row for the Documents tab. */
+export interface CaregiverTrainingRowView {
+  id: string;
+  name: string;
+  status: string;
+  completedAt: Date | null;
+  certificate: boolean;
+  hoursCompleted: number;
+  hoursRequired: number | null;
+  documentKey: string | null;
+  fileName: string | null;
+  uploadedBy: string | null;
+  createdAt: Date;
+}
+
+/** The raw material for the Documents tab: credentials, documents and training. */
+export interface CaregiverDocumentsTabView {
+  credentials: CaregiverCredentialView[];
+  documents: CaregiverDocumentRowView[];
+  trainings: CaregiverTrainingRowView[];
+}
+
 /**
  * Read model over the caregiver profile overlay, composed with the identity user,
  * assignments, visits, ratings, certifications and availability.
@@ -159,6 +208,7 @@ export interface CaregiverReadModel {
     upcomingLimit: number,
   ): Promise<CaregiverScheduleTabView | null>;
   performanceTab(profileId: string, now: Date): Promise<CaregiverPerformanceTabView | null>;
+  documentsTab(profileId: string): Promise<CaregiverDocumentsTabView | null>;
 }
 
 export const CAREGIVER_READ_MODEL = Symbol('CAREGIVER_READ_MODEL');

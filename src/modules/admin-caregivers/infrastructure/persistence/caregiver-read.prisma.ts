@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CaregiverStatus as PrismaCaregiverStatus } from '@prisma/client';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import {
+  CaregiverDocumentsTabView,
   CaregiverOverviewView,
   CaregiverPageView,
   CaregiverPerformanceTabView,
@@ -241,6 +242,71 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
           r.careRecipientId === null ? null : (recipientNames.get(r.careRecipientId) ?? null),
         traits: r.traits,
         createdAt: r.createdAt,
+      })),
+    };
+  }
+
+  async documentsTab(profileId: string): Promise<CaregiverDocumentsTabView | null> {
+    const profile = await this.prisma.caregiverProfile.findUnique({
+      where: { id: profileId },
+      select: { userId: true, archivedAt: true },
+    });
+    if (profile === null || profile.archivedAt !== null) {
+      return null;
+    }
+    const caregiverId = profile.userId;
+
+    const [credentials, documents, trainings] = await Promise.all([
+      this.prisma.certification.findMany({
+        where: { caregiverId },
+        orderBy: { expiresAt: 'asc' },
+      }),
+      this.prisma.caregiverDocument.findMany({
+        where: { caregiverId },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.caregiverTraining.findMany({
+        where: { caregiverId },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      credentials: credentials.map((c) => ({
+        id: c.id,
+        name: c.name,
+        kind: String(c.kind),
+        licenseNumber: c.licenseNumber,
+        issuedAt: c.issuedAt,
+        expiresAt: c.expiresAt,
+        documentKey: c.documentKey,
+        fileName: c.fileName,
+        uploadedBy: c.uploadedBy,
+        createdAt: c.createdAt,
+      })),
+      documents: documents.map((d) => ({
+        id: d.id,
+        name: d.name,
+        category: String(d.category),
+        status: String(d.status),
+        documentDate: d.documentDate,
+        documentKey: d.documentKey,
+        fileName: d.fileName,
+        uploadedBy: d.uploadedBy,
+        createdAt: d.createdAt,
+      })),
+      trainings: trainings.map((t) => ({
+        id: t.id,
+        name: t.name,
+        status: String(t.status),
+        completedAt: t.completedAt,
+        certificate: t.certificate,
+        hoursCompleted: t.hoursCompleted,
+        hoursRequired: t.hoursRequired,
+        documentKey: t.documentKey,
+        fileName: t.fileName,
+        uploadedBy: t.uploadedBy,
+        createdAt: t.createdAt,
       })),
     };
   }

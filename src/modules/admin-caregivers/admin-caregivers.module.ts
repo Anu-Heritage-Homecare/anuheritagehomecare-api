@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { AvailabilityModule } from '@modules/availability/availability.module';
+import { CaregiverDocumentsModule } from '@modules/caregiver-documents/caregiver-documents.module';
 import { CaregiverProfileModule } from '@modules/caregiver-profile/caregiver-profile.module';
 import { CareRatingsModule } from '@modules/care-ratings/care-ratings.module';
 import { CertificationsModule } from '@modules/certifications/certifications.module';
@@ -12,9 +13,14 @@ import {
   DeleteCaregiverUseCase,
   EditCaregiverUseCase,
 } from './application/use-cases/edit-caregiver.use-case';
+import { GetCaregiverDocumentsUseCase } from './application/use-cases/get-caregiver-documents.use-case';
 import { GetCaregiverOverviewUseCase } from './application/use-cases/get-caregiver-overview.use-case';
 import { GetCaregiverPerformanceUseCase } from './application/use-cases/get-caregiver-performance.use-case';
 import { EditCaregiverPersonalInfoUseCase } from './application/use-cases/edit-caregiver-personal-info.use-case';
+import {
+  AddCaregiverDocumentUseCase,
+  RecordCaregiverTrainingUseCase,
+} from './application/use-cases/manage-caregiver-documents.use-case';
 import { GetCaregiverScheduleUseCase } from './application/use-cases/get-caregiver-schedule.use-case';
 import { ListCaregiversUseCase } from './application/use-cases/list-caregivers.use-case';
 import {
@@ -42,6 +48,7 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
     EarningsModule,
     AvailabilityModule,
     CareRatingsModule,
+    CaregiverDocumentsModule,
   ],
   controllers: [AdminCaregiversController],
   providers: [
@@ -49,6 +56,9 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
     GetCaregiverOverviewUseCase,
     GetCaregiverScheduleUseCase,
     GetCaregiverPerformanceUseCase,
+    GetCaregiverDocumentsUseCase,
+    AddCaregiverDocumentUseCase,
+    RecordCaregiverTrainingUseCase,
     EditCaregiverUseCase,
     AddCaregiverNoteUseCase,
     DeleteCaregiverUseCase,

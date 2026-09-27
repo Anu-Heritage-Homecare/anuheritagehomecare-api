@@ -23,6 +23,7 @@ import {
 import { CaregiverEmploymentType } from '@modules/caregiver-profile/domain/caregiver-employment-type.enum';
 import { CaregiverGender } from '@modules/caregiver-profile/domain/caregiver-gender.enum';
 import { CaregiverStatus } from '@modules/caregiver-profile/domain/caregiver-status.enum';
+import { CredentialKind } from '@modules/certifications/domain/credential-kind.enum';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
@@ -32,8 +33,13 @@ import {
   EditCaregiverUseCase,
 } from '../application/use-cases/edit-caregiver.use-case';
 import { EditCaregiverPersonalInfoUseCase } from '../application/use-cases/edit-caregiver-personal-info.use-case';
+import { GetCaregiverDocumentsUseCase } from '../application/use-cases/get-caregiver-documents.use-case';
 import { GetCaregiverOverviewUseCase } from '../application/use-cases/get-caregiver-overview.use-case';
 import { GetCaregiverPerformanceUseCase } from '../application/use-cases/get-caregiver-performance.use-case';
+import {
+  AddCaregiverDocumentUseCase,
+  RecordCaregiverTrainingUseCase,
+} from '../application/use-cases/manage-caregiver-documents.use-case';
 import { RecordCaregiverReviewUseCase } from '../application/use-cases/record-caregiver-review.use-case';
 import {
   AddCertificationUseCase,
@@ -44,6 +50,7 @@ import { SetCaregiverHourlyRateUseCase } from '../application/use-cases/set-care
 import { GetCaregiverScheduleUseCase } from '../application/use-cases/get-caregiver-schedule.use-case';
 import { ListCaregiversUseCase } from '../application/use-cases/list-caregivers.use-case';
 import { SetCaregiverAvailabilityUseCase } from '../application/use-cases/set-caregiver-availability.use-case';
+import { CaregiverDocumentsResponseDto } from './dto/caregiver-documents-response.dto';
 import { CaregiverPerformanceResponseDto } from './dto/caregiver-performance-response.dto';
 import { CaregiverScheduleResponseDto } from './dto/caregiver-schedule-response.dto';
 import {
@@ -52,6 +59,7 @@ import {
 } from './dto/caregiver-response.dto';
 import { CaregiversQueryDto } from './dto/caregivers-query.dto';
 import {
+  AddCaregiverDocumentDto,
   CaregiverAreasForGrowthDto,
   CaregiverEmergencyDto,
   CaregiverHourlyRateDto,
@@ -65,6 +73,7 @@ import {
   CertificationDto,
   EditCaregiverProfileDto,
   RecordCaregiverReviewDto,
+  RecordCaregiverTrainingDto,
   SetCaregiverAvailabilityDto,
 } from './dto/caregiver-write.dto';
 
@@ -103,6 +112,7 @@ export class AdminCaregiversController {
     private readonly getOverview: GetCaregiverOverviewUseCase,
     private readonly getSchedule: GetCaregiverScheduleUseCase,
     private readonly getPerformance: GetCaregiverPerformanceUseCase,
+    private readonly getDocuments: GetCaregiverDocumentsUseCase,
     private readonly editCaregiver: EditCaregiverUseCase,
     private readonly addNote: AddCaregiverNoteUseCase,
     private readonly deleteCaregiver: DeleteCaregiverUseCase,
@@ -113,6 +123,8 @@ export class AdminCaregiversController {
     private readonly setHourlyRate: SetCaregiverHourlyRateUseCase,
     private readonly setAvailability: SetCaregiverAvailabilityUseCase,
     private readonly recordReview: RecordCaregiverReviewUseCase,
+    private readonly addDocument: AddCaregiverDocumentUseCase,
+    private readonly recordTraining: RecordCaregiverTrainingUseCase,
   ) {}
 
   @Get()
@@ -157,6 +169,57 @@ export class AdminCaregiversController {
   ): Promise<CaregiverPerformanceResponseDto> {
     const result = await this.getPerformance.execute({ profileId: id });
     return CaregiverPerformanceResponseDto.fromResult(result);
+  }
+
+  @Get(':id/documents')
+  @ApiOperation({ summary: 'The caregiver Documents tab' })
+  @ApiOkResponse({ type: CaregiverDocumentsResponseDto })
+  async documents(@Param('id', ParseUUIDPipe) id: string): Promise<CaregiverDocumentsResponseDto> {
+    const result = await this.getDocuments.execute({ profileId: id });
+    return CaregiverDocumentsResponseDto.fromResult(result);
+  }
+
+  @Post(':id/documents')
+  @ApiOperation({ summary: 'Add an employment document to a caregiver' })
+  @ApiCreatedResponse()
+  async addEmploymentDocument(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AddCaregiverDocumentDto,
+  ): Promise<{ id: string }> {
+    return this.addDocument.execute({
+      profileId: id,
+      name: body.name,
+      category: body.category,
+      status: body.status,
+      documentDate: body.documentDate === undefined ? null : new Date(body.documentDate),
+      file: {
+        documentKey: body.documentKey ?? null,
+        fileName: body.fileName ?? null,
+        uploadedBy: body.uploadedBy ?? null,
+      },
+    });
+  }
+
+  @Post(':id/training')
+  @ApiOperation({ summary: 'Record a training course for a caregiver' })
+  @ApiCreatedResponse()
+  async trainingRecord(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: RecordCaregiverTrainingDto,
+  ): Promise<{ id: string }> {
+    return this.recordTraining.execute({
+      profileId: id,
+      name: body.name,
+      completedAt: body.completedAt === undefined ? null : new Date(body.completedAt),
+      certificate: body.certificate ?? false,
+      hoursCompleted: body.hoursCompleted ?? 0,
+      hoursRequired: body.hoursRequired ?? null,
+      file: {
+        documentKey: body.documentKey ?? null,
+        fileName: body.fileName ?? null,
+        uploadedBy: body.uploadedBy ?? null,
+      },
+    });
   }
 
   @Put(':id/availability')
@@ -408,14 +471,22 @@ export class AdminCaregiversController {
 
 function toCertificationInput(body: CertificationDto): {
   name: string;
+  kind: CredentialKind | undefined;
   licenseNumber: string | null;
   issuedAt: Date | null;
   expiresAt: Date;
+  document: { documentKey: string | null; fileName: string | null; uploadedBy: string | null };
 } {
   return {
     name: body.name,
+    kind: body.kind,
     licenseNumber: body.licenseNumber ?? null,
     issuedAt: body.issuedAt === undefined ? null : new Date(body.issuedAt),
     expiresAt: new Date(body.expiresAt),
+    document: {
+      documentKey: body.documentKey ?? null,
+      fileName: body.fileName ?? null,
+      uploadedBy: body.uploadedBy ?? null,
+    },
   };
 }

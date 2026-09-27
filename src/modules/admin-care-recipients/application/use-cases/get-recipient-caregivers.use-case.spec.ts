@@ -13,6 +13,7 @@ import { CoverageBlockRepository } from '@modules/care-recipients/domain/coverag
 import { CoverageSlot } from '@modules/care-recipients/domain/coverage-slot.enum';
 import { Weekday } from '@modules/care-recipients/domain/weekday.enum';
 import { Certification } from '@modules/certifications/domain/certification.entity';
+import { CredentialKind } from '@modules/certifications/domain/credential-kind.enum';
 import { CertificationRepository } from '@modules/certifications/domain/certification.repository';
 import { User } from '@modules/identity/domain/user.entity';
 import { UserRepository } from '@modules/identity/domain/user.repository';
@@ -144,9 +145,13 @@ function certifications(): CertificationRepository {
               Certification.rehydrate(`c${index}`, {
                 caregiverId,
                 name,
+                kind: CredentialKind.Certification,
                 licenseNumber: null,
                 issuedAt: new Date('2025-01-01T00:00:00.000Z'),
                 expiresAt: new Date('2027-01-01T00:00:00.000Z'),
+                documentKey: null,
+                fileName: null,
+                uploadedBy: null,
                 createdAt: new Date('2025-01-01T00:00:00.000Z'),
               }),
             )
