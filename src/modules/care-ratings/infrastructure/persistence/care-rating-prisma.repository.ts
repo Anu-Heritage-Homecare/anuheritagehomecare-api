@@ -24,4 +24,13 @@ export class CareRatingPrismaRepository implements CareRatingRepository {
     });
     return { average: result._avg.score ?? null, count: result._count._all };
   }
+
+  async averageForCaregiver(caregiverId: string): Promise<RatingSummary> {
+    const result = await this.prisma.careRating.aggregate({
+      where: { caregiverId },
+      _avg: { score: true },
+      _count: { _all: true },
+    });
+    return { average: result._avg.score ?? null, count: result._count._all };
+  }
 }

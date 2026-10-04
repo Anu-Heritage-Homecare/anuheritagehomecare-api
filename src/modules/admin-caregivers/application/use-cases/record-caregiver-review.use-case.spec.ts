@@ -27,6 +27,7 @@ function ratingRepo(): CareRatingRepository & { saved: CareRating[] } {
       return Promise.resolve();
     },
     summarise: () => Promise.resolve({ average: null, count: 0 }),
+    averageForCaregiver: () => Promise.resolve({ average: null, count: 0 }),
   };
 }
 

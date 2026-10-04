@@ -78,6 +78,7 @@ const taskRepo: OperationalTaskRepository = {
 const ratingRepo: CareRatingRepository = {
   save: () => Promise.resolve(),
   summarise: (): Promise<RatingSummary> => Promise.resolve({ average: 4.5, count: 10 }),
+  averageForCaregiver: (): Promise<RatingSummary> => Promise.resolve({ average: 4.8, count: 5 }),
 };
 
 const certRepo: CertificationRepository = {
