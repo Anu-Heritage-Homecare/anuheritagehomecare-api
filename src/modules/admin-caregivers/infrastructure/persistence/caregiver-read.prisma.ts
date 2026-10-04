@@ -3,6 +3,7 @@ import { CaregiverStatus as PrismaCaregiverStatus } from '@prisma/client';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import {
   CaregiverDocumentsTabView,
+  CaregiverNotesTabView,
   CaregiverOverviewView,
   CaregiverPageView,
   CaregiverPerformanceTabView,
@@ -243,6 +244,92 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
         traits: r.traits,
         createdAt: r.createdAt,
       })),
+    };
+  }
+
+  async notesTab(
+    profileId: string,
+    from: Date,
+    toExclusive: Date,
+    now: Date,
+  ): Promise<CaregiverNotesTabView | null> {
+    const profile = await this.prisma.caregiverProfile.findUnique({
+      where: { id: profileId },
+      select: { userId: true, archivedAt: true },
+    });
+    if (profile === null || profile.archivedAt !== null) {
+      return null;
+    }
+    const caregiverId = profile.userId;
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const visitAuthored = { authorId: caregiverId, visit: { caregiverId } };
+
+    const [
+      profileTotal,
+      visitTotal,
+      profileMonth,
+      visitMonth,
+      internal,
+      user,
+      profileNotes,
+      visitNotes,
+    ] = await Promise.all([
+      this.prisma.caregiverProfileNote.count({ where: { profileId } }),
+      this.prisma.visitNote.count({ where: visitAuthored }),
+      this.prisma.caregiverProfileNote.count({
+        where: { profileId, createdAt: { gte: monthStart } },
+      }),
+      this.prisma.visitNote.count({ where: { ...visitAuthored, createdAt: { gte: monthStart } } }),
+      this.prisma.caregiverProfileNote.count({ where: { profileId, kind: 'INTERNAL' } }),
+      this.prisma.user.findUnique({
+        where: { id: caregiverId },
+        select: { firstName: true, lastName: true },
+      }),
+      this.prisma.caregiverProfileNote.findMany({
+        where: { profileId, createdAt: { gte: from, lt: toExclusive } },
+        select: {
+          id: true,
+          kind: true,
+          body: true,
+          authorName: true,
+          authorRole: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.visitNote.findMany({
+        where: { ...visitAuthored, createdAt: { gte: from, lt: toExclusive } },
+        select: { id: true, text: true, createdAt: true },
+      }),
+    ]);
+
+    const caregiverName = user === null ? 'Unknown' : `${user.firstName} ${user.lastName}`.trim();
+
+    return {
+      counts: {
+        total: profileTotal + visitTotal,
+        thisMonth: profileMonth + visitMonth,
+        internal,
+      },
+      notes: [
+        ...profileNotes.map((n) => ({
+          id: n.id,
+          type: String(n.kind),
+          authorName: n.authorName ?? 'Office',
+          authorRole: n.authorRole,
+          bySelf: false,
+          text: n.body,
+          createdAt: n.createdAt,
+        })),
+        ...visitNotes.map((n) => ({
+          id: n.id,
+          type: 'VISIT',
+          authorName: caregiverName,
+          authorRole: 'Self',
+          bySelf: true,
+          text: n.text,
+          createdAt: n.createdAt,
+        })),
+      ],
     };
   }
 

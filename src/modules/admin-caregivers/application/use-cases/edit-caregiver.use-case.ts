@@ -7,6 +7,7 @@ import {
   CAREGIVER_PROFILE_REPOSITORY,
   CaregiverProfileRepository,
 } from '@modules/caregiver-profile/domain/caregiver-profile.repository';
+import { CaregiverNoteKind } from '@modules/caregiver-profile/domain/caregiver-note-kind.enum';
 import { CaregiverStatus } from '@modules/caregiver-profile/domain/caregiver-status.enum';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
@@ -86,7 +87,9 @@ interface AddCaregiverNoteCommand {
   profileId: string;
   adminId: string;
   body: string;
+  kind: CaregiverNoteKind;
   authorName: string | null;
+  authorRole: string | null;
 }
 
 /** Add a note to a caregiver profile. */
@@ -102,7 +105,14 @@ export class AddCaregiverNoteUseCase {
     if (profile === null) {
       throw new NotFoundDomainException('Caregiver not found');
     }
-    profile.addNote(command.body, command.adminId, command.authorName, this.clock.now());
+    profile.addNote({
+      body: command.body,
+      kind: command.kind,
+      authorAdminId: command.adminId,
+      authorName: command.authorName,
+      authorRole: command.authorRole,
+      now: this.clock.now(),
+    });
     await this.profiles.save(profile);
   }
 }

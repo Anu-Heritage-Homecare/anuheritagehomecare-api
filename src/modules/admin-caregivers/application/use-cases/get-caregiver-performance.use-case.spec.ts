@@ -82,6 +82,7 @@ function reads(tab: CaregiverPerformanceTabView | null): CaregiverReadModel {
     scheduleTab: () => Promise.resolve(null),
     performanceTab: () => Promise.resolve(tab),
     documentsTab: () => Promise.resolve(null),
+    notesTab: () => Promise.resolve(null),
   };
 }
 

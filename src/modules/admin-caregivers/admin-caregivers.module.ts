@@ -14,6 +14,7 @@ import {
   EditCaregiverUseCase,
 } from './application/use-cases/edit-caregiver.use-case';
 import { GetCaregiverDocumentsUseCase } from './application/use-cases/get-caregiver-documents.use-case';
+import { GetCaregiverNotesUseCase } from './application/use-cases/get-caregiver-notes.use-case';
 import { GetCaregiverOverviewUseCase } from './application/use-cases/get-caregiver-overview.use-case';
 import { GetCaregiverPerformanceUseCase } from './application/use-cases/get-caregiver-performance.use-case';
 import { EditCaregiverPersonalInfoUseCase } from './application/use-cases/edit-caregiver-personal-info.use-case';
@@ -57,6 +58,7 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
     GetCaregiverScheduleUseCase,
     GetCaregiverPerformanceUseCase,
     GetCaregiverDocumentsUseCase,
+    GetCaregiverNotesUseCase,
     AddCaregiverDocumentUseCase,
     RecordCaregiverTrainingUseCase,
     EditCaregiverUseCase,

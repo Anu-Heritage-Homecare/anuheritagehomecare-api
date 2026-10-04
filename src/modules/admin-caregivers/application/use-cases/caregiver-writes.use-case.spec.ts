@@ -1,4 +1,5 @@
 import { CaregiverProfile } from '@modules/caregiver-profile/domain/caregiver-profile.entity';
+import { CaregiverNoteKind } from '@modules/caregiver-profile/domain/caregiver-note-kind.enum';
 import { CaregiverProfileRepository } from '@modules/caregiver-profile/domain/caregiver-profile.repository';
 import { CaregiverStatus } from '@modules/caregiver-profile/domain/caregiver-status.enum';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
@@ -96,9 +97,12 @@ describe('AddCaregiverNoteUseCase', () => {
       profileId: 'cg-1',
       adminId: 'admin-1',
       body: 'Excellent handling of medication change.',
+      kind: CaregiverNoteKind.Supervisor,
       authorName: 'Mike Chen',
+      authorRole: 'Care Coordinator',
     });
     expect(p.noteLog[0].body).toBe('Excellent handling of medication change.');
+    expect(p.noteLog[0].kind).toBe(CaregiverNoteKind.Supervisor);
     expect(store.saved).toHaveLength(1);
   });
 });

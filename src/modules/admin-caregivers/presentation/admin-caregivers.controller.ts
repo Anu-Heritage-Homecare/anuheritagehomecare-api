@@ -22,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { CaregiverEmploymentType } from '@modules/caregiver-profile/domain/caregiver-employment-type.enum';
 import { CaregiverGender } from '@modules/caregiver-profile/domain/caregiver-gender.enum';
+import { CaregiverNoteKind } from '@modules/caregiver-profile/domain/caregiver-note-kind.enum';
 import { CaregiverStatus } from '@modules/caregiver-profile/domain/caregiver-status.enum';
 import { CredentialKind } from '@modules/certifications/domain/credential-kind.enum';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
@@ -34,6 +35,7 @@ import {
 } from '../application/use-cases/edit-caregiver.use-case';
 import { EditCaregiverPersonalInfoUseCase } from '../application/use-cases/edit-caregiver-personal-info.use-case';
 import { GetCaregiverDocumentsUseCase } from '../application/use-cases/get-caregiver-documents.use-case';
+import { GetCaregiverNotesUseCase } from '../application/use-cases/get-caregiver-notes.use-case';
 import { GetCaregiverOverviewUseCase } from '../application/use-cases/get-caregiver-overview.use-case';
 import { GetCaregiverPerformanceUseCase } from '../application/use-cases/get-caregiver-performance.use-case';
 import {
@@ -51,13 +53,14 @@ import { GetCaregiverScheduleUseCase } from '../application/use-cases/get-caregi
 import { ListCaregiversUseCase } from '../application/use-cases/list-caregivers.use-case';
 import { SetCaregiverAvailabilityUseCase } from '../application/use-cases/set-caregiver-availability.use-case';
 import { CaregiverDocumentsResponseDto } from './dto/caregiver-documents-response.dto';
+import { CaregiverNotesResponseDto } from './dto/caregiver-notes-response.dto';
 import { CaregiverPerformanceResponseDto } from './dto/caregiver-performance-response.dto';
 import { CaregiverScheduleResponseDto } from './dto/caregiver-schedule-response.dto';
 import {
   CaregiverListResponseDto,
   CaregiverOverviewResponseDto,
 } from './dto/caregiver-response.dto';
-import { CaregiversQueryDto } from './dto/caregivers-query.dto';
+import { CaregiverNotesQueryDto, CaregiversQueryDto } from './dto/caregivers-query.dto';
 import {
   AddCaregiverDocumentDto,
   CaregiverAreasForGrowthDto,
@@ -113,6 +116,7 @@ export class AdminCaregiversController {
     private readonly getSchedule: GetCaregiverScheduleUseCase,
     private readonly getPerformance: GetCaregiverPerformanceUseCase,
     private readonly getDocuments: GetCaregiverDocumentsUseCase,
+    private readonly getNotes: GetCaregiverNotesUseCase,
     private readonly editCaregiver: EditCaregiverUseCase,
     private readonly addNote: AddCaregiverNoteUseCase,
     private readonly deleteCaregiver: DeleteCaregiverUseCase,
@@ -177,6 +181,25 @@ export class AdminCaregiversController {
   async documents(@Param('id', ParseUUIDPipe) id: string): Promise<CaregiverDocumentsResponseDto> {
     const result = await this.getDocuments.execute({ profileId: id });
     return CaregiverDocumentsResponseDto.fromResult(result);
+  }
+
+  @Get(':id/notes')
+  @ApiOperation({ summary: 'The caregiver Notes tab (visit and office notes merged)' })
+  @ApiOkResponse({ type: CaregiverNotesResponseDto })
+  async notes(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: CaregiverNotesQueryDto,
+  ): Promise<CaregiverNotesResponseDto> {
+    const result = await this.getNotes.execute({
+      profileId: id,
+      type: query.type ?? null,
+      search: query.search ?? null,
+      from: query.from === undefined ? null : new Date(query.from),
+      to: query.to === undefined ? null : new Date(query.to),
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 10,
+    });
+    return CaregiverNotesResponseDto.fromResult(result);
   }
 
   @Post(':id/documents')
@@ -419,7 +442,9 @@ export class AdminCaregiversController {
       profileId: id,
       adminId: principal.adminUserId,
       body: body.body,
+      kind: body.kind ?? CaregiverNoteKind.Internal,
       authorName: body.authorName ?? null,
+      authorRole: body.authorRole ?? null,
     });
   }
 

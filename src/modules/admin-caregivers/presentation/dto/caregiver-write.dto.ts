@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CaregiverEmploymentType, CaregiverStatus, Gender } from '@prisma/client';
 import { CaregiverDocumentCategory } from '@modules/caregiver-documents/domain/caregiver-document-category.enum';
 import { CaregiverDocumentStatus } from '@modules/caregiver-documents/domain/caregiver-document-status.enum';
+import { CaregiverNoteKind } from '@modules/caregiver-profile/domain/caregiver-note-kind.enum';
 import { CredentialKind } from '@modules/certifications/domain/credential-kind.enum';
 import { Type } from 'class-transformer';
 import {
@@ -24,6 +25,7 @@ import {
 const EMPLOYMENT_TYPES = Object.values(CaregiverEmploymentType);
 const STATUSES = Object.values(CaregiverStatus);
 const GENDERS = Object.values(Gender);
+const CAREGIVER_NOTE_KINDS = Object.values(CaregiverNoteKind);
 
 /** Edit the general profile and employment fields of a caregiver. */
 export class EditCaregiverProfileDto {
@@ -122,7 +124,12 @@ export class CaregiverStatusDto {
 /** Add a note to a caregiver. */
 export class CaregiverNoteDto {
   @ApiProperty() @IsString() @MaxLength(2000) body!: string;
+  @ApiPropertyOptional({ enum: CAREGIVER_NOTE_KINDS, default: CaregiverNoteKind.Internal })
+  @IsOptional()
+  @IsIn(CAREGIVER_NOTE_KINDS)
+  kind?: CaregiverNoteKind;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) authorName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) authorRole?: string;
 }
 
 /** Edit a caregiver's personal information (writes through to the identity account). */

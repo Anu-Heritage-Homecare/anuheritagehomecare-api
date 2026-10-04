@@ -190,6 +190,24 @@ export interface CaregiverDocumentsTabView {
   trainings: CaregiverTrainingRowView[];
 }
 
+/** One note on the Notes tab, from the profile or a visit. */
+export interface CaregiverNoteView {
+  id: string;
+  /** VISIT, SUPERVISOR, INTERNAL or TRAINING. */
+  type: string;
+  authorName: string;
+  authorRole: string | null;
+  bySelf: boolean;
+  text: string;
+  createdAt: Date;
+}
+
+/** The raw material for the Notes tab: the headline counts and the notes in range. */
+export interface CaregiverNotesTabView {
+  counts: { total: number; thisMonth: number; internal: number };
+  notes: CaregiverNoteView[];
+}
+
 /**
  * Read model over the caregiver profile overlay, composed with the identity user,
  * assignments, visits, ratings, certifications and availability.
@@ -209,6 +227,12 @@ export interface CaregiverReadModel {
   ): Promise<CaregiverScheduleTabView | null>;
   performanceTab(profileId: string, now: Date): Promise<CaregiverPerformanceTabView | null>;
   documentsTab(profileId: string): Promise<CaregiverDocumentsTabView | null>;
+  notesTab(
+    profileId: string,
+    from: Date,
+    toExclusive: Date,
+    now: Date,
+  ): Promise<CaregiverNotesTabView | null>;
 }
 
 export const CAREGIVER_READ_MODEL = Symbol('CAREGIVER_READ_MODEL');
