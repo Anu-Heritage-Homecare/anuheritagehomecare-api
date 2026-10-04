@@ -27,7 +27,16 @@ export class ScheduleVisitDto {
   caregiverId?: string;
   @ApiProperty({ type: String, format: 'date' }) @IsISO8601() scheduledDate!: string;
   @ApiProperty({ minimum: 0, maximum: 1440 }) @IsInt() @Min(0) @Max(1440) startMinute!: number;
-  @ApiProperty({ minimum: 0, maximum: 1440 }) @IsInt() @Min(0) @Max(1440) endMinute!: number;
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 1440,
+    description: 'Omit to apply the configured default duration for the service type',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1440)
+  endMinute?: number;
   @ApiProperty({ enum: VISIT_TYPES }) @IsIn(VISIT_TYPES) visitType!: VisitType;
   @ApiPropertyOptional({ enum: PRIORITIES })
   @IsOptional()

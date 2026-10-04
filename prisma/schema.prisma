@@ -1536,6 +1536,48 @@ enum VisitPriority {
   @@map("visit_priority")
 }
 
+// Org wide scheduling configuration (the Schedule Settings screen), a singleton
+// row. Business hours and default durations are held as JSON; the rules and travel
+// settings as columns. Holidays are a separate collection.
+model SchedulingSettings {
+  id                                  String   @id
+  businessHours                       Json
+  defaultDurations                    Json
+  requireCertificationMatch           Boolean  @default(true)
+  autoAssignPreferredCaregiver        Boolean  @default(true)
+  allowOvertimeScheduling             Boolean  @default(false)
+  requireCoordinatorApprovalForUrgent Boolean  @default(true)
+  sendRemindersOneHourBefore          Boolean  @default(true)
+  autoCancelUnconfirmedAfter24h       Boolean  @default(false)
+  minBufferMinutes                    Int      @default(30)
+  travelTimeEstimation                Boolean  @default(true)
+  maxTravelDistanceMiles              Int      @default(25)
+  allowBackToBackVisits               Boolean  @default(false)
+  updatedAt                           DateTime @updatedAt
+
+  @@map("scheduling_settings")
+}
+
+// A holiday on the scheduling calendar; visits on it follow the policy.
+model SchedulingHoliday {
+  id        String        @id @default(uuid()) @db.Uuid
+  name      String        @db.VarChar(200)
+  date      DateTime      @db.Date
+  policy    HolidayPolicy @default(CLOSED)
+  createdAt DateTime      @default(now())
+
+  @@index([date])
+  @@map("scheduling_holidays")
+}
+
+enum HolidayPolicy {
+  CLOSED
+  EMERGENCY_ONLY
+  OPEN
+
+  @@map("holiday_policy")
+}
+
 // A single location breadcrumb reported by a caregiver's device. Append only and
 // high volume: written in batches and read later for the admin movement audit
 // (path replay, travel time, long stops). Sent frequently during navigation and

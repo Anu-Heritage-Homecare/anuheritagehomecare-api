@@ -1,5 +1,7 @@
 import { Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
+import { SchedulingSettings } from '../../domain/scheduling-settings.entity';
+import { SchedulingSettingsRepository } from '../../domain/scheduling-settings.repository';
 import { AssignCandidateResult, AssignCandidatesResult } from '../dto/assign-candidates.result';
 import {
   AssignCandidateRaw,
@@ -10,6 +12,31 @@ import { GetAssignCandidatesUseCase } from './get-assign-candidates.use-case';
 
 const NOW = new Date('2026-07-24T10:00:00.000Z');
 const clock: Clock = { now: () => NOW };
+
+/** Settings with the certification match rule off, so a missing cert is a soft warning. */
+function settingsRepo(): SchedulingSettingsRepository {
+  const settings = SchedulingSettings.createDefault(NOW);
+  settings.update(
+    {
+      rules: {
+        requireCertificationMatch: false,
+        autoAssignPreferredCaregiver: true,
+        allowOvertimeScheduling: false,
+        requireCoordinatorApprovalForUrgent: true,
+        sendRemindersOneHourBefore: true,
+        autoCancelUnconfirmedAfter24h: false,
+      },
+    },
+    NOW,
+  );
+  return {
+    find: () => Promise.resolve(settings),
+    save: () => Promise.resolve(),
+    listHolidays: () => Promise.resolve([]),
+    addHoliday: () => Promise.resolve(),
+    removeHoliday: () => Promise.resolve(),
+  };
+}
 const FUTURE = new Date('2027-12-31T00:00:00.000Z');
 const PAST = new Date('2025-01-01T00:00:00.000Z');
 const FULL_DAY = [{ startMinute: 0, endMinute: 1440 }];
@@ -98,7 +125,7 @@ function reads(ctx: AssignMatchContext | null): AssignCandidateReadModel {
 function run(
   command?: Partial<Parameters<GetAssignCandidatesUseCase['execute']>[0]>,
 ): Promise<AssignCandidatesResult> {
-  return new GetAssignCandidatesUseCase(reads(context()), clock).execute({
+  return new GetAssignCandidatesUseCase(reads(context()), settingsRepo(), clock).execute({
     visitId: 'visit-1',
     search: null,
     branch: null,
@@ -153,7 +180,7 @@ describe('GetAssignCandidatesUseCase', () => {
 
   it('rejects an unknown visit', async () => {
     await expect(
-      new GetAssignCandidatesUseCase(reads(null), clock).execute({
+      new GetAssignCandidatesUseCase(reads(null), settingsRepo(), clock).execute({
         visitId: 'nope',
         search: null,
         branch: null,

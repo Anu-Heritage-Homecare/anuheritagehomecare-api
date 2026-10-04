@@ -1,6 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
+import { SchedulingSettings } from '../../domain/scheduling-settings.entity';
+import {
+  SCHEDULING_SETTINGS_REPOSITORY,
+  SchedulingSettingsRepository,
+} from '../../domain/scheduling-settings.repository';
 import {
   ASSIGN_CANDIDATE_READ_MODEL,
   AssignCandidateRaw,
@@ -13,6 +18,7 @@ import {
   CandidateAvailabilityResult,
   CandidateEligibilityResult,
 } from '../dto/assign-candidates.result';
+import { requiredCertificationFor } from '../scheduling-rules.util';
 import {
   displayPriority,
   displayService,
@@ -22,17 +28,7 @@ import {
 
 const INACTIVE = new Set(['CANCELLED', 'MISSED']);
 const KM_TO_MILES = 0.621371;
-const MAX_DISTANCE_MILES = 20;
 const MAX_LOAD = 8;
-/** The credential a service type requires, matched against the caregiver's certifications by name. */
-const REQUIRED_CERTIFICATION: Record<string, string | null> = {
-  WOUND_CARE: 'Wound Care',
-  MEDICATION: 'Medication',
-  PHYSICAL_THERAPY: 'Physical Therapy',
-  PERSONAL_CARE: null,
-  MORNING_CARE: null,
-  COMPANIONSHIP: null,
-};
 
 export interface GetAssignCandidatesCommand {
   visitId: string;
@@ -53,6 +49,8 @@ export interface GetAssignCandidatesCommand {
 export class GetAssignCandidatesUseCase {
   constructor(
     @Inject(ASSIGN_CANDIDATE_READ_MODEL) private readonly reads: AssignCandidateReadModel,
+    @Inject(SCHEDULING_SETTINGS_REPOSITORY)
+    private readonly settingsRepo: SchedulingSettingsRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -62,10 +60,13 @@ export class GetAssignCandidatesUseCase {
       throw new NotFoundDomainException('Visit not found');
     }
     const now = this.clock.now();
+    const settings = (await this.settingsRepo.find()) ?? SchedulingSettings.createDefault(now);
     const visit = context.visit;
-    const requiredCert = REQUIRED_CERTIFICATION[visit.serviceType] ?? null;
+    const requiredCert = requiredCertificationFor(visit.serviceType);
 
-    const scored = context.candidates.map((c) => this.evaluate(c, visit, requiredCert, now));
+    const scored = context.candidates.map((c) =>
+      this.evaluate(c, visit, requiredCert, settings, now),
+    );
     const filtered = scored.filter((c) => this.matchesFilters(c, command));
     const ranked = this.sort(filtered, command.sort);
     this.markBestMatch(ranked);
@@ -92,14 +93,23 @@ export class GetAssignCandidatesUseCase {
     candidate: AssignCandidateRaw,
     visit: AssignVisitContext,
     requiredCert: string | null,
+    settings: SchedulingSettings,
     now: Date,
   ): AssignCandidateResult {
     const activeVisits = candidate.dayVisits.filter((v) => !INACTIVE.has(v.status));
+    // Without back to back visits, a visit within the buffer also conflicts.
+    const buffer = settings.travel.allowBackToBackVisits ? 0 : settings.travel.minBufferMinutes;
     const conflicts = activeVisits.filter(
-      (v) => v.startMinute < visit.endMinute && visit.startMinute < v.endMinute,
+      (v) => v.startMinute < visit.endMinute + buffer && visit.startMinute - buffer < v.endMinute,
     );
     const availability = this.availability(candidate, visit, conflicts, now);
-    const eligibility = this.eligibility(candidate, requiredCert, conflicts.length > 0, now);
+    const eligibility = this.eligibility(
+      candidate,
+      requiredCert,
+      conflicts.length > 0,
+      settings,
+      now,
+    );
 
     const completed = candidate.dayVisits.filter((v) => v.status === 'COMPLETED').length;
     const total = activeVisits.length;
@@ -119,6 +129,7 @@ export class GetAssignCandidatesUseCase {
         candidate,
         distanceMiles,
         total,
+        settings,
         now,
       ),
       availability,
@@ -176,6 +187,7 @@ export class GetAssignCandidatesUseCase {
     candidate: AssignCandidateRaw,
     requiredCert: string | null,
     hasConflict: boolean,
+    settings: SchedulingSettings,
     now: Date,
   ): CandidateEligibilityResult {
     if (hasConflict) {
@@ -198,11 +210,18 @@ export class GetAssignCandidatesUseCase {
         };
       }
       if (matching.length === 0) {
-        return {
-          status: 'WARN',
-          assignable: true,
-          reason: `No ${requiredCert} cert — action may require authorization`,
-        };
+        // With the certification match rule on, a missing cert blocks assignment.
+        return settings.rules.requireCertificationMatch
+          ? {
+              status: 'INELIGIBLE',
+              assignable: false,
+              reason: `Missing required ${requiredCert} certification`,
+            }
+          : {
+              status: 'WARN',
+              assignable: true,
+              reason: `No ${requiredCert} cert — action may require authorization`,
+            };
       }
     }
     return { status: 'OK', assignable: true, reason: null };
@@ -233,6 +252,7 @@ export class GetAssignCandidatesUseCase {
     candidate: AssignCandidateRaw,
     distanceMiles: number | null,
     totalLoad: number,
+    settings: SchedulingSettings,
     now: Date,
   ): number {
     if (!eligibility.assignable) {
@@ -249,10 +269,11 @@ export class GetAssignCandidatesUseCase {
       certScore = matching.some((c) => c.expiresAt.getTime() > now.getTime()) ? 1 : 0.4;
     }
     const ratingScore = candidate.ratingAverage === null ? 0.5 : candidate.ratingAverage / 5;
+    const maxDistance = Math.max(1, settings.travel.maxTravelDistanceMiles);
     const distanceScore =
       distanceMiles === null
         ? 0.5
-        : Math.max(0, 1 - Math.min(distanceMiles, MAX_DISTANCE_MILES) / MAX_DISTANCE_MILES);
+        : Math.max(0, 1 - Math.min(distanceMiles, maxDistance) / maxDistance);
     const loadScore = 1 - Math.min(totalLoad, MAX_LOAD) / MAX_LOAD;
 
     const weighted =

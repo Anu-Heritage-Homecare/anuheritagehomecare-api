@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -31,6 +32,12 @@ import {
   ScheduleVisitUseCase,
 } from '../application/use-cases/manage-visits.use-case';
 import {
+  AddHolidayUseCase,
+  GetSchedulingSettingsUseCase,
+  RemoveHolidayUseCase,
+  UpdateSchedulingSettingsUseCase,
+} from '../application/use-cases/manage-scheduling-settings.use-case';
+import {
   GetSchedulingCalendarUseCase,
   GetSchedulingConflictsUseCase,
   ListUnassignedVisitsUseCase,
@@ -49,6 +56,8 @@ import {
   SchedulingConsoleResponseDto,
   SchedulingVisitPageResponseDto,
 } from './dto/scheduling-response.dto';
+import { SchedulingSettingsResponseDto } from './dto/scheduling-settings-response.dto';
+import { AddHolidayDto, UpdateSchedulingSettingsDto } from './dto/scheduling-settings.dto';
 import {
   AssignVisitDto,
   EditVisitDto,
@@ -87,6 +96,10 @@ export class AdminSchedulingController {
     private readonly rescheduleVisit: RescheduleVisitUseCase,
     private readonly editVisit: EditVisitUseCase,
     private readonly cancelVisit: CancelVisitUseCase,
+    private readonly getSettings: GetSchedulingSettingsUseCase,
+    private readonly updateSettings: UpdateSchedulingSettingsUseCase,
+    private readonly addHoliday: AddHolidayUseCase,
+    private readonly removeHoliday: RemoveHolidayUseCase,
   ) {}
 
   @Get()
@@ -143,6 +156,53 @@ export class AdminSchedulingController {
     const to = query.to === undefined ? from : new Date(query.to);
     const result = await this.getCalendar.execute({ from, to });
     return result.map((d) => SchedulingCalendarDayResponseDto.fromResult(d));
+  }
+
+  @Get('settings')
+  @ApiOperation({ summary: 'The Schedule Settings screen' })
+  @ApiOkResponse({ type: SchedulingSettingsResponseDto })
+  async settings(): Promise<SchedulingSettingsResponseDto> {
+    const result = await this.getSettings.execute();
+    return SchedulingSettingsResponseDto.fromResult(result);
+  }
+
+  @Put('settings')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Save the Schedule Settings sections' })
+  @ApiNoContentResponse()
+  async saveSettings(@Body() body: UpdateSchedulingSettingsDto): Promise<void> {
+    const defaultDurations =
+      body.defaultDurations === undefined
+        ? undefined
+        : body.defaultDurations.reduce<Record<string, number>>((acc, d) => {
+            acc[d.visitType] = d.minutes;
+            return acc;
+          }, {});
+    await this.updateSettings.execute({
+      businessHours: body.businessHours,
+      defaultDurations,
+      rules: body.rules,
+      travel: body.travel,
+    });
+  }
+
+  @Post('settings/holidays')
+  @ApiOperation({ summary: 'Add a holiday to the calendar' })
+  @ApiCreatedResponse()
+  async createHoliday(@Body() body: AddHolidayDto): Promise<{ id: string }> {
+    return this.addHoliday.execute({
+      name: body.name,
+      date: new Date(body.date),
+      policy: body.policy,
+    });
+  }
+
+  @Delete('settings/holidays/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove a holiday from the calendar' })
+  @ApiNoContentResponse()
+  async deleteHoliday(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.removeHoliday.execute(id);
   }
 
   @Get('visits/:id')
@@ -216,7 +276,7 @@ export class AdminSchedulingController {
       caregiverId: body.caregiverId ?? null,
       scheduledDate: new Date(body.scheduledDate),
       startMinute: body.startMinute,
-      endMinute: body.endMinute,
+      endMinute: body.endMinute ?? null,
       visitType: body.visitType,
       priority: body.priority,
       tasks: body.tasks ?? [],
