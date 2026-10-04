@@ -246,8 +246,41 @@ export class Visit extends AggregateRoot<string> {
     if (this.props.status !== VisitStatus.Scheduled) {
       throw new ValidationException('Only a scheduled visit can be rescheduled');
     }
-    this.props.scheduledDate = scheduledDate;
+    this.props.scheduledDate = Visit.assertValidDate(scheduledDate);
     this.props.window = window;
+    this.props.updatedAt = now;
+  }
+
+  /**
+   * Edit the planned details of a scheduled visit from the admin back office: the
+   * service type, the priority, the checklist of tasks and the special instructions.
+   * Only a visit that has not started can be edited; a provided field replaces the
+   * current value, an omitted one is left untouched.
+   */
+  public reviseDetails(
+    params: {
+      type?: VisitType;
+      priority?: VisitPriority;
+      tasks?: VisitTask[];
+      specialInstructions?: string[];
+    },
+    now: Date,
+  ): void {
+    if (this.props.status !== VisitStatus.Scheduled) {
+      throw new ValidationException('Only a scheduled visit can be edited');
+    }
+    if (params.type !== undefined) {
+      this.props.type = params.type;
+    }
+    if (params.priority !== undefined) {
+      this.props.priority = params.priority;
+    }
+    if (params.tasks !== undefined) {
+      this.props.tasks = params.tasks;
+    }
+    if (params.specialInstructions !== undefined) {
+      this.props.specialInstructions = Visit.cleanInstructions(params.specialInstructions);
+    }
     this.props.updatedAt = now;
   }
 
