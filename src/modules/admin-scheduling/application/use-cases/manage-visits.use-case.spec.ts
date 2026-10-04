@@ -11,9 +11,11 @@ import {
   sequentialIds,
 } from '@modules/visits/test-support/doubles';
 import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
+import { VisitPriority } from '@modules/visits/domain/visit-priority.enum';
 import {
   AssignVisitCaregiverUseCase,
   CancelVisitUseCase,
+  EditVisitUseCase,
   RescheduleVisitUseCase,
   ScheduleVisitUseCase,
 } from './manage-visits.use-case';
@@ -145,6 +147,45 @@ describe('visit lifecycle operations', () => {
     await visits.save(buildVisit({ id: 'v3', status: VisitStatus.Scheduled }));
     await new CancelVisitUseCase(visits, clock).execute({ visitId: 'v3' });
     expect(visits.store.get('v3')?.status).toBe(VisitStatus.Cancelled);
+  });
+
+  it('edits a scheduled visit details and time', async () => {
+    const visits = new InMemoryVisitRepository();
+    await visits.save(
+      buildVisit({ id: 'v4', status: VisitStatus.Scheduled, startMinute: 540, endMinute: 600 }),
+    );
+    await new EditVisitUseCase(visits, clock).execute({
+      visitId: 'v4',
+      scheduledDate: null,
+      startMinute: 600,
+      endMinute: 720,
+      visitType: undefined,
+      priority: VisitPriority.Critical,
+      tasks: ['New task'],
+      specialInstructions: ['Use side door'],
+    });
+    const visit = visits.store.get('v4');
+    expect(visit?.priority).toBe(VisitPriority.Critical);
+    expect(visit?.window.endMinute).toBe(720);
+    expect(visit?.tasks[0].label).toBe('New task');
+    expect(visit?.specialInstructions).toEqual(['Use side door']);
+  });
+
+  it('refuses to edit a visit already under way', async () => {
+    const visits = new InMemoryVisitRepository();
+    await visits.save(buildVisit({ id: 'v5', status: VisitStatus.InProgress }));
+    await expect(
+      new EditVisitUseCase(visits, clock).execute({
+        visitId: 'v5',
+        scheduledDate: null,
+        startMinute: null,
+        endMinute: null,
+        visitType: undefined,
+        priority: VisitPriority.High,
+        tasks: undefined,
+        specialInstructions: undefined,
+      }),
+    ).rejects.toThrow();
   });
 
   it('rejects operations on an unknown visit', async () => {

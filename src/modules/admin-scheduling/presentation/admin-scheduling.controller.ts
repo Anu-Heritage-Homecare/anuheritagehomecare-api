@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -20,9 +21,11 @@ import {
 } from '@nestjs/swagger';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { GetSchedulingConsoleUseCase } from '../application/use-cases/get-scheduling-console.use-case';
+import { GetVisitDetailsUseCase } from '../application/use-cases/get-visit-details.use-case';
 import {
   AssignVisitCaregiverUseCase,
   CancelVisitUseCase,
+  EditVisitUseCase,
   RescheduleVisitUseCase,
   ScheduleVisitUseCase,
 } from '../application/use-cases/manage-visits.use-case';
@@ -43,7 +46,20 @@ import {
   SchedulingConsoleResponseDto,
   SchedulingVisitPageResponseDto,
 } from './dto/scheduling-response.dto';
-import { AssignVisitDto, RescheduleVisitDto, ScheduleVisitDto } from './dto/scheduling-write.dto';
+import {
+  AssignVisitDto,
+  EditVisitDto,
+  RescheduleVisitDto,
+  ScheduleVisitDto,
+} from './dto/scheduling-write.dto';
+import {
+  VisitCarePlanDto,
+  VisitCaregiverDto,
+  VisitDetailResponseDto,
+  VisitNoteDto,
+  VisitRecipientDto,
+  VisitTimelineEventDto,
+} from './dto/visit-details-response.dto';
 
 /**
  * Admin Scheduling console: the org wide visits operations screen. Reads the KPIs,
@@ -61,9 +77,11 @@ export class AdminSchedulingController {
     private readonly listUnassigned: ListUnassignedVisitsUseCase,
     private readonly getConflicts: GetSchedulingConflictsUseCase,
     private readonly getCalendar: GetSchedulingCalendarUseCase,
+    private readonly getVisitDetails: GetVisitDetailsUseCase,
     private readonly scheduleVisit: ScheduleVisitUseCase,
     private readonly assignVisit: AssignVisitCaregiverUseCase,
     private readonly rescheduleVisit: RescheduleVisitUseCase,
+    private readonly editVisit: EditVisitUseCase,
     private readonly cancelVisit: CancelVisitUseCase,
   ) {}
 
@@ -123,6 +141,49 @@ export class AdminSchedulingController {
     return result.map((d) => SchedulingCalendarDayResponseDto.fromResult(d));
   }
 
+  @Get('visits/:id')
+  @ApiOperation({ summary: 'The full Visit Details (all tabs)' })
+  @ApiOkResponse({ type: VisitDetailResponseDto })
+  async detail(@Param('id', ParseUUIDPipe) id: string): Promise<VisitDetailResponseDto> {
+    const result = await this.getVisitDetails.execute(id);
+    return VisitDetailResponseDto.fromResult(result);
+  }
+
+  @Get('visits/:id/recipient')
+  @ApiOperation({ summary: 'The Visit Details Recipient tab' })
+  @ApiOkResponse({ type: VisitRecipientDto })
+  async visitRecipient(@Param('id', ParseUUIDPipe) id: string): Promise<VisitRecipientDto> {
+    return (await this.getVisitDetails.execute(id)).recipient;
+  }
+
+  @Get('visits/:id/caregiver')
+  @ApiOperation({ summary: 'The Visit Details Caregiver tab' })
+  @ApiOkResponse({ type: VisitCaregiverDto })
+  async visitCaregiver(@Param('id', ParseUUIDPipe) id: string): Promise<VisitCaregiverDto | null> {
+    return (await this.getVisitDetails.execute(id)).caregiver;
+  }
+
+  @Get('visits/:id/care-plan')
+  @ApiOperation({ summary: 'The Visit Details Care Plan tab' })
+  @ApiOkResponse({ type: VisitCarePlanDto })
+  async visitCarePlan(@Param('id', ParseUUIDPipe) id: string): Promise<VisitCarePlanDto> {
+    return (await this.getVisitDetails.execute(id)).carePlan;
+  }
+
+  @Get('visits/:id/notes')
+  @ApiOperation({ summary: 'The Visit Details Notes tab' })
+  @ApiOkResponse({ type: [VisitNoteDto] })
+  async visitNotes(@Param('id', ParseUUIDPipe) id: string): Promise<VisitNoteDto[]> {
+    return (await this.getVisitDetails.execute(id)).notes;
+  }
+
+  @Get('visits/:id/history')
+  @ApiOperation({ summary: 'The Visit Details History timeline tab' })
+  @ApiOkResponse({ type: [VisitTimelineEventDto] })
+  async visitHistory(@Param('id', ParseUUIDPipe) id: string): Promise<VisitTimelineEventDto[]> {
+    return (await this.getVisitDetails.execute(id)).history;
+  }
+
   @Post('visits')
   @ApiOperation({ summary: 'Schedule (create) a new visit' })
   @ApiCreatedResponse()
@@ -164,6 +225,23 @@ export class AdminSchedulingController {
       scheduledDate: new Date(body.scheduledDate),
       startMinute: body.startMinute,
       endMinute: body.endMinute,
+    });
+  }
+
+  @Put('visits/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Edit a scheduled visit's details" })
+  @ApiNoContentResponse()
+  async edit(@Param('id', ParseUUIDPipe) id: string, @Body() body: EditVisitDto): Promise<void> {
+    await this.editVisit.execute({
+      visitId: id,
+      scheduledDate: body.scheduledDate === undefined ? null : new Date(body.scheduledDate),
+      startMinute: body.startMinute ?? null,
+      endMinute: body.endMinute ?? null,
+      visitType: body.visitType,
+      priority: body.priority,
+      tasks: body.tasks,
+      specialInstructions: body.specialInstructions,
     });
   }
 

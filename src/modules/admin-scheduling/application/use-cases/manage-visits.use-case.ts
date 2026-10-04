@@ -138,6 +138,64 @@ export class RescheduleVisitUseCase {
   }
 }
 
+export interface EditVisitCommand {
+  visitId: string;
+  scheduledDate: Date | null;
+  startMinute: number | null;
+  endMinute: number | null;
+  visitType: VisitType | undefined;
+  priority: VisitPriority | undefined;
+  tasks: string[] | undefined;
+  specialInstructions: string[] | undefined;
+}
+
+/**
+ * Edit a scheduled visit's details from the Visit Details screen: its day and time,
+ * service type, priority, task checklist and special instructions. The aggregate
+ * only allows this before the visit starts.
+ */
+@Injectable()
+export class EditVisitUseCase {
+  constructor(
+    @Inject(VISIT_REPOSITORY) private readonly visits: VisitRepository,
+    @Inject(CLOCK) private readonly clock: Clock,
+  ) {}
+
+  async execute(command: EditVisitCommand): Promise<void> {
+    const visit = await this.visits.findById(command.visitId);
+    if (visit === null) {
+      throw new NotFoundDomainException('Visit not found');
+    }
+    const now = this.clock.now();
+
+    if (
+      command.scheduledDate !== null ||
+      command.startMinute !== null ||
+      command.endMinute !== null
+    ) {
+      const date = command.scheduledDate ?? visit.scheduledDate;
+      const start = command.startMinute ?? visit.window.startMinute;
+      const end = command.endMinute ?? visit.window.endMinute;
+      visit.reschedule(date, VisitWindow.create(start, end), now);
+    }
+
+    visit.reviseDetails(
+      {
+        type: command.visitType,
+        priority: command.priority,
+        tasks:
+          command.tasks === undefined
+            ? undefined
+            : command.tasks.map((label) => VisitTask.create(label)),
+        specialInstructions: command.specialInstructions,
+      },
+      now,
+    );
+
+    await this.visits.save(visit);
+  }
+}
+
 /** Cancel a scheduled visit. */
 @Injectable()
 export class CancelVisitUseCase {

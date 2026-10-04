@@ -60,3 +60,45 @@ export class RescheduleVisitDto {
   @ApiProperty({ minimum: 0, maximum: 1440 }) @IsInt() @Min(0) @Max(1440) startMinute!: number;
   @ApiProperty({ minimum: 0, maximum: 1440 }) @IsInt() @Min(0) @Max(1440) endMinute!: number;
 }
+
+/** Edit a scheduled visit's details. Every field is optional; omitted fields are left as is. */
+export class EditVisitDto {
+  @ApiPropertyOptional({ type: String, format: 'date' })
+  @IsOptional()
+  @IsISO8601()
+  scheduledDate?: string;
+  @ApiPropertyOptional({ minimum: 0, maximum: 1440 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1440)
+  startMinute?: number;
+  @ApiPropertyOptional({ minimum: 0, maximum: 1440 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1440)
+  endMinute?: number;
+  @ApiPropertyOptional({ enum: VISIT_TYPES })
+  @IsOptional()
+  @IsIn(VISIT_TYPES)
+  visitType?: VisitType;
+  @ApiPropertyOptional({ enum: PRIORITIES })
+  @IsOptional()
+  @IsIn(PRIORITIES)
+  priority?: VisitPriority;
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(200, { each: true })
+  tasks?: string[];
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(300, { each: true })
+  specialInstructions?: string[];
+}
