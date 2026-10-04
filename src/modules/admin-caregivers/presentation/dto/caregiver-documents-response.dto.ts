@@ -5,6 +5,7 @@ import {
   CaregiverDocumentUploadResult,
   CaregiverDocumentsTabResult,
   CaregiverEmploymentDocumentResult,
+  CaregiverRenewalResult,
   CaregiverTrainingRecordResult,
 } from '../../application/dto/caregiver-documents.result';
 
@@ -16,10 +17,23 @@ class ImpendingExpiryDto {
 
 class ComplianceSummaryDto implements CaregiverComplianceSummaryResult {
   @ApiProperty() overallStatus!: string;
+  @ApiProperty() message!: string;
+  @ApiProperty() requirementsMet!: number;
+  @ApiProperty() requirementsTotal!: number;
+  @ApiProperty({ nullable: true, type: String }) credentialingValidUntil!: string | null;
   @ApiProperty({ nullable: true, type: ImpendingExpiryDto })
   nextImpendingExpiry!: ImpendingExpiryDto | null;
   @ApiProperty() documentsOnFile!: number;
   @ApiProperty({ nullable: true, type: String }) lastUpdated!: string | null;
+}
+
+class RenewalDto implements CaregiverRenewalResult {
+  @ApiProperty() id!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() expiresAt!: string;
+  @ApiProperty() monthsAway!: number;
+  @ApiProperty() urgency!: 'REQUIRED' | 'UPCOMING' | 'VALID';
+  @ApiProperty() label!: string;
 }
 
 class CredentialDto implements CaregiverCredentialResult {
@@ -67,6 +81,7 @@ export class CaregiverDocumentsResponseDto implements CaregiverDocumentsTabResul
   @ApiProperty({ type: [CredentialDto] }) certifications!: CredentialDto[];
   @ApiProperty({ type: [EmploymentDocumentDto] }) employmentDocuments!: EmploymentDocumentDto[];
   @ApiProperty({ type: [TrainingRecordDto] }) trainingRecords!: TrainingRecordDto[];
+  @ApiProperty({ type: [RenewalDto] }) upcomingRenewals!: RenewalDto[];
   @ApiProperty({ type: [UploadHistoryDto] }) uploadHistory!: UploadHistoryDto[];
 
   static fromResult(result: CaregiverDocumentsTabResult): CaregiverDocumentsResponseDto {

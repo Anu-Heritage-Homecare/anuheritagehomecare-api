@@ -14,12 +14,17 @@ import {
   CaregiverDocumentUploadResult,
   CaregiverDocumentsTabResult,
   CaregiverEmploymentDocumentResult,
+  CaregiverRenewalResult,
   CaregiverTrainingRecordResult,
 } from '../dto/caregiver-documents.result';
 
 const DAY_MS = 86_400_000;
+const MONTH_MS = 2_629_800_000; // average month, for a renewal's months away
 /** A credential expiring within this many days flags the caregiver for attention. */
 const ATTENTION_DAYS = 30;
+/** Renewal urgency thresholds, in months until expiry. */
+const RENEWAL_REQUIRED_MONTHS = 6;
+const RENEWAL_UPCOMING_MONTHS = 12;
 const UPLOAD_HISTORY_LIMIT = 10;
 
 interface GetCaregiverDocumentsCommand {
@@ -52,8 +57,42 @@ export class GetCaregiverDocumentsUseCase {
       certifications: view.credentials.map((c) => this.toCredential(c, now)),
       employmentDocuments: view.documents.map((d) => this.toDocument(d)),
       trainingRecords: view.trainings.map((t) => this.toTraining(t)),
+      upcomingRenewals: this.upcomingRenewals(view.credentials, now),
       uploadHistory: this.uploadHistory(view),
     };
+  }
+
+  /** The credentials ordered by soonest expiry, each with a renewal urgency. */
+  private upcomingRenewals(
+    credentials: CaregiverCredentialView[],
+    now: Date,
+  ): CaregiverRenewalResult[] {
+    return credentials
+      .slice()
+      .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())
+      .map((c) => {
+        const monthsAway = Math.max(
+          0,
+          Math.round((c.expiresAt.getTime() - now.getTime()) / MONTH_MS),
+        );
+        const urgency =
+          c.expiresAt.getTime() <= now.getTime() || monthsAway <= RENEWAL_REQUIRED_MONTHS
+            ? 'REQUIRED'
+            : monthsAway <= RENEWAL_UPCOMING_MONTHS
+              ? 'UPCOMING'
+              : 'VALID';
+        return {
+          id: c.id,
+          name: c.name,
+          expiresAt: c.expiresAt.toISOString(),
+          monthsAway,
+          urgency,
+          label:
+            c.expiresAt.getTime() <= now.getTime()
+              ? 'Expired'
+              : `${monthsAway} month${monthsAway === 1 ? '' : 's'} away`,
+        };
+      });
   }
 
   private summary(
@@ -86,8 +125,20 @@ export class GetCaregiverDocumentsUseCase {
       ...view.trainings.map((t) => t.createdAt.getTime()),
     ];
 
+    const requirementsTotal = credentials.length;
+    const requirementsMet = requirementsTotal - expired.length;
+    // Credentialing is good until the furthest out credential expiry.
+    const furthest =
+      credentials.length === 0
+        ? null
+        : new Date(Math.max(...credentials.map((c) => c.expiresAt.getTime())));
+
     return {
       overallStatus,
+      message: complianceMessage(requirementsMet, requirementsTotal, expired.length, furthest),
+      requirementsMet,
+      requirementsTotal,
+      credentialingValidUntil: furthest === null ? null : furthest.toISOString(),
       nextImpendingExpiry:
         soonest === null || daysToSoonest === null
           ? null
@@ -211,4 +262,26 @@ function credentialStatus(kind: string, expiresAt: Date, now: Date): string {
     default:
       return 'Valid';
   }
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** The compliance banner sentence. */
+function complianceMessage(
+  met: number,
+  total: number,
+  expiredCount: number,
+  furthest: Date | null,
+): string {
+  if (total === 0) {
+    return 'No regulatory requirements are on file.';
+  }
+  if (expiredCount > 0) {
+    return `${met} of ${total} regulatory requirements are currently met; ${expiredCount} need renewal.`;
+  }
+  const until =
+    furthest === null
+      ? ''
+      : ` Credentialing is valid until ${MONTHS[furthest.getUTCMonth()]} ${furthest.getUTCFullYear()}.`;
+  return `All ${total} regulatory requirements are currently met.${until}`;
 }

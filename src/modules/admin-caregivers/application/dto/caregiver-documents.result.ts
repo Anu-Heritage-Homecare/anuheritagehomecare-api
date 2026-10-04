@@ -1,9 +1,25 @@
 /** The compliance summary strip at the top of the Documents tab. */
 export interface CaregiverComplianceSummaryResult {
   overallStatus: string;
+  message: string;
+  requirementsMet: number;
+  requirementsTotal: number;
+  /** The furthest out credential expiry: how long the credentialing is valid for. */
+  credentialingValidUntil: string | null;
   nextImpendingExpiry: { name: string; expiresAt: string; daysRemaining: number } | null;
   documentsOnFile: number;
   lastUpdated: string | null;
+}
+
+/** One entry of the Upcoming Renewals panel. */
+export interface CaregiverRenewalResult {
+  id: string;
+  name: string;
+  expiresAt: string;
+  monthsAway: number;
+  /** REQUIRED soon, UPCOMING within the year, or VALID further out. */
+  urgency: 'REQUIRED' | 'UPCOMING' | 'VALID';
+  label: string;
 }
 
 /** One row of the Certifications and Licenses table. */
@@ -55,5 +71,6 @@ export interface CaregiverDocumentsTabResult {
   certifications: CaregiverCredentialResult[];
   employmentDocuments: CaregiverEmploymentDocumentResult[];
   trainingRecords: CaregiverTrainingRecordResult[];
+  upcomingRenewals: CaregiverRenewalResult[];
   uploadHistory: CaregiverDocumentUploadResult[];
 }

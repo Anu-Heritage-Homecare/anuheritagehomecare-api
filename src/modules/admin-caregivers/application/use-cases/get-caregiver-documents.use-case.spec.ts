@@ -85,6 +85,18 @@ describe('GetCaregiverDocumentsUseCase', () => {
     expect(result.summary.nextImpendingExpiry?.name).toBe('CPR/First Aid');
     expect(result.summary.nextImpendingExpiry?.daysRemaining).toBe(73);
     expect(result.summary.documentsOnFile).toBe(4);
+    expect(result.summary.requirementsTotal).toBe(2);
+    expect(result.summary.requirementsMet).toBe(2);
+    expect(result.summary.message).toContain('All 2 regulatory requirements');
+    expect(result.summary.message).toContain('valid until Jul 2027');
+
+    // Renewals are ordered by soonest expiry, each with an urgency.
+    expect(result.upcomingRenewals.map((r) => r.name)).toEqual([
+      'CPR/First Aid',
+      'Background Check',
+    ]);
+    expect(result.upcomingRenewals[0].urgency).toBe('REQUIRED');
+    expect(result.upcomingRenewals[1].urgency).toBe('UPCOMING');
 
     const cpr = result.certifications.find((c) => c.id === 'c1');
     expect(cpr?.status).toBe('Valid');
