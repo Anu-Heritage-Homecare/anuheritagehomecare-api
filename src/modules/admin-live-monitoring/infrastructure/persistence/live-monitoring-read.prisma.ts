@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import {
+  LiveAlertRow,
   LiveMonitoringReadModel,
   LiveSnapshot,
   LiveVisitRow,
@@ -111,6 +112,7 @@ export class LiveMonitoringReadPrisma implements LiveMonitoringReadModel {
       visits: rows,
       sosAlerts: sos.map((a) => ({
         id: a.id,
+        visitId: a.visitId,
         caregiverId: a.caregiverId,
         caregiverName: nameById.get(a.caregiverId) ?? null,
         recipientName: a.recipientName,
@@ -126,5 +128,56 @@ export class LiveMonitoringReadPrisma implements LiveMonitoringReadModel {
         longitude: l.longitude,
       })),
     };
+  }
+
+  async openAlerts(): Promise<LiveAlertRow[]> {
+    const alerts = await this.prisma.operationalAlert.findMany({
+      where: { status: 'OPEN' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const recipientIds = [
+      ...new Set(
+        alerts.map((a) => a.relatedCareRecipientId).filter((id): id is string => id !== null),
+      ),
+    ];
+    const caregiverIds = [
+      ...new Set(alerts.map((a) => a.relatedCaregiverId).filter((id): id is string => id !== null)),
+    ];
+
+    const [recipients, users] = await Promise.all([
+      recipientIds.length === 0
+        ? Promise.resolve([])
+        : this.prisma.careRecipient.findMany({
+            where: { id: { in: recipientIds } },
+            select: { id: true, name: true },
+          }),
+      caregiverIds.length === 0
+        ? Promise.resolve([])
+        : this.prisma.user.findMany({
+            where: { id: { in: caregiverIds } },
+            select: { id: true, firstName: true, lastName: true },
+          }),
+    ]);
+    const recipientName = new Map(recipients.map((r) => [r.id, r.name]));
+    const caregiverName = new Map(users.map((u) => [u.id, `${u.firstName} ${u.lastName}`.trim()]));
+
+    return alerts.map((a) => ({
+      id: a.id,
+      type: String(a.type),
+      severity: String(a.severity),
+      title: a.title,
+      description: a.description,
+      relatedVisitId: a.relatedVisitId,
+      relatedCaregiverId: a.relatedCaregiverId,
+      relatedCareRecipientId: a.relatedCareRecipientId,
+      recipientName:
+        a.relatedCareRecipientId === null
+          ? null
+          : (recipientName.get(a.relatedCareRecipientId) ?? null),
+      caregiverName:
+        a.relatedCaregiverId === null ? null : (caregiverName.get(a.relatedCaregiverId) ?? null),
+      createdAt: a.createdAt,
+    }));
   }
 }

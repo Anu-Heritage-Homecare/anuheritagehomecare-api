@@ -17,9 +17,15 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
+import { AdminPrincipal } from '@shared/presentation/admin-principal';
+import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { LiveFilters } from '../application/live-monitoring.util';
 import { GetLiveOverviewUseCase } from '../application/use-cases/get-live-overview.use-case';
 import { DispatchSosUseCase } from '../application/use-cases/dispatch-sos.use-case';
+import {
+  AcknowledgeAlertUseCase,
+  ResolveAlertUseCase,
+} from '../application/use-cases/manage-alert.use-case';
 import {
   GetMapViewUseCase,
   ListActiveVisitsUseCase,
@@ -53,6 +59,8 @@ export class AdminLiveMonitoringController {
     private readonly listAttention: ListAttentionUseCase,
     private readonly getMapView: GetMapViewUseCase,
     private readonly dispatchSos: DispatchSosUseCase,
+    private readonly acknowledgeAlert: AcknowledgeAlertUseCase,
+    private readonly resolveAlert: ResolveAlertUseCase,
   ) {}
 
   @Get()
@@ -80,8 +88,8 @@ export class AdminLiveMonitoringController {
   @Get('attention')
   @ApiOperation({ summary: 'The Attention Required tab' })
   @ApiOkResponse({ type: [LiveAttentionResponseDto] })
-  async attention(@Query() query: LiveMonitoringQueryDto): Promise<LiveAttentionResponseDto[]> {
-    const result = await this.listAttention.execute(toFilters(query));
+  async attention(): Promise<LiveAttentionResponseDto[]> {
+    const result = await this.listAttention.execute();
     return result.map((a) => LiveAttentionResponseDto.fromResult(a));
   }
 
@@ -95,9 +103,33 @@ export class AdminLiveMonitoringController {
 
   @Post('sos/:id/dispatch')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Emergency Dispatch: record a dispatch for an active SOS alert' })
+  @ApiOperation({
+    summary: 'Emergency Dispatch / Escalate: record a dispatch for an active SOS alert',
+  })
   @ApiNoContentResponse()
   async dispatch(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.dispatchSos.execute(id);
+  }
+
+  @Post('alerts/:id/acknowledge')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Acknowledge an operational alert' })
+  @ApiNoContentResponse()
+  async acknowledge(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.acknowledgeAlert.execute(id, principal.adminUserId);
+  }
+
+  @Post('alerts/:id/resolve')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Resolve an operational alert' })
+  @ApiNoContentResponse()
+  async resolve(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.resolveAlert.execute(id, principal.adminUserId);
   }
 }

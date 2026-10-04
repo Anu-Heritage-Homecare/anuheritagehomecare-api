@@ -20,17 +20,19 @@ export interface LiveActiveVisitResult {
   progressPercent: number;
 }
 
-/** One Attention Required item. */
+/** One Attention Required item (an active SOS alert or an open operational alert). */
 export interface LiveAttentionResult {
   id: string;
-  kind: string;
-  severity: string;
-  title: string;
+  source: string;
+  issueType: string;
   description: string;
+  priority: string;
+  timeLabel: string;
   recipientName: string | null;
   caregiverName: string | null;
   visitId: string | null;
-  action: string;
+  primaryAction: string;
+  secondaryAction: string;
 }
 
 /** One Recent Live Activity entry. */

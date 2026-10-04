@@ -36,14 +36,16 @@ class ActiveVisitDto implements LiveActiveVisitResult {
 
 class AttentionDto implements LiveAttentionResult {
   @ApiProperty() id!: string;
-  @ApiProperty() kind!: string;
-  @ApiProperty() severity!: string;
-  @ApiProperty() title!: string;
+  @ApiProperty() source!: string;
+  @ApiProperty() issueType!: string;
   @ApiProperty() description!: string;
+  @ApiProperty() priority!: string;
+  @ApiProperty() timeLabel!: string;
   @ApiProperty({ nullable: true, type: String }) recipientName!: string | null;
   @ApiProperty({ nullable: true, type: String }) caregiverName!: string | null;
   @ApiProperty({ nullable: true, type: String }) visitId!: string | null;
-  @ApiProperty() action!: string;
+  @ApiProperty() primaryAction!: string;
+  @ApiProperty() secondaryAction!: string;
 }
 
 class ActivityDto implements LiveActivityResult {
@@ -83,14 +85,16 @@ export class LiveVisitPageResponseDto implements LiveVisitPageResult {
 /** One attention item response. */
 export class LiveAttentionResponseDto implements LiveAttentionResult {
   @ApiProperty() id!: string;
-  @ApiProperty() kind!: string;
-  @ApiProperty() severity!: string;
-  @ApiProperty() title!: string;
+  @ApiProperty() source!: string;
+  @ApiProperty() issueType!: string;
   @ApiProperty() description!: string;
+  @ApiProperty() priority!: string;
+  @ApiProperty() timeLabel!: string;
   @ApiProperty({ nullable: true, type: String }) recipientName!: string | null;
   @ApiProperty({ nullable: true, type: String }) caregiverName!: string | null;
   @ApiProperty({ nullable: true, type: String }) visitId!: string | null;
-  @ApiProperty() action!: string;
+  @ApiProperty() primaryAction!: string;
+  @ApiProperty() secondaryAction!: string;
 
   static fromResult(result: LiveAttentionResult): LiveAttentionResponseDto {
     return result;

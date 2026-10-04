@@ -10,14 +10,15 @@ import {
   LiveVisitPageResult,
 } from '../dto/live-monitoring.result';
 import {
+  buildAttention,
   computeActiveVisits,
-  computeAttention,
   computeMap,
   filterVisits,
   LiveFilters,
   nextUtcDay,
   startOfUtcDay,
 } from '../live-monitoring.util';
+import { SweepLiveAlertsUseCase } from './sweep-live-alerts.use-case';
 
 /** The Active Visits tab: a paginated list of the currently active visits. */
 @Injectable()
@@ -43,18 +44,21 @@ export class ListActiveVisitsUseCase {
   }
 }
 
-/** The Attention Required tab: the SOS, missed check-in and overdue items. */
+/** The Attention Required tab: active SOS alerts and the open operational alerts. */
 @Injectable()
 export class ListAttentionUseCase {
   constructor(
     @Inject(LIVE_MONITORING_READ_MODEL) private readonly reads: LiveMonitoringReadModel,
+    private readonly sweep: SweepLiveAlertsUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  async execute(filters: LiveFilters): Promise<LiveAttentionResult[]> {
+  async execute(): Promise<LiveAttentionResult[]> {
     const now = this.clock.now();
     const snapshot = await this.reads.snapshot(startOfUtcDay(now), nextUtcDay(now));
-    return computeAttention(filterVisits(snapshot.visits, filters), snapshot, now);
+    await this.sweep.execute(snapshot, now);
+    const alerts = await this.reads.openAlerts();
+    return buildAttention(snapshot, alerts, now);
   }
 }
 

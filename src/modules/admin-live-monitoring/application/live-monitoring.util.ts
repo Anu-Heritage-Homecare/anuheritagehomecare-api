@@ -1,4 +1,6 @@
-import { LiveSnapshot, LiveVisitRow } from './ports/live-monitoring-read.port';
+import { AlertSeverity } from '@modules/admin-alerts/domain/alert-severity.enum';
+import { AlertType } from '@modules/admin-alerts/domain/alert-type.enum';
+import { LiveAlertRow, LiveSnapshot, LiveVisitRow } from './ports/live-monitoring-read.port';
 import {
   LiveActiveVisitResult,
   LiveActivityResult,
@@ -6,6 +8,17 @@ import {
   LiveMapResult,
   LiveSummaryResult,
 } from './dto/live-monitoring.result';
+
+/** One condition the detection sweep should raise as an operational alert. */
+export interface LiveAlertCondition {
+  type: AlertType;
+  severity: AlertSeverity;
+  title: string;
+  description: string;
+  relatedVisitId: string;
+  relatedCaregiverId: string | null;
+  relatedCareRecipientId: string;
+}
 
 const DAY_MS = 86_400_000;
 const MINUTE_MS = 60_000;
@@ -56,7 +69,7 @@ export function isActive(visit: LiveVisitRow): boolean {
 
 export function computeSummary(
   visits: LiveVisitRow[],
-  snapshot: LiveSnapshot,
+  attention: LiveAttentionResult[],
   now: Date,
 ): LiveSummaryResult {
   const nowMinute = minuteOfUtcDay(now);
@@ -75,9 +88,205 @@ export function computeSummary(
     runningLate: scheduledPending.filter(
       (v) => lateBy(v) >= LATE_THRESHOLD_MINUTES && lateBy(v) < MISSED_THRESHOLD_MINUTES,
     ).length,
-    attentionRequired: computeAttention(visits, snapshot, now).length,
-    criticalAlerts: snapshot.sosAlerts.length,
+    attentionRequired: attention.length,
+    criticalAlerts: attention.filter((a) => a.priority === 'CRITICAL').length,
   };
+}
+
+/**
+ * The conditions that should be raised as operational alerts for the day's visits:
+ * a late check-in, a missed check-in, an overdue visit, or a failed location check
+ * (an active visit with no recent caregiver location).
+ */
+export function detectConditions(
+  visits: LiveVisitRow[],
+  snapshot: LiveSnapshot,
+  now: Date,
+): LiveAlertCondition[] {
+  const nowMinute = minuteOfUtcDay(now);
+  const located = new Set(snapshot.caregiverLocations.map((l) => l.caregiverId));
+  const conditions: LiveAlertCondition[] = [];
+
+  for (const v of visits) {
+    if (v.status === 'SCHEDULED' && v.clockInAt === null) {
+      const lateBy = nowMinute - v.startMinute;
+      if (lateBy >= MISSED_THRESHOLD_MINUTES) {
+        conditions.push(
+          condition(
+            v,
+            AlertType.MissedClockIn,
+            AlertSeverity.High,
+            'Missed check-in',
+            `Scheduled visit caregiver check-in is overdue by ${lateBy} minutes`,
+          ),
+        );
+      } else if (lateBy >= LATE_THRESHOLD_MINUTES) {
+        conditions.push(
+          condition(
+            v,
+            AlertType.LateCaregiver,
+            AlertSeverity.Medium,
+            'Late check-in',
+            `Caregiver check-in is ${lateBy} minutes late`,
+          ),
+        );
+      }
+    }
+    if (isActive(v)) {
+      const overBy = nowMinute - v.endMinute;
+      if (overBy >= OVERDUE_THRESHOLD_MINUTES) {
+        conditions.push(
+          condition(
+            v,
+            AlertType.VisitOverdue,
+            AlertSeverity.High,
+            'Visit overdue',
+            `Scheduled service duration has exceeded boundary by ${overBy} minutes`,
+          ),
+        );
+      }
+      if (v.caregiverId !== null && !located.has(v.caregiverId)) {
+        conditions.push(
+          condition(
+            v,
+            AlertType.LocationVerificationFailed,
+            AlertSeverity.Medium,
+            'Location verification failed',
+            'No GPS lock for the active visit',
+          ),
+        );
+      }
+    }
+  }
+  return conditions;
+}
+
+/** Build the Attention Required list from the active SOS alerts and the open alerts. */
+export function buildAttention(
+  snapshot: LiveSnapshot,
+  alerts: LiveAlertRow[],
+  now: Date,
+): LiveAttentionResult[] {
+  const nowMinute = minuteOfUtcDay(now);
+  const visitById = new Map(snapshot.visits.map((v) => [v.id, v]));
+  const items: LiveAttentionResult[] = [];
+
+  for (const sos of snapshot.sosAlerts) {
+    items.push({
+      id: sos.id,
+      source: 'SOS',
+      issueType: 'Caregiver SOS Alert',
+      description:
+        sos.dispatchedAt === null
+          ? 'Panic button triggered during an active care visit'
+          : 'Panic button triggered; emergency response dispatched',
+      priority: 'CRITICAL',
+      timeLabel: ageLabel(sos.createdAt, now),
+      recipientName: sos.recipientName,
+      caregiverName: sos.caregiverName,
+      visitId: sos.visitId,
+      primaryAction: 'ESCALATE',
+      secondaryAction: 'VIEW_VISIT',
+    });
+  }
+
+  for (const alert of alerts) {
+    const visit = alert.relatedVisitId === null ? undefined : visitById.get(alert.relatedVisitId);
+    const actions = ACTIONS_BY_TYPE[alert.type] ?? {
+      primary: 'VIEW_VISIT',
+      secondary: 'ACKNOWLEDGE',
+    };
+    items.push({
+      id: alert.id,
+      source: 'ALERT',
+      issueType: ISSUE_TYPE[alert.type] ?? alert.title,
+      description: alert.description,
+      priority: PRIORITY_BY_TYPE[alert.type] ?? 'MEDIUM',
+      timeLabel: alertTimeLabel(alert, visit, nowMinute, now),
+      recipientName: alert.recipientName,
+      caregiverName: alert.caregiverName,
+      visitId: alert.relatedVisitId,
+      primaryAction: actions.primary,
+      secondaryAction: actions.secondary,
+    });
+  }
+
+  const rank: Record<string, number> = { CRITICAL: 3, HIGH: 2, MEDIUM: 1 };
+  return items.sort((a, b) => (rank[b.priority] ?? 0) - (rank[a.priority] ?? 0));
+}
+
+function condition(
+  v: LiveVisitRow,
+  type: AlertType,
+  severity: AlertSeverity,
+  title: string,
+  description: string,
+): LiveAlertCondition {
+  return {
+    type,
+    severity,
+    title,
+    description,
+    relatedVisitId: v.id,
+    relatedCaregiverId: v.caregiverId,
+    relatedCareRecipientId: v.careRecipientId,
+  };
+}
+
+const ISSUE_TYPE: Record<string, string> = {
+  LATE_CAREGIVER: 'Late Check-in',
+  MISSED_CLOCK_IN: 'Missed Check-in',
+  VISIT_OVERDUE: 'Visit Overdue',
+  LOCATION_VERIFICATION_FAILED: 'Location Verification Failed',
+  CERTIFICATION_EXPIRING: 'Certification Expiring',
+  MEDICATION_ISSUE: 'Medication Issue',
+  GENERAL: 'Alert',
+};
+const PRIORITY_BY_TYPE: Record<string, string> = {
+  LATE_CAREGIVER: 'MEDIUM',
+  MISSED_CLOCK_IN: 'HIGH',
+  VISIT_OVERDUE: 'HIGH',
+  LOCATION_VERIFICATION_FAILED: 'MEDIUM',
+  CERTIFICATION_EXPIRING: 'MEDIUM',
+  MEDICATION_ISSUE: 'HIGH',
+  GENERAL: 'MEDIUM',
+};
+const ACTIONS_BY_TYPE: Record<string, { primary: string; secondary: string }> = {
+  LATE_CAREGIVER: { primary: 'VIEW_VISIT', secondary: 'ACKNOWLEDGE' },
+  MISSED_CLOCK_IN: { primary: 'CONTACT_CAREGIVER', secondary: 'ACKNOWLEDGE' },
+  VISIT_OVERDUE: { primary: 'CONTACT_FAMILY', secondary: 'ACKNOWLEDGE' },
+  LOCATION_VERIFICATION_FAILED: { primary: 'RESOLVE', secondary: 'CONTACT_CAREGIVER' },
+  CERTIFICATION_EXPIRING: { primary: 'VIEW', secondary: 'ACKNOWLEDGE' },
+  MEDICATION_ISSUE: { primary: 'CONTACT_CAREGIVER', secondary: 'ACKNOWLEDGE' },
+  GENERAL: { primary: 'VIEW', secondary: 'ACKNOWLEDGE' },
+};
+
+function alertTimeLabel(
+  alert: LiveAlertRow,
+  visit: LiveVisitRow | undefined,
+  nowMinute: number,
+  now: Date,
+): string {
+  if (visit !== undefined) {
+    if (alert.type === 'MISSED_CLOCK_IN') {
+      return `Overdue ${nowMinute - visit.startMinute}m`;
+    }
+    if (alert.type === 'LATE_CAREGIVER') {
+      return `Late ${nowMinute - visit.startMinute}m`;
+    }
+    if (alert.type === 'VISIT_OVERDUE') {
+      return `Exceeded ${nowMinute - visit.endMinute}m`;
+    }
+    if (alert.type === 'LOCATION_VERIFICATION_FAILED') {
+      return 'No GPS Lock';
+    }
+  }
+  return ageLabel(alert.createdAt, now);
+}
+
+function ageLabel(from: Date, now: Date): string {
+  const mins = Math.max(0, Math.floor((now.getTime() - from.getTime()) / MINUTE_MS));
+  return mins < 1 ? 'Just now' : `${mins} min ago`;
 }
 
 export function computeActiveVisits(visits: LiveVisitRow[], now: Date): LiveActiveVisitResult[] {
@@ -101,70 +310,6 @@ export function computeActiveVisits(visits: LiveVisitRow[], now: Date): LiveActi
       };
     })
     .sort((a, b) => b.elapsedMinutes - a.elapsedMinutes);
-}
-
-export function computeAttention(
-  visits: LiveVisitRow[],
-  snapshot: LiveSnapshot,
-  now: Date,
-): LiveAttentionResult[] {
-  const nowMinute = minuteOfUtcDay(now);
-  const items: LiveAttentionResult[] = [];
-
-  for (const sos of snapshot.sosAlerts) {
-    items.push({
-      id: sos.id,
-      kind: 'SOS',
-      severity: 'CRITICAL',
-      title: 'Caregiver SOS Alert',
-      description:
-        sos.dispatchedAt === null
-          ? 'Panic button triggered during an active care visit'
-          : 'Panic button triggered; emergency response dispatched',
-      recipientName: sos.recipientName,
-      caregiverName: sos.caregiverName,
-      visitId: null,
-      action: 'EMERGENCY_DISPATCH',
-    });
-  }
-
-  for (const v of visits) {
-    if (v.status === 'SCHEDULED' && v.clockInAt === null) {
-      const lateBy = nowMinute - v.startMinute;
-      if (lateBy >= MISSED_THRESHOLD_MINUTES) {
-        items.push({
-          id: v.id,
-          kind: 'MISSED_CHECK_IN',
-          severity: 'HIGH',
-          title: 'Missed check-in',
-          description: `Scheduled visit caregiver check-in is overdue by ${lateBy} minutes`,
-          recipientName: v.recipientName,
-          caregiverName: v.caregiverName,
-          visitId: v.id,
-          action: 'CONTACT_CAREGIVER',
-        });
-      }
-    }
-    if (isActive(v)) {
-      const overBy = nowMinute - v.endMinute;
-      if (overBy >= OVERDUE_THRESHOLD_MINUTES) {
-        items.push({
-          id: v.id,
-          kind: 'VISIT_OVERDUE',
-          severity: 'HIGH',
-          title: 'Visit overdue',
-          description: `Scheduled service duration has exceeded boundary by ${overBy} minutes`,
-          recipientName: v.recipientName,
-          caregiverName: v.caregiverName,
-          visitId: v.id,
-          action: 'REVIEW_VISIT',
-        });
-      }
-    }
-  }
-
-  const rank: Record<string, number> = { CRITICAL: 2, HIGH: 1 };
-  return items.sort((a, b) => (rank[b.severity] ?? 0) - (rank[a.severity] ?? 0));
 }
 
 export function computeActivity(visits: LiveVisitRow[], _now: Date): LiveActivityResult[] {

@@ -6,41 +6,45 @@ import {
 } from '../ports/live-monitoring-read.port';
 import { LiveOverviewResult } from '../dto/live-monitoring.result';
 import {
+  buildAttention,
   computeActiveVisits,
   computeActivity,
-  computeAttention,
   computeSummary,
   filterVisits,
   LiveFilters,
   nextUtcDay,
   startOfUtcDay,
 } from '../live-monitoring.util';
+import { SweepLiveAlertsUseCase } from './sweep-live-alerts.use-case';
 
 const OVERVIEW_ACTIVE_LIMIT = 4;
 
 /**
  * The Live Monitoring overview: the six KPI cards, the Active Visit Summary, the
- * Attention Required panel (SOS, missed check-ins and overdue visits) and the
- * Recent Live Activity feed, all derived from the day's live snapshot. Read only.
+ * Attention Required panel (active SOS alerts plus the open operational alerts) and
+ * the Recent Live Activity feed. A detection sweep first raises any missing alerts.
  */
 @Injectable()
 export class GetLiveOverviewUseCase {
   constructor(
     @Inject(LIVE_MONITORING_READ_MODEL) private readonly reads: LiveMonitoringReadModel,
+    private readonly sweep: SweepLiveAlertsUseCase,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   async execute(filters: LiveFilters): Promise<LiveOverviewResult> {
     const now = this.clock.now();
     const snapshot = await this.reads.snapshot(startOfUtcDay(now), nextUtcDay(now));
-    const visits = filterVisits(snapshot.visits, filters);
+    await this.sweep.execute(snapshot, now);
+    const alerts = await this.reads.openAlerts();
 
+    const attention = buildAttention(snapshot, alerts, now);
+    const visits = filterVisits(snapshot.visits, filters);
     const activeVisits = computeActiveVisits(visits, now);
-    const attention = computeAttention(visits, snapshot, now);
 
     return {
       updatedAt: now.toISOString(),
-      summary: computeSummary(visits, snapshot, now),
+      summary: computeSummary(visits, attention, now),
       tabCounts: { activeVisits: activeVisits.length, attention: attention.length },
       activeVisits: activeVisits.slice(0, OVERVIEW_ACTIVE_LIMIT),
       attentionRequired: attention,

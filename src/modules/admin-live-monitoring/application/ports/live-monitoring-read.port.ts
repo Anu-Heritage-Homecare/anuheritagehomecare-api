@@ -36,6 +36,7 @@ export interface LiveVisitRow {
 /** One active SOS alert, hydrated with the caregiver name. */
 export interface LiveSosRow {
   id: string;
+  visitId: string;
   caregiverId: string;
   caregiverName: string | null;
   recipientName: string | null;
@@ -44,6 +45,21 @@ export interface LiveSosRow {
   longitude: number | null;
   createdAt: Date;
   dispatchedAt: Date | null;
+}
+
+/** One open operational alert, hydrated with the recipient and caregiver names. */
+export interface LiveAlertRow {
+  id: string;
+  type: string;
+  severity: string;
+  title: string;
+  description: string;
+  relatedVisitId: string | null;
+  relatedCaregiverId: string | null;
+  relatedCareRecipientId: string | null;
+  recipientName: string | null;
+  caregiverName: string | null;
+  createdAt: Date;
 }
 
 /** The latest known location of a caregiver, for the map. */
@@ -67,6 +83,8 @@ export interface LiveSnapshot {
  */
 export interface LiveMonitoringReadModel {
   snapshot(dayStart: Date, nextDay: Date): Promise<LiveSnapshot>;
+  /** Every open operational alert, hydrated with names, for the attention panel. */
+  openAlerts(): Promise<LiveAlertRow[]>;
 }
 
 export const LIVE_MONITORING_READ_MODEL = Symbol('LIVE_MONITORING_READ_MODEL');
