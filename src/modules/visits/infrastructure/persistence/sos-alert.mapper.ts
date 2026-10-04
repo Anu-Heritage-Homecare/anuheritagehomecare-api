@@ -21,6 +21,7 @@ export class SosAlertMapper {
       recipientLatitude: alert.recipient.location?.latitude ?? null,
       recipientLongitude: alert.recipient.location?.longitude ?? null,
       status: SosAlertMapper.TO_PERSISTENCE_STATUS[alert.status],
+      dispatchedAt: alert.dispatchedAt,
       cancelledAt: alert.cancelledAt,
       createdAt: alert.createdAt,
     };
@@ -47,6 +48,7 @@ export class SosAlertMapper {
         location: recipientLocation,
       },
       status: SosAlertMapper.TO_DOMAIN_STATUS[row.status],
+      dispatchedAt: row.dispatchedAt,
       cancelledAt: row.cancelledAt,
       createdAt: row.createdAt,
     });

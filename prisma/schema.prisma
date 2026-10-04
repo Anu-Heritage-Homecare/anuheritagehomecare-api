@@ -1254,11 +1254,13 @@ model SosAlert {
   recipientLatitude  Float?
   recipientLongitude Float?
   status      SosAlertStatus @default(ACTIVE)
+  dispatchedAt DateTime?
   cancelledAt DateTime?
   createdAt   DateTime       @default(now())
 
   @@index([caregiverId, createdAt])
   @@index([visitId])
+  @@index([status, createdAt])
   @@map("sos_alerts")
 }
 

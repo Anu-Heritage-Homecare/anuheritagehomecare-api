@@ -14,12 +14,20 @@ export class SosAlertPrismaRepository implements SosAlertRepository {
     await this.prisma.sosAlert.upsert({
       where: { id: row.id },
       create: row,
-      update: { status: row.status, cancelledAt: row.cancelledAt },
+      update: { status: row.status, dispatchedAt: row.dispatchedAt, cancelledAt: row.cancelledAt },
     });
   }
 
   async findById(id: string): Promise<SosAlert | null> {
     const row = await this.prisma.sosAlert.findUnique({ where: { id } });
     return row ? SosAlertMapper.toDomain(row) : null;
+  }
+
+  async listActive(): Promise<SosAlert[]> {
+    const rows = await this.prisma.sosAlert.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((row) => SosAlertMapper.toDomain(row));
   }
 }

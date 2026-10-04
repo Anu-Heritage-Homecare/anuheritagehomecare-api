@@ -9,6 +9,7 @@ import {
   OwnerContactDirectory,
 } from '../application/ports/owner-contact-directory.port';
 import { SosAlert } from '../domain/sos-alert.entity';
+import { SosAlertStatus } from '../domain/sos-alert-status.enum';
 import { SosAlertRepository } from '../domain/sos-alert.repository';
 import { VisitPriority } from '../domain/visit-priority.enum';
 import { VisitStatus } from '../domain/visit-status.enum';
@@ -239,6 +240,14 @@ export class InMemorySosAlertRepository implements SosAlertRepository {
 
   findById(id: string): Promise<SosAlert | null> {
     return Promise.resolve(this.store.get(id) ?? null);
+  }
+
+  listActive(): Promise<SosAlert[]> {
+    return Promise.resolve(
+      [...this.store.values()]
+        .filter((a) => a.status === SosAlertStatus.Active)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+    );
   }
 
   get all(): SosAlert[] {

@@ -17,6 +17,7 @@ interface SosAlertProps {
   position: Coordinates | null;
   recipient: SosRecipientSnapshot;
   status: SosAlertStatus;
+  dispatchedAt: Date | null;
   cancelledAt: Date | null;
   createdAt: Date;
 }
@@ -53,6 +54,7 @@ export class SosAlert extends Entity<string> {
       position: params.position,
       recipient: params.recipient,
       status: SosAlertStatus.Active,
+      dispatchedAt: null,
       cancelledAt: null,
       createdAt: params.now,
     });
@@ -70,6 +72,22 @@ export class SosAlert extends Entity<string> {
     }
     this.props.status = SosAlertStatus.Cancelled;
     this.props.cancelledAt = now;
+  }
+
+  /**
+   * Record that an emergency response has been dispatched from the admin Live
+   * Monitoring screen. The alert stays active (help is on the way, not resolved);
+   * dispatching an already dispatched or cancelled alert is a no-op.
+   */
+  public dispatch(now: Date): void {
+    if (this.props.status !== SosAlertStatus.Active || this.props.dispatchedAt !== null) {
+      return;
+    }
+    this.props.dispatchedAt = now;
+  }
+
+  public get dispatchedAt(): Date | null {
+    return this.props.dispatchedAt;
   }
 
   public get caregiverId(): string {

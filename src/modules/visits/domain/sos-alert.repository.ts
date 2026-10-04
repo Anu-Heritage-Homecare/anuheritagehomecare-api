@@ -8,6 +8,8 @@ import { SosAlert } from './sos-alert.entity';
 export interface SosAlertRepository {
   save(alert: SosAlert): Promise<void>;
   findById(id: string): Promise<SosAlert | null>;
+  /** Active alerts, most recent first, for the admin Live Monitoring screen. */
+  listActive(): Promise<SosAlert[]>;
 }
 
 /** Injection token, since TypeScript interfaces do not exist at runtime. */

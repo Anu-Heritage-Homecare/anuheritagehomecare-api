@@ -69,6 +69,6 @@ import { CaregiverVisitCareController } from './presentation/caregiver-visit-car
   ],
   // Exported so the earnings context can read a caregiver's visits through the
   // same repository port, projecting them into a timesheet.
-  exports: [VISIT_REPOSITORY],
+  exports: [VISIT_REPOSITORY, SOS_ALERT_REPOSITORY],
 })
 export class VisitsModule {}
