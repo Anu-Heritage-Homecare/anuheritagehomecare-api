@@ -52,6 +52,8 @@ export class OperationalAlertMapper {
   private static readonly TO_DOMAIN_TYPE: Record<PrismaAlertType, AlertType> = {
     LATE_CAREGIVER: AlertType.LateCaregiver,
     MISSED_CLOCK_IN: AlertType.MissedClockIn,
+    VISIT_OVERDUE: AlertType.VisitOverdue,
+    LOCATION_VERIFICATION_FAILED: AlertType.LocationVerificationFailed,
     CERTIFICATION_EXPIRING: AlertType.CertificationExpiring,
     MEDICATION_ISSUE: AlertType.MedicationIssue,
     GENERAL: AlertType.General,
@@ -60,6 +62,8 @@ export class OperationalAlertMapper {
   private static readonly TO_PERSISTENCE_TYPE: Record<AlertType, PrismaAlertType> = {
     [AlertType.LateCaregiver]: 'LATE_CAREGIVER',
     [AlertType.MissedClockIn]: 'MISSED_CLOCK_IN',
+    [AlertType.VisitOverdue]: 'VISIT_OVERDUE',
+    [AlertType.LocationVerificationFailed]: 'LOCATION_VERIFICATION_FAILED',
     [AlertType.CertificationExpiring]: 'CERTIFICATION_EXPIRING',
     [AlertType.MedicationIssue]: 'MEDICATION_ISSUE',
     [AlertType.General]: 'GENERAL',

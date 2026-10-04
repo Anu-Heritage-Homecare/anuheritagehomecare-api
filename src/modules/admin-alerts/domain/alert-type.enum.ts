@@ -6,6 +6,8 @@
 export enum AlertType {
   LateCaregiver = 'LATE_CAREGIVER',
   MissedClockIn = 'MISSED_CLOCK_IN',
+  VisitOverdue = 'VISIT_OVERDUE',
+  LocationVerificationFailed = 'LOCATION_VERIFICATION_FAILED',
   CertificationExpiring = 'CERTIFICATION_EXPIRING',
   MedicationIssue = 'MEDICATION_ISSUE',
   General = 'GENERAL',
