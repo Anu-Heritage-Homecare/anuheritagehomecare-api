@@ -20,6 +20,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
+import { GetAssignCandidatesUseCase } from '../application/use-cases/get-assign-candidates.use-case';
 import { GetSchedulingConsoleUseCase } from '../application/use-cases/get-scheduling-console.use-case';
 import { GetVisitDetailsUseCase } from '../application/use-cases/get-visit-details.use-case';
 import {
@@ -34,7 +35,9 @@ import {
   GetSchedulingConflictsUseCase,
   ListUnassignedVisitsUseCase,
 } from '../application/use-cases/scheduling-tabs.use-case';
+import { AssignCandidatesResponseDto } from './dto/assign-candidates-response.dto';
 import {
+  AssignCandidatesQueryDto,
   SchedulingCalendarQueryDto,
   SchedulingConflictsQueryDto,
   SchedulingConsoleQueryDto,
@@ -78,6 +81,7 @@ export class AdminSchedulingController {
     private readonly getConflicts: GetSchedulingConflictsUseCase,
     private readonly getCalendar: GetSchedulingCalendarUseCase,
     private readonly getVisitDetails: GetVisitDetailsUseCase,
+    private readonly getAssignCandidates: GetAssignCandidatesUseCase,
     private readonly scheduleVisit: ScheduleVisitUseCase,
     private readonly assignVisit: AssignVisitCaregiverUseCase,
     private readonly rescheduleVisit: RescheduleVisitUseCase,
@@ -182,6 +186,25 @@ export class AdminSchedulingController {
   @ApiOkResponse({ type: [VisitTimelineEventDto] })
   async visitHistory(@Param('id', ParseUUIDPipe) id: string): Promise<VisitTimelineEventDto[]> {
     return (await this.getVisitDetails.execute(id)).history;
+  }
+
+  @Get('visits/:id/candidates')
+  @ApiOperation({
+    summary: 'The Assign Caregiver screen: ranked caregivers for an unassigned visit',
+  })
+  @ApiOkResponse({ type: AssignCandidatesResponseDto })
+  async candidates(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: AssignCandidatesQueryDto,
+  ): Promise<AssignCandidatesResponseDto> {
+    const result = await this.getAssignCandidates.execute({
+      visitId: id,
+      search: query.search ?? null,
+      branch: query.branch ?? null,
+      availableNow: query.availableNow ?? false,
+      sort: query.sort ?? 'BEST_MATCH',
+    });
+    return AssignCandidatesResponseDto.fromResult(result);
   }
 
   @Post('visits')

@@ -5,7 +5,9 @@ import { CareRatingsModule } from '@modules/care-ratings/care-ratings.module';
 import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.module';
 import { IdentityModule } from '@modules/identity/identity.module';
 import { VisitsModule } from '@modules/visits/visits.module';
+import { ASSIGN_CANDIDATE_READ_MODEL } from './application/ports/assign-candidate-read.port';
 import { SCHEDULING_READ_MODEL } from './application/ports/scheduling-read.port';
+import { GetAssignCandidatesUseCase } from './application/use-cases/get-assign-candidates.use-case';
 import { GetSchedulingConsoleUseCase } from './application/use-cases/get-scheduling-console.use-case';
 import { GetVisitDetailsUseCase } from './application/use-cases/get-visit-details.use-case';
 import {
@@ -20,6 +22,7 @@ import {
   GetSchedulingConflictsUseCase,
   ListUnassignedVisitsUseCase,
 } from './application/use-cases/scheduling-tabs.use-case';
+import { AssignCandidateReadPrisma } from './infrastructure/persistence/assign-candidate-read.prisma';
 import { SchedulingReadPrisma } from './infrastructure/persistence/scheduling-read.prisma';
 import { AdminSchedulingController } from './presentation/admin-scheduling.controller';
 
@@ -45,12 +48,14 @@ import { AdminSchedulingController } from './presentation/admin-scheduling.contr
     GetSchedulingConflictsUseCase,
     GetSchedulingCalendarUseCase,
     GetVisitDetailsUseCase,
+    GetAssignCandidatesUseCase,
     ScheduleVisitUseCase,
     AssignVisitCaregiverUseCase,
     RescheduleVisitUseCase,
     EditVisitUseCase,
     CancelVisitUseCase,
     { provide: SCHEDULING_READ_MODEL, useClass: SchedulingReadPrisma },
+    { provide: ASSIGN_CANDIDATE_READ_MODEL, useClass: AssignCandidateReadPrisma },
   ],
 })
 export class AdminSchedulingModule {}

@@ -2,7 +2,17 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { VisitPriority } from '@modules/visits/domain/visit-priority.enum';
 import { VisitStatus } from '@modules/visits/domain/visit-status.enum';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsISO8601, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 const STATUSES = Object.values(VisitStatus);
 const PRIORITIES = Object.values(VisitPriority);
@@ -61,6 +71,23 @@ export class SchedulingConflictsQueryDto {
   @IsOptional()
   @IsISO8601()
   date?: string;
+}
+
+const CANDIDATE_SORTS = ['BEST_MATCH', 'DISTANCE', 'RATING'] as const;
+
+/** Filters and sort for the Assign Caregiver candidate list. */
+export class AssignCandidatesQueryDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) search?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) branch?: string;
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  availableNow?: boolean;
+  @ApiPropertyOptional({ enum: CANDIDATE_SORTS })
+  @IsOptional()
+  @IsIn(CANDIDATE_SORTS)
+  sort?: (typeof CANDIDATE_SORTS)[number];
 }
 
 /** The Calendar feed for an inclusive day range. */
