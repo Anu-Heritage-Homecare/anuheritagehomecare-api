@@ -2,13 +2,16 @@ import { AggregateRoot } from '@shared/domain/aggregate-root.base';
 import { ValidationException } from '@shared/domain/domain-exception';
 import { CaregiverEmploymentType } from './caregiver-employment-type.enum';
 import { CaregiverGender } from './caregiver-gender.enum';
+import { CaregiverNoteKind } from './caregiver-note-kind.enum';
 import { CaregiverStatus } from './caregiver-status.enum';
 
 /** One free text note on a caregiver. */
 export interface CaregiverNote {
   body: string;
+  kind: CaregiverNoteKind;
   authorAdminId: string | null;
   authorName: string | null;
+  authorRole: string | null;
   createdAt: Date;
 }
 
@@ -212,15 +215,29 @@ export class CaregiverProfile extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
-  public addNote(body: string, authorAdminId: string, authorName: string | null, now: Date): void {
-    const clean = body.trim();
+  public addNote(params: {
+    body: string;
+    kind: CaregiverNoteKind;
+    authorAdminId: string;
+    authorName: string | null;
+    authorRole: string | null;
+    now: Date;
+  }): void {
+    const clean = params.body.trim();
     if (clean.length === 0 || clean.length > MAX_NOTE) {
       throw new ValidationException('A note must be within the length limit');
     }
-    const note: CaregiverNote = { body: clean, authorAdminId, authorName, createdAt: now };
+    const note: CaregiverNote = {
+      body: clean,
+      kind: params.kind,
+      authorAdminId: params.authorAdminId,
+      authorName: params.authorName,
+      authorRole: cleanOptional(params.authorRole),
+      createdAt: params.now,
+    };
     this.notes.push(note);
     this.pendingNotes.push(note);
-    this.props.updatedAt = now;
+    this.props.updatedAt = params.now;
   }
 
   public pullPendingNotes(): CaregiverNote[] {

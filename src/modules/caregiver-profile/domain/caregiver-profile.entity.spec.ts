@@ -1,6 +1,7 @@
 import { ValidationException } from '@shared/domain/domain-exception';
 import { CaregiverEmploymentType } from './caregiver-employment-type.enum';
 import { CaregiverGender } from './caregiver-gender.enum';
+import { CaregiverNoteKind } from './caregiver-note-kind.enum';
 import { CaregiverProfile } from './caregiver-profile.entity';
 import { CaregiverStatus } from './caregiver-status.enum';
 
@@ -98,13 +99,16 @@ describe('CaregiverProfile', () => {
 
   it('appends notes and pulls the pending ones once', () => {
     const p = profile();
-    p.addNote(
-      '  Excellent handling of medication schedule change.  ',
-      'admin-1',
-      'Mike Chen',
-      LATER,
-    );
+    p.addNote({
+      body: '  Excellent handling of medication schedule change.  ',
+      kind: CaregiverNoteKind.Supervisor,
+      authorAdminId: 'admin-1',
+      authorName: 'Mike Chen',
+      authorRole: 'Care Coordinator',
+      now: LATER,
+    });
     expect(p.noteLog[0].body).toBe('Excellent handling of medication schedule change.');
+    expect(p.noteLog[0].kind).toBe(CaregiverNoteKind.Supervisor);
     expect(p.pullPendingNotes()).toHaveLength(1);
     expect(p.pullPendingNotes()).toHaveLength(0);
   });

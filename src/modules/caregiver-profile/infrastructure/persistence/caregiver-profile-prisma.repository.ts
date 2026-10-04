@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { CaregiverNoteKind as PrismaNoteKind, Prisma } from '@prisma/client';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
+import { CaregiverNoteKind } from '../../domain/caregiver-note-kind.enum';
 import { CaregiverProfile } from '../../domain/caregiver-profile.entity';
 import { CaregiverProfileRepository } from '../../domain/caregiver-profile.repository';
 import {
@@ -13,6 +14,18 @@ import {
 } from './caregiver-profile-enum.maps';
 
 type ProfileRow = Prisma.CaregiverProfileGetPayload<{ include: { notes: true } }>;
+
+const TO_DOMAIN_NOTE_KIND: Record<PrismaNoteKind, CaregiverNoteKind> = {
+  SUPERVISOR: CaregiverNoteKind.Supervisor,
+  INTERNAL: CaregiverNoteKind.Internal,
+  TRAINING: CaregiverNoteKind.Training,
+};
+
+const TO_PERSISTENCE_NOTE_KIND: Record<CaregiverNoteKind, PrismaNoteKind> = {
+  [CaregiverNoteKind.Supervisor]: 'SUPERVISOR',
+  [CaregiverNoteKind.Internal]: 'INTERNAL',
+  [CaregiverNoteKind.Training]: 'TRAINING',
+};
 
 /** Prisma backed adapter for the CaregiverProfileRepository port. */
 @Injectable()
@@ -54,8 +67,10 @@ export class CaregiverProfilePrismaRepository implements CaregiverProfileReposit
           data: notes.map((note) => ({
             profileId: profile.id,
             body: note.body,
+            kind: TO_PERSISTENCE_NOTE_KIND[note.kind],
             authorAdminId: note.authorAdminId,
             authorName: note.authorName,
+            authorRole: note.authorRole,
             createdAt: note.createdAt,
           })),
         });
@@ -139,8 +154,10 @@ export class CaregiverProfilePrismaRepository implements CaregiverProfileReposit
       },
       row.notes.map((note) => ({
         body: note.body,
+        kind: TO_DOMAIN_NOTE_KIND[note.kind],
         authorAdminId: note.authorAdminId,
         authorName: note.authorName,
+        authorRole: note.authorRole,
         createdAt: note.createdAt,
       })),
     );
