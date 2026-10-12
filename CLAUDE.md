@@ -341,14 +341,42 @@ Rules that keep the layers honest:
 
 ```
 cp .env.example .env          # then set a real DATABASE_URL
-docker compose up -d postgres # start PostgreSQL
 npm install
 npm run prisma:generate
-npm run prisma:migrate        # create/apply the local schema
+npm run prisma:deploy         # apply committed migrations to the database
+npm run prisma:seed           # populate the care plans catalog
 npm run start:dev             # http://localhost:3000/api, docs at /api/docs
 ```
 
 Before every commit: `npm run lint` and `npm test` must pass with zero warnings.
+
+## Database and migrations
+
+A managed PostgreSQL (CloudClusters) is provisioned and the baseline migration
+(`prisma/migrations/0_init`) is applied; the catalog is seeded. The connection
+string lives in `.env` (gitignored, never committed). `npm run prisma:seed` loads
+`.env` on its own.
+
+The application role on the managed database has no database level CREATE
+privilege, so `prisma migrate dev` (which provisions a shadow database) cannot be
+used against it. Author migrations the shadow free way instead:
+
+```
+# 1. Edit prisma/schema.prisma, then regenerate the client
+npm run prisma:generate
+# 2. Author a migration by diffing the LIVE database against the schema
+#    (a read only introspection; writes a timestamped migration folder)
+npm run prisma:migration:new -- <migration_name>
+# 3. Review the generated SQL, then apply and record it
+npm run prisma:deploy
+# 4. Confirm the database is in sync
+npm run prisma:status
+```
+
+If a `deploy` ever fails midway, mark it rolled back with
+`npx prisma migrate resolve --rolled-back <migration_name>`, fix the SQL, and
+redeploy. `prisma migrate diff`/`deploy` never provision a shadow database, so they
+work with only the application role.
 
 ## Definition of done for any change
 
@@ -452,8 +480,9 @@ persist it in the repo.
   column, `LocationPing.sosAlertId` and `EMERGENCY`, the `CaregiverPayRate`,
   `CaregiverAvailability`/`CaregiverAvailabilitySlot`, `AdditionalCareRequest` plus
   `CareRequestStatus` models, the `TwoFactorRecoveryCode` model and the
-  `twoFactorEnabled`/`twoFactorSecret` columns on `User`) are all authored in
-  `prisma/schema.prisma` but NOT applied. Run `npm run prisma:migrate` once a
-  database is provisioned, then `npm run prisma:seed` to populate the catalog.
-  There is no database yet, so the Prisma client is generated but no migration has
-  ever run. Run `npm run prisma:generate` after any schema edit.
+  `twoFactorEnabled`/`twoFactorSecret` columns on `User`) were all captured in the
+  baseline migration `prisma/migrations/0_init` and APPLIED to the managed
+  CloudClusters database, and the catalog is seeded. For any later schema change,
+  follow the shadow free flow in "Database and migrations" above
+  (`prisma:generate`, `prisma:migration:new`, review, `prisma:deploy`,
+  `prisma:status`). Run `npm run prisma:generate` after any schema edit.
