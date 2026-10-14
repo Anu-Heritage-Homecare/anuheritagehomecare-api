@@ -1,0 +1,237 @@
+name: Pipeline
+
+# Full delivery pipeline: quality (lint, type check, tests, build), security
+# scanning, a performance smoke gate, and finally deployment to the Contabo VPS.
+# The deploy job only runs on a push to main and only after the three gates pass.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Stage 1: quality. Lint (zero warnings), strict type check, unit tests, build.
+  # ----------------------------------------------------------------------------
+  lint:
+    name: Lint, type check, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Lint (zero warnings)
+        run: npm run lint
+      - name: Type check
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  # ----------------------------------------------------------------------------
+  # Stage 2: security. Dependency audit, secret scan, filesystem vuln scan, SAST.
+  # ----------------------------------------------------------------------------
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks scans the full history
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: Dependency audit (production bundle)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Secret scan (gitleaks)
+        run: |
+          version=8.21.2
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
+            | tar -xz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --redact --verbose --no-banner
+
+      - name: Dependency and config vulnerability scan (trivy)
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin v0.56.2
+          trivy fs --scanners vuln,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 .
+          # Dockerfile / compose misconfiguration (informational, non blocking).
+          trivy config --severity HIGH,CRITICAL --exit-code 0 .
+
+      - name: Static analysis (semgrep)
+        run: |
+          pipx install semgrep
+          semgrep scan --error --config p/typescript --config p/javascript --config p/secrets
+
+  # ----------------------------------------------------------------------------
+  # Stage 3: performance. Boot the app against a real Postgres and load test the
+  # liveness endpoint; fail if latency or throughput breach the thresholds.
+  # ----------------------------------------------------------------------------
+  performance:
+    name: Performance smoke
+    runs-on: ubuntu-latest
+    needs: [lint]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: anu_app
+          POSTGRES_PASSWORD: anu_ci_pw
+          POSTGRES_DB: anuheritage
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U anu_app -d anuheritage"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      NODE_ENV: production
+      PORT: '3000'
+      API_PREFIX: api
+      API_DEFAULT_VERSION: '1'
+      APP_PUBLIC_URL: http://localhost:3000
+      CORS_ORIGINS: http://localhost:3000
+      # Lift the rate limit so the load test is not throttled.
+      THROTTLE_TTL_SECONDS: '60'
+      THROTTLE_LIMIT: '100000000'
+      LOG_LEVEL: warn
+      DATABASE_URL: postgresql://anu_app:anu_ci_pw@localhost:5432/anuheritage?schema=public
+      SMTP_HOST: localhost
+      JWT_ACCESS_SECRET: ci_dummy_access_secret_at_least_32_chars_long
+      JWT_REFRESH_SECRET: ci_dummy_refresh_secret_at_least_32_chars_long
+      JWT_RESET_SECRET: ci_dummy_reset_secret_at_least_32_chars_long
+      JWT_MFA_SECRET: ci_dummy_mfa_secret_at_least_32_chars_long
+      JWT_ADMIN_ACCESS_SECRET: ci_dummy_admin_access_secret_at_least_32_chars
+      JWT_ADMIN_REFRESH_SECRET: ci_dummy_admin_refresh_secret_at_least_32_chars
+      TWO_FACTOR_ENCRYPTION_KEY: ci_dummy_two_factor_key_at_least_32_chars_long
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Apply schema
+        run: npx prisma migrate deploy
+      - name: Build
+        run: npm run build
+      - name: Start API
+        run: |
+          node dist/main.js &
+          echo $! > /tmp/api.pid
+      - name: Wait for readiness
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/api/v1/health/ready > /dev/null; then
+              echo "API is ready"; exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become ready in time" >&2
+          exit 1
+      - name: Load test (liveness)
+        run: npx -y autocannon -j -d 20 -c 20 http://localhost:3000/api/v1/health/live > perf.json
+      - name: Assert performance thresholds
+        run: node scripts/assert-perf.mjs perf.json
+      - name: Stop API
+        if: always()
+        run: kill "$(cat /tmp/api.pid)" 2>/dev/null || true
+
+  # ----------------------------------------------------------------------------
+  # Stage 4: deploy. Build and push the image, run migrations against the live
+  # database, then roll the VPS onto the new image. Only on main.
+  # ----------------------------------------------------------------------------
+  deploy:
+    name: Deploy to Contabo VPS
+    runs-on: ubuntu-latest
+    needs: [lint, security, performance]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve lowercase image repository
+        run: echo "IMAGE_REPO=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_REPO }}:latest
+            ${{ env.IMAGE_REPO }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run database migrations (production)
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+
+      - name: Sync deploy files to the VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: deploy/docker-compose.prod.yml,deploy/Caddyfile
+          target: /opt/anu-heritage
+          strip_components: 1
+
+      - name: Deploy on the VPS
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          API_IMAGE: ${{ env.IMAGE_REPO }}:${{ github.sha }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: GHCR_USER,GHCR_TOKEN,API_IMAGE
+          script: |
+            set -e
+            cd /opt/anu-heritage
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            export API_IMAGE="$API_IMAGE"
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker image prune -f
+            docker logout ghcr.io

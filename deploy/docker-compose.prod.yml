@@ -1,0 +1,50 @@
+# Production stack for the Contabo VPS.
+#
+# The database is the managed CloudClusters PostgreSQL (external), so there is no
+# database container here; the app connects out via DATABASE_URL in .env. Caddy
+# terminates TLS (automatic HTTPS via Let's Encrypt) and reverse proxies the API.
+#
+# The deploy pipeline sets API_IMAGE to the exact image tag before running
+# `docker compose -f docker-compose.prod.yml up -d`.
+services:
+  api:
+    image: ${API_IMAGE:-ghcr.io/anu-heritage-homecare/anuheritagehomecare-api:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    expose:
+      - '3000'
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks: [web]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    env_file: .env
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [web]
+
+networks:
+  web:
+
+volumes:
+  caddy_data:
+  caddy_config:
