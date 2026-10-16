@@ -10,7 +10,7 @@
     "node": ">=20.11.0"
   },
   "scripts": {
-    "prebuild": "rimraf dist",
+    "prebuild": "rimraf dist *.tsbuildinfo",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -30,7 +30,7 @@
     "prisma:status": "prisma migrate status",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node -r dotenv/config prisma/seed.ts",
-    "openapi:mobile": "ts-node -r tsconfig-paths/register scripts/generate-openapi.ts"
+    "openapi:mobile": "npm run build && ts-node -r tsconfig-paths/register scripts/generate-openapi.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

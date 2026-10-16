@@ -162,6 +162,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -330,6 +340,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -358,6 +378,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClientResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -392,6 +422,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Fetch a client by id",
@@ -411,6 +451,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserProfileResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -449,6 +499,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -473,6 +533,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PhotoUploadTicketResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -513,6 +583,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -547,6 +627,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -587,6 +677,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Register a family owner (mobile)",
@@ -616,6 +716,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -651,6 +761,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Complete a login challenged for two factor with a code or recovery code",
@@ -683,6 +803,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Exchange a refresh token for a new token pair",
@@ -712,6 +842,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -752,6 +892,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Verify an email address with the emailed code",
@@ -781,6 +931,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -816,6 +976,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Request a password reset code",
@@ -845,6 +1015,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ResetTokenResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -880,6 +1060,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Set a new password using a reset token",
@@ -912,6 +1102,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -936,6 +1136,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TwoFactorSetupResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -976,6 +1186,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1013,6 +1233,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1037,6 +1267,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DevicesResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1069,6 +1309,16 @@
         "responses": {
           "204": {
             "description": ""
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1093,6 +1343,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1123,6 +1383,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1147,6 +1417,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SecurityOverviewResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1187,6 +1467,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1224,6 +1514,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1249,6 +1549,16 @@
                   "items": {
                     "$ref": "#/components/schemas/CareRecipientResponseDto"
                   }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1285,6 +1595,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CareRecipientResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1334,6 +1654,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1377,6 +1707,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CareRecipientResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1426,6 +1766,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1462,6 +1812,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1489,6 +1849,16 @@
                   "items": {
                     "$ref": "#/components/schemas/CarePlanResponseDto"
                   }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1525,6 +1895,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CarePlanResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1566,6 +1946,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1603,6 +1993,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1628,6 +2028,16 @@
                   "items": {
                     "$ref": "#/components/schemas/BookingResponseDto"
                   }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1664,6 +2074,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BookingResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1704,6 +2124,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1729,6 +2159,16 @@
                   "items": {
                     "$ref": "#/components/schemas/SubscriptionResponseDto"
                   }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1769,6 +2209,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1791,6 +2241,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/KycStatusResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1831,6 +2291,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1861,6 +2331,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1885,6 +2365,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CardSetupResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1925,6 +2415,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1961,6 +2461,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1990,6 +2500,16 @@
         "responses": {
           "204": {
             "description": ""
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2056,6 +2576,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2092,6 +2622,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2125,6 +2665,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VisitReviewResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2174,6 +2724,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2207,6 +2767,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VisitCompletionResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2246,6 +2816,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2279,6 +2859,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VisitBreakResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2336,6 +2926,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2379,6 +2979,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VitalsResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2428,6 +3038,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2474,6 +3094,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2507,6 +3137,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PhotoUploadTicketResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2553,6 +3193,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VisitPhotosResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2610,6 +3260,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2653,6 +3313,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SosResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2700,6 +3370,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2737,6 +3417,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2761,6 +3451,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EarningsResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2791,6 +3491,16 @@
                   "items": {
                     "$ref": "#/components/schemas/PayslipSummaryResponseDto"
                   }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2830,6 +3540,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2865,6 +3585,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DayAvailabilityResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2926,6 +3656,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2961,6 +3701,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2985,6 +3735,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FamilyDashboardResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3024,6 +3784,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3060,6 +3830,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3093,6 +3873,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CarePlanResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3142,6 +3932,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3178,6 +3978,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3211,6 +4021,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FamilyVisitDetailResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3251,6 +4071,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3278,6 +4108,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3302,6 +4142,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PreferencesResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3340,6 +4190,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3364,6 +4224,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EmergencyContactResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3402,6 +4272,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3426,6 +4306,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CareCircleResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3456,6 +4346,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3480,6 +4380,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CareCodeResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3517,6 +4427,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RedeemCareCodeResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3559,6 +4479,16 @@
         "responses": {
           "204": {
             "description": ""
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3586,6 +4516,16 @@
         "responses": {
           "204": {
             "description": ""
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3613,6 +4553,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3637,6 +4587,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CalendarFeedResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3686,6 +4646,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3713,6 +4683,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3737,6 +4717,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UpcomingPaymentResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3784,6 +4774,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3820,6 +4820,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3853,6 +4863,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PayInvoiceResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3902,6 +4922,16 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3929,6 +4959,16 @@
                   "items": {
                     "$ref": "#/components/schemas/ReceiptResponseDto"
                   }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3965,6 +5005,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReceiptResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4060,7 +5110,7 @@
             "example": "PREMIUM"
           },
           "planName": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "Premium Home Care"
           },
@@ -4131,12 +5181,12 @@
             "example": 18900000
           },
           "clientSecret": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Stripe: confirm the intent with this secret"
           },
           "authorizationUrl": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Paystack: redirect to this checkout URL"
           }
@@ -4231,7 +5281,7 @@
             "type": "string"
           },
           "paidAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           }
         },
@@ -4431,7 +5481,7 @@
             "example": 5000000
           },
           "upcomingPaymentDate": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "2026-08-15"
           }
@@ -4510,7 +5560,7 @@
             "example": 180
           },
           "reason": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "status": {
@@ -4550,8 +5600,8 @@
         "properties": {
           "careType": {
             "type": "string",
-            "example": "Overnight care",
             "maxLength": 100,
+            "example": "Overnight care",
             "description": "The type of care"
           },
           "requestedDate": {
@@ -4574,7 +5624,8 @@
             "description": "Duration in minutes"
           },
           "reason": {
-            "type": "object",
+            "type": "string",
+            "nullable": true,
             "maxLength": 1000,
             "description": "More about the request"
           }
@@ -4612,8 +5663,9 @@
           },
           "relationship": {
             "type": "string",
-            "example": "Brother",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Brother"
           }
         },
         "required": [
@@ -4642,8 +5694,9 @@
         "properties": {
           "code": {
             "type": "string",
-            "example": "CARE-7319-KLM2",
-            "maxLength": 40
+            "minLength": 1,
+            "maxLength": 40,
+            "example": "CARE-7319-KLM2"
           }
         },
         "required": [
@@ -4702,7 +5755,7 @@
             ]
           },
           "photoUrl": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "isOwner": {
@@ -4742,18 +5795,21 @@
         "properties": {
           "name": {
             "type": "string",
-            "example": "Grace Pratama",
-            "maxLength": 200
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Grace Pratama"
           },
           "phone": {
             "type": "string",
-            "example": "+2348012345678",
-            "maxLength": 20
+            "minLength": 7,
+            "maxLength": 20,
+            "example": "+2348012345678"
           },
           "relationship": {
             "type": "string",
-            "example": "Sister",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Sister"
           }
         },
         "required": [
@@ -4888,46 +5944,46 @@
           },
           "language": {
             "type": "string",
-            "example": "en",
             "enum": [
               "en"
-            ]
+            ],
+            "example": "en"
           },
           "preferredContactMethod": {
             "type": "string",
-            "example": "EMAIL",
             "enum": [
               "EMAIL",
               "PHONE",
               "SMS"
-            ]
+            ],
+            "example": "EMAIL"
           },
           "theme": {
             "type": "string",
-            "example": "LIGHT",
             "enum": [
               "LIGHT",
               "DARK",
               "SYSTEM"
-            ]
+            ],
+            "example": "LIGHT"
           },
           "dateFormat": {
             "type": "string",
-            "example": "MMM_DD_YYYY",
             "enum": [
               "MMM_DD_YYYY",
               "DD_MM_YYYY",
               "MM_DD_YYYY",
               "YYYY_MM_DD"
-            ]
+            ],
+            "example": "MMM_DD_YYYY"
           },
           "timeFormat": {
             "type": "string",
-            "example": "TWELVE_HOUR",
             "enum": [
               "TWELVE_HOUR",
               "TWENTY_FOUR_HOUR"
-            ]
+            ],
+            "example": "TWELVE_HOUR"
           },
           "soundEnabled": {
             "type": "boolean",
@@ -4935,12 +5991,12 @@
           },
           "textSize": {
             "type": "string",
-            "example": "MEDIUM",
             "enum": [
               "SMALL",
               "MEDIUM",
               "LARGE"
-            ]
+            ],
+            "example": "MEDIUM"
           }
         },
         "required": [
@@ -4966,12 +6022,12 @@
             "example": "Primary Family Member"
           },
           "planName": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "Premium Home Care"
           },
           "photoUrl": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Signed avatar URL, or null when none is set"
           }
@@ -5003,11 +6059,11 @@
             "type": "number"
           },
           "clockInAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "clockOutAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "caregiver": {
@@ -5148,7 +6204,7 @@
         "type": "object",
         "properties": {
           "at": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "When it happened, or null for an upcoming step"
           },
@@ -5175,7 +6231,7 @@
             "example": "Blood pressure recorded"
           },
           "detail": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "120/80 mmHg"
           }
@@ -5205,7 +6261,7 @@
             "type": "number"
           },
           "photoKey": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           }
         },
@@ -5229,7 +6285,7 @@
             "example": "Sarah Adams John"
           },
           "photoKey": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Opaque profile photo key (upload deferred)"
           }
@@ -5288,11 +6344,11 @@
             "example": 720
           },
           "clockInAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "clockOutAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "caregiver": {
@@ -5359,7 +6415,7 @@
             "type": "string"
           },
           "authorName": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           }
         },
@@ -5461,27 +6517,32 @@
           },
           "expectedDuration": {
             "type": "string",
-            "example": "3 to 6 months",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "3 to 6 months"
           },
           "days": {
             "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Weekday"
+            },
             "example": [
               "MONDAY",
               "WEDNESDAY",
               "FRIDAY"
-            ],
-            "items": {
-              "$ref": "#/components/schemas/Weekday"
-            }
+            ]
           },
           "startMinute": {
             "type": "number",
+            "minimum": 0,
+            "maximum": 1439,
             "example": 540,
             "description": "Visit start time as minutes from midnight"
           },
           "visitDurationMinutes": {
             "type": "number",
+            "minimum": 1,
+            "maximum": 1440,
             "example": 180,
             "description": "How long a single visit lasts, in minutes"
           }
@@ -5614,7 +6675,7 @@
         "type": "object",
         "properties": {
           "latest": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "series": {
@@ -5633,11 +6694,11 @@
         "type": "object",
         "properties": {
           "latestSystolic": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "latestDiastolic": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "systolicSeries": {
@@ -5657,7 +6718,7 @@
         "type": "object",
         "properties": {
           "providerName": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "title": {
@@ -5682,31 +6743,31 @@
         "type": "object",
         "properties": {
           "systolic": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "diastolic": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "heartRate": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "oxygenSaturation": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "weightGrams": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "temperatureCelsius": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "bloodGlucose": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "recordedAt": {
@@ -5729,7 +6790,7 @@
         "type": "object",
         "properties": {
           "primary": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "others": {
@@ -5752,7 +6813,7 @@
             "description": "The recipient card (id, name, gender, age, photoKey)"
           },
           "carePlanName": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "Standard Care"
           },
@@ -5762,7 +6823,7 @@
             "description": "The caregiver on today’s visit"
           },
           "currentVisitId": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "format": "uuid"
           },
@@ -5817,7 +6878,7 @@
             "example": 82
           },
           "photoKey": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "careState": {
@@ -5895,7 +6956,7 @@
             "example": "IN_PROGRESS"
           },
           "startedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "When the caregiver clocked in (ISO 8601)"
           },
@@ -5951,7 +7012,7 @@
             "example": "Sarah Adams John"
           },
           "photoKey": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Opaque profile photo key (upload deferred)"
           }
@@ -6009,7 +7070,7 @@
             "example": "Sarah"
           },
           "recipientName": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "Mrs Moses Rose"
           }
@@ -6437,6 +7498,7 @@
         "type": "object",
         "properties": {
           "points": {
+            "minItems": 1,
             "maxItems": 500,
             "type": "array",
             "items": {
@@ -6453,14 +7515,19 @@
         "properties": {
           "latitude": {
             "type": "number",
+            "minimum": -90,
+            "maximum": 90,
             "example": 37.3861
           },
           "longitude": {
             "type": "number",
+            "minimum": -180,
+            "maximum": 180,
             "example": -122.0839
           },
           "accuracyMeters": {
             "type": "number",
+            "minimum": 0,
             "example": 12.5,
             "description": "Reported accuracy in metres"
           },
@@ -6527,7 +7594,7 @@
             "type": "string"
           },
           "cancelledAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           }
         },
@@ -6548,12 +7615,12 @@
             "format": "uuid"
           },
           "name": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "Eleanor Ross"
           },
           "address": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "123 Maple Street, Sunnyvale, CA 94086"
           }
@@ -6575,12 +7642,18 @@
         "type": "object",
         "properties": {
           "latitude": {
-            "type": "object",
+            "type": "number",
+            "nullable": true,
+            "minimum": -90,
+            "maximum": 90,
             "example": 37.3861,
             "description": "Current latitude of the caregiver"
           },
           "longitude": {
-            "type": "object",
+            "type": "number",
+            "nullable": true,
+            "minimum": -180,
+            "maximum": 180,
             "example": -122.0839,
             "description": "Current longitude of the caregiver"
           }
@@ -6610,7 +7683,7 @@
             "type": "boolean"
           },
           "durationMinutes": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "example": 15,
             "description": "How long the task took, in minutes"
@@ -6664,7 +7737,8 @@
             ],
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 500
             }
           }
         }
@@ -6752,6 +7826,8 @@
         "properties": {
           "text": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
             "example": "Mary was cheerful today and enjoyed a short walk."
           },
           "audience": {
@@ -6772,22 +7848,22 @@
         "type": "object",
         "properties": {
           "mood": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "Good"
           },
           "appetite": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "Ate well"
           },
           "mobility": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "Walked with walker"
           },
           "medicationStatus": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "All taken"
           }
@@ -6803,24 +7879,28 @@
         "type": "object",
         "properties": {
           "mood": {
-            "type": "object",
-            "example": "Good",
-            "maxLength": 120
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "example": "Good"
           },
           "appetite": {
-            "type": "object",
-            "example": "Ate well",
-            "maxLength": 120
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "example": "Ate well"
           },
           "mobility": {
-            "type": "object",
-            "example": "Walked with walker",
-            "maxLength": 120
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "example": "Walked with walker"
           },
           "medicationStatus": {
-            "type": "object",
-            "example": "All taken",
-            "maxLength": 120
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120,
+            "example": "All taken"
           }
         }
       },
@@ -6828,32 +7908,32 @@
         "type": "object",
         "properties": {
           "systolic": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "diastolic": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "heartRate": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "oxygenSaturation": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "weightGrams": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "temperatureCelsius": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "example": 36.8
           },
           "bloodGlucose": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "example": 142
           },
@@ -6876,45 +7956,52 @@
         "type": "object",
         "properties": {
           "systolic": {
-            "type": "object",
+            "type": "number",
+            "nullable": true,
             "minimum": 0,
             "maximum": 400,
             "example": 120
           },
           "diastolic": {
-            "type": "object",
+            "type": "number",
+            "nullable": true,
             "minimum": 0,
             "maximum": 400,
             "example": 80
           },
           "heartRate": {
-            "type": "object",
+            "type": "number",
+            "nullable": true,
             "minimum": 0,
             "maximum": 400,
             "example": 72
           },
           "oxygenSaturation": {
-            "type": "object",
+            "type": "number",
+            "nullable": true,
             "minimum": 0,
             "maximum": 100,
             "example": 98
           },
           "weightGrams": {
-            "type": "object",
+            "type": "number",
+            "nullable": true,
             "minimum": 0,
             "maximum": 500000,
             "example": 98000,
             "description": "Weight in whole grams (98 kg = 98000)"
           },
           "temperatureCelsius": {
-            "type": "object",
+            "type": "number",
+            "nullable": true,
             "minimum": 30,
             "maximum": 45,
             "example": 36.8,
             "description": "Body temperature in degrees Celsius (one decimal)"
           },
           "bloodGlucose": {
-            "type": "object",
+            "type": "number",
+            "nullable": true,
             "minimum": 0,
             "maximum": 2000,
             "example": 142,
@@ -6937,7 +8024,7 @@
             ]
           },
           "note": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "recordedAt": {
@@ -6972,8 +8059,9 @@
             ]
           },
           "note": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
+            "maxLength": 500,
             "example": "Patient refused the dose"
           }
         },
@@ -7001,7 +8089,7 @@
             "description": "Total whole seconds spent on closed breaks"
           },
           "onBreakSince": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "When the current open break began, or null if not on break"
           }
@@ -7039,16 +8127,16 @@
             ]
           },
           "recipientName": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "The care recipient the visit was with"
           },
           "clockInAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "clockOutAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "activeSeconds": {
@@ -7085,11 +8173,11 @@
             ]
           },
           "clockInAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "clockOutAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           }
         },
@@ -7105,11 +8193,15 @@
         "properties": {
           "latitude": {
             "type": "number",
+            "minimum": -90,
+            "maximum": 90,
             "example": 37.3861,
             "description": "Current latitude of the caregiver"
           },
           "longitude": {
             "type": "number",
+            "minimum": -180,
+            "maximum": 180,
             "example": -122.0839,
             "description": "Current longitude of the caregiver"
           }
@@ -7497,15 +8589,17 @@
         "properties": {
           "name": {
             "type": "string",
+            "maxLength": 200,
             "example": "Metformin"
           },
           "dose": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
+            "maxLength": 60,
             "example": "500 mg"
           },
           "scheduleMinute": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "minimum": 0,
             "maximum": 1439,
@@ -7759,7 +8853,7 @@
             "example": "123 Maple Street, Sunnyvale, CA 94086"
           },
           "photoKey": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           }
         },
@@ -7804,7 +8898,7 @@
             "example": 2028
           },
           "cardHolderName": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "Raener Yaeger"
           },
@@ -7835,11 +8929,13 @@
         "properties": {
           "reference": {
             "type": "string",
+            "maxLength": 200,
             "description": "The setup reference returned by the start step and completed by the client",
             "example": "seti_1P0abcXY"
           },
           "cardHolderName": {
             "type": "string",
+            "maxLength": 200,
             "description": "The name the owner gave the card, for display (not the card data)",
             "example": "Raener Yaeger"
           }
@@ -7863,12 +8959,12 @@
             "description": "Echo this back to the confirm endpoint once setup completes"
           },
           "clientSecret": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Stripe SetupIntent client secret, else null"
           },
           "authorizationUrl": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Paystack hosted page URL, else null"
           }
@@ -7912,11 +9008,11 @@
             "type": "number"
           },
           "clientSecret": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "authorizationUrl": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           }
         },
@@ -7996,7 +9092,7 @@
             ]
           },
           "maskedReference": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Last four of the verified document"
           },
@@ -8020,12 +9116,12 @@
             }
           },
           "clientSecret": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Client secret to run the provider SDK (US), returned only on submit"
           },
           "verifiedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           }
         },
@@ -8065,13 +9161,15 @@
         "properties": {
           "firstName": {
             "type": "string",
-            "example": "Ada",
-            "maxLength": 100
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Ada"
           },
           "lastName": {
             "type": "string",
-            "example": "Obi",
-            "maxLength": 100
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Obi"
           },
           "dateOfBirth": {
             "type": "string",
@@ -8088,11 +9186,14 @@
           },
           "idNumber": {
             "type": "string",
+            "minLength": 5,
+            "maxLength": 40,
             "example": "12345678901",
             "description": "NIN, licence or passport (Nigeria)"
           },
           "faceImage": {
             "type": "string",
+            "maxLength": 3000000,
             "description": "Live selfie as base64 (Nigeria); never stored"
           }
         },
@@ -8316,9 +9417,9 @@
           },
           "hours": {
             "type": "number",
-            "example": 6,
             "minimum": 3,
             "maximum": 24,
+            "example": 6,
             "description": "Hours per booking"
           },
           "serviceDate": {
@@ -8328,6 +9429,7 @@
           },
           "startTime": {
             "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
             "example": "09:00",
             "description": "Start time on the hour in HH:mm 24 hour format"
           }
@@ -8414,16 +9516,16 @@
             "type": "string"
           },
           "photoKey": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "latitude": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "example": 37.3861
           },
           "longitude": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "example": -122.0839
           },
@@ -8452,7 +9554,7 @@
             ]
           },
           "completedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "createdAt": {
@@ -8509,12 +9611,12 @@
             }
           },
           "startMinute": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "example": 540
           },
           "visitDurationMinutes": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "example": 180
           }
@@ -8572,12 +9674,12 @@
             "example": "Metformin"
           },
           "dose": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "500 mg"
           },
           "scheduleMinute": {
-            "type": "object",
+            "type": "number",
             "nullable": true,
             "example": 510,
             "description": "Minutes from midnight"
@@ -8649,28 +9751,33 @@
           },
           "expectedDuration": {
             "type": "string",
-            "example": "3 to 6 months",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "3 to 6 months"
           },
           "days": {
             "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Weekday"
+            },
             "example": [
               "MONDAY",
               "WEDNESDAY",
               "FRIDAY"
             ],
-            "description": "Weekdays the recurring visit falls on",
-            "items": {
-              "$ref": "#/components/schemas/Weekday"
-            }
+            "description": "Weekdays the recurring visit falls on"
           },
           "startMinute": {
             "type": "number",
+            "minimum": 0,
+            "maximum": 1439,
             "example": 540,
             "description": "Visit start time as minutes from midnight (0 to 1439)"
           },
           "visitDurationMinutes": {
             "type": "number",
+            "minimum": 1,
+            "maximum": 1440,
             "example": 180,
             "description": "How long a single visit lasts, in minutes"
           }
@@ -8691,7 +9798,8 @@
             ],
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200
             }
           },
           "allergies": {
@@ -8700,7 +9808,8 @@
             ],
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200
             }
           },
           "needsMedicationHelp": {
@@ -8723,14 +9832,14 @@
         "properties": {
           "careNeeds": {
             "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CareNeed"
+            },
             "example": [
               "BATHING",
               "MEAL_PREPARATION"
             ],
-            "description": "Select all that apply; an empty list is allowed",
-            "items": {
-              "$ref": "#/components/schemas/CareNeed"
-            }
+            "description": "Select all that apply; an empty list is allowed"
           }
         },
         "required": [
@@ -8742,8 +9851,9 @@
         "properties": {
           "name": {
             "type": "string",
-            "example": "Grace Okafor",
-            "maxLength": 200
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Grace Okafor"
           },
           "gender": {
             "example": "FEMALE",
@@ -8760,43 +9870,52 @@
           },
           "city": {
             "type": "string",
-            "example": "Lagos",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Lagos"
           },
           "state": {
             "type": "string",
-            "example": "Lagos State",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Lagos State"
           },
           "fullAddress": {
             "type": "string",
-            "example": "No 4 Okeowoyomi street",
-            "maxLength": 300
+            "minLength": 1,
+            "maxLength": 300,
+            "example": "No 4 Okeowoyomi street"
           },
           "relationship": {
             "type": "string",
-            "example": "Parent",
+            "minLength": 1,
             "maxLength": 120,
+            "example": "Parent",
             "description": "Relationship to the family owner"
           },
           "livingSituation": {
             "type": "string",
-            "example": "Lives with family",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Lives with family"
           },
           "photoKey": {
             "type": "string",
-            "example": "care-recipients/photos/abc123.jpg",
             "maxLength": 500,
+            "example": "care-recipients/photos/abc123.jpg",
             "description": "Opaque storage key for a previously uploaded profile picture"
           },
           "latitude": {
             "type": "number",
+            "minimum": -90,
+            "maximum": 90,
             "example": 37.3861,
             "description": "Pinned latitude of the address; required later for the arrival geofence"
           },
           "longitude": {
             "type": "number",
+            "minimum": -180,
+            "maximum": 180,
             "example": -122.0839,
             "description": "Pinned longitude of the address; sent together with latitude"
           }
@@ -8837,9 +9956,9 @@
           },
           "sessionTimeoutMinutes": {
             "type": "number",
-            "example": 15,
             "minimum": 1,
-            "maximum": 1440
+            "maximum": 1440,
+            "example": 15
           }
         }
       },
@@ -8901,12 +10020,12 @@
             ]
           },
           "deviceLabel": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "iPhone 15"
           },
           "ipAddress": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "102.89.34.12"
           }
@@ -8960,7 +10079,7 @@
             "example": "iPhone 15"
           },
           "ipAddress": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "102.89.34.12"
           },
@@ -8989,6 +10108,8 @@
         "properties": {
           "password": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
             "example": "S3curePass",
             "description": "The current password, required to lower the account security"
           }
@@ -9017,6 +10138,7 @@
         "properties": {
           "code": {
             "type": "string",
+            "pattern": "^\\d{6}$",
             "example": "123456",
             "description": "The 6 digit code from the authenticator app for the pending secret"
           }
@@ -9118,17 +10240,17 @@
             ]
           },
           "dateOfBirth": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "1990-03-15"
           },
           "relationshipToRecipient": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "example": "Son"
           },
           "photoUrl": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Signed avatar URL, or null when none is set"
           }
@@ -9167,7 +10289,7 @@
             "type": "string"
           },
           "line2": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "city": {
@@ -9215,10 +10337,14 @@
         "properties": {
           "currentPassword": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
             "example": "CurrentPassw0rd"
           },
           "newPassword": {
             "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
             "example": "BrandNewPassw0rd"
           }
         },
@@ -9232,13 +10358,15 @@
         "properties": {
           "resetToken": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
             "description": "The reset token returned by verifying the reset code"
           },
           "newPassword": {
             "type": "string",
-            "example": "S3curePass",
             "minLength": 8,
             "maxLength": 128,
+            "example": "S3curePass",
             "description": "At least 8 characters with an uppercase letter, a lowercase letter and a digit"
           }
         },
@@ -9264,11 +10392,13 @@
         "properties": {
           "email": {
             "type": "string",
-            "example": "ada.obi@example.com",
-            "maxLength": 255
+            "maxLength": 255,
+            "format": "email",
+            "example": "ada.obi@example.com"
           },
           "code": {
             "type": "string",
+            "pattern": "^\\d{4,10}$",
             "example": "123456",
             "description": "The numeric code sent by email"
           }
@@ -9283,8 +10413,9 @@
         "properties": {
           "email": {
             "type": "string",
-            "example": "ada.obi@example.com",
-            "maxLength": 255
+            "maxLength": 255,
+            "format": "email",
+            "example": "ada.obi@example.com"
           }
         },
         "required": [
@@ -9296,8 +10427,9 @@
         "properties": {
           "email": {
             "type": "string",
-            "example": "ada.obi@example.com",
-            "maxLength": 255
+            "maxLength": 255,
+            "format": "email",
+            "example": "ada.obi@example.com"
           }
         },
         "required": [
@@ -9309,11 +10441,13 @@
         "properties": {
           "email": {
             "type": "string",
-            "example": "ada.obi@example.com",
-            "maxLength": 255
+            "maxLength": 255,
+            "format": "email",
+            "example": "ada.obi@example.com"
           },
           "code": {
             "type": "string",
+            "pattern": "^\\d{4,10}$",
             "example": "123456",
             "description": "The numeric code sent by email"
           }
@@ -9328,6 +10462,8 @@
         "properties": {
           "refreshToken": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
             "description": "The refresh token to revoke"
           }
         },
@@ -9340,6 +10476,7 @@
         "properties": {
           "refreshToken": {
             "type": "string",
+            "minLength": 1,
             "description": "A valid admin refresh token"
           }
         },
@@ -9352,10 +10489,13 @@
         "properties": {
           "challengeToken": {
             "type": "string",
+            "minLength": 1,
             "description": "The short lived challenge token returned by login"
           },
           "code": {
             "type": "string",
+            "minLength": 6,
+            "maxLength": 20,
             "example": "123456",
             "description": "A 6 digit authenticator code, or one of the backup recovery codes"
           }
@@ -9373,7 +10513,7 @@
             "description": "True when a second factor is required to finish signing in"
           },
           "challengeToken": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Short lived token to submit with the second factor; null when not required"
           },
@@ -9399,13 +10539,15 @@
         "properties": {
           "email": {
             "type": "string",
-            "example": "ada.obi@example.com",
-            "maxLength": 255
+            "maxLength": 255,
+            "format": "email",
+            "example": "ada.obi@example.com"
           },
           "password": {
             "type": "string",
-            "example": "S3curePass",
-            "maxLength": 128
+            "minLength": 1,
+            "maxLength": 128,
+            "example": "S3curePass"
           }
         },
         "required": [
@@ -9440,62 +10582,71 @@
         "properties": {
           "firstName": {
             "type": "string",
-            "example": "Ada",
-            "maxLength": 100
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Ada"
           },
           "lastName": {
             "type": "string",
-            "example": "Obi",
-            "maxLength": 100
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Obi"
           },
           "email": {
             "type": "string",
-            "example": "ada.obi@example.com",
-            "maxLength": 255
+            "maxLength": 255,
+            "format": "email",
+            "example": "ada.obi@example.com"
           },
           "phone": {
             "type": "string",
+            "minLength": 7,
+            "maxLength": 20,
             "example": "+2348012345678",
             "description": "United States or Nigeria phone number in E.164, international or local form"
           },
           "addressLine1": {
             "type": "string",
-            "example": "12 Marina Road",
-            "maxLength": 200
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "12 Marina Road"
           },
           "addressLine2": {
             "type": "string",
-            "example": "Apartment 4B",
-            "maxLength": 200
+            "maxLength": 200,
+            "example": "Apartment 4B"
           },
           "city": {
             "type": "string",
-            "example": "Lagos",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Lagos"
           },
           "state": {
             "type": "string",
-            "example": "Lagos",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Lagos"
           },
           "postalCode": {
             "type": "string",
-            "example": "101233",
-            "maxLength": 20
+            "minLength": 1,
+            "maxLength": 20,
+            "example": "101233"
           },
           "country": {
             "type": "string",
-            "example": "NG",
             "enum": [
               "US",
               "NG"
-            ]
+            ],
+            "example": "NG"
           },
           "password": {
             "type": "string",
-            "example": "S3curePass",
             "minLength": 8,
             "maxLength": 128,
+            "example": "S3curePass",
             "description": "At least 8 characters with an uppercase letter, a lowercase letter and a digit"
           }
         },
@@ -9517,6 +10668,7 @@
         "properties": {
           "password": {
             "type": "string",
+            "minLength": 1,
             "description": "The current password, to confirm this high risk action"
           }
         },
@@ -9528,66 +10680,71 @@
         "type": "object",
         "properties": {
           "photoKey": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
+            "maxLength": 500,
             "description": "The object store key from a completed upload, or null to clear the photo",
             "example": "avatars/1a2b/photo"
           }
-        },
-        "required": [
-          "photoKey"
-        ]
+        }
       },
       "UpdateProfileRequestDto": {
         "type": "object",
         "properties": {
           "firstName": {
             "type": "string",
-            "example": "Andy",
-            "maxLength": 100
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Andy"
           },
           "lastName": {
             "type": "string",
-            "example": "Pratama",
-            "maxLength": 100
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Pratama"
           },
           "phone": {
             "type": "string",
-            "example": "+2348012345678",
-            "maxLength": 20
+            "minLength": 7,
+            "maxLength": 20,
+            "example": "+2348012345678"
           },
           "addressLine1": {
             "type": "string",
-            "example": "12 Marina Road",
-            "maxLength": 200
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "12 Marina Road"
           },
           "addressLine2": {
             "type": "string",
-            "example": "Apartment 4B",
-            "maxLength": 200
+            "maxLength": 200,
+            "example": "Apartment 4B"
           },
           "city": {
             "type": "string",
-            "example": "Lagos",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Lagos"
           },
           "state": {
             "type": "string",
-            "example": "Lagos",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Lagos"
           },
           "postalCode": {
             "type": "string",
-            "example": "101233",
-            "maxLength": 20
+            "minLength": 1,
+            "maxLength": 20,
+            "example": "101233"
           },
           "country": {
             "type": "string",
-            "example": "NG",
             "enum": [
               "US",
               "NG"
-            ]
+            ],
+            "example": "NG"
           },
           "dateOfBirth": {
             "type": "string",
@@ -9596,8 +10753,8 @@
           },
           "relationshipToRecipient": {
             "type": "string",
-            "example": "Son",
-            "maxLength": 120
+            "maxLength": 120,
+            "example": "Son"
           }
         },
         "required": [
@@ -9670,21 +10827,26 @@
         "properties": {
           "firstName": {
             "type": "string",
-            "example": "Ada",
-            "maxLength": 100
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Ada"
           },
           "lastName": {
             "type": "string",
-            "example": "Obi",
-            "maxLength": 100
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Obi"
           },
           "email": {
             "type": "string",
-            "example": "ada.obi@example.com",
-            "maxLength": 255
+            "maxLength": 255,
+            "format": "email",
+            "example": "ada.obi@example.com"
           },
           "phone": {
             "type": "string",
+            "minLength": 7,
+            "maxLength": 32,
             "example": "+2348012345678"
           }
         },
@@ -9693,6 +10855,40 @@
           "lastName",
           "email",
           "phone"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "Standard error envelope. Domain errors also carry a stable \"code\"; framework errors (validation, rate limit) omit it. Known codes: INVALID_CREDENTIALS (401), EMAIL_NOT_VERIFIED (403), KYC_REQUIRED (403), FORBIDDEN (403), VALIDATION_ERROR (400), NOT_FOUND (404), CONFLICT (409), OUTSIDE_GEOFENCE (422).",
+        "properties": {
+          "statusCode": {
+            "type": "integer",
+            "example": 401
+          },
+          "code": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stable domain error code; absent for framework errors.",
+            "example": "INVALID_CREDENTIALS"
+          },
+          "message": {
+            "type": "string",
+            "example": "Invalid credentials"
+          },
+          "path": {
+            "type": "string",
+            "example": "/api/v1/auth/login"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message",
+          "path",
+          "timestamp"
         ]
       }
     }

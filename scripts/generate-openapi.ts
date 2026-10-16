@@ -1,11 +1,10 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { VersioningType } from '@nestjs/common';
+import { VersioningType, type Type } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { OpenAPIObject } from '@nestjs/swagger';
-import { AppModule } from '../src/app.module';
 import { AppConfig } from '../src/config/configuration';
 
 /**
@@ -13,11 +12,29 @@ import { AppConfig } from '../src/config/configuration';
  * every admin back office route stripped out, and writes it to
  * `docs/openapi-mobile.json` for the frontend to consume ahead of a real deploy.
  *
- * It boots the application module to read the actual route metadata (the same way
- * `main.ts` builds the live docs), but never listens or connects: no server and no
- * database are touched. Environment values are loaded from `.env.example` so the
- * module validates and boots without a configured environment.
+ * It boots the COMPILED application module (from dist) to read the actual route
+ * metadata, but never listens or connects: no server and no database are touched.
+ * Environment values are loaded from `.env.example` so the module validates and
+ * boots without a configured environment.
+ *
+ * It must load the built module, not the TypeScript source: the @nestjs/swagger
+ * CLI plugin that infers DTO property types runs only during `nest build`, so
+ * generating from source (ts-node) collapses untyped @ApiProperty() fields to
+ * "object". Run `npm run build` first (the npm script does this).
  */
+
+/** Load the compiled AppModule so the swagger plugin's injected type metadata is present. */
+function loadBuiltAppModule(): Type<unknown> {
+  const entry = join(__dirname, '..', 'dist', 'app.module.js');
+  if (!existsSync(entry)) {
+    throw new Error(
+      'Build output not found at dist/. Run "npm run build" before generating the spec.',
+    );
+  }
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const mod = require(entry) as { AppModule: Type<unknown> };
+  return mod.AppModule;
+}
 
 /** Populate process.env from a dotenv style file for any key not already set. */
 function loadEnvFile(path: string): void {
@@ -51,6 +68,7 @@ async function generate(): Promise<void> {
   // The mobile app never talks to production; keep the environment as development.
   process.env.NODE_ENV = 'development';
 
+  const AppModule = loadBuiltAppModule();
   const app = await NestFactory.create(AppModule, { logger: false, abortOnError: false });
   try {
     const config = app.get(ConfigService);
@@ -76,6 +94,7 @@ async function generate(): Promise<void> {
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     const mobile = stripAdmin(document);
+    addErrorEnvelope(mobile);
 
     const outDir = join(__dirname, '..', 'docs');
     mkdirSync(outDir, { recursive: true });
@@ -106,6 +125,58 @@ function stripAdmin(document: OpenAPIObject): OpenAPIObject {
 }
 
 type SchemaMap = NonNullable<NonNullable<OpenAPIObject['components']>['schemas']>;
+
+/** The shared error envelope every endpoint returns on failure. */
+const ERROR_RESPONSE_SCHEMA = {
+  type: 'object',
+  description:
+    'Standard error envelope. Domain errors also carry a stable "code"; framework ' +
+    'errors (validation, rate limit) omit it. Known codes: INVALID_CREDENTIALS (401), ' +
+    'EMAIL_NOT_VERIFIED (403), KYC_REQUIRED (403), FORBIDDEN (403), VALIDATION_ERROR (400), ' +
+    'NOT_FOUND (404), CONFLICT (409), OUTSIDE_GEOFENCE (422).',
+  properties: {
+    statusCode: { type: 'integer', example: 401 },
+    code: {
+      type: 'string',
+      nullable: true,
+      description: 'Stable domain error code; absent for framework errors.',
+      example: 'INVALID_CREDENTIALS',
+    },
+    message: { type: 'string', example: 'Invalid credentials' },
+    path: { type: 'string', example: '/api/v1/auth/login' },
+    timestamp: { type: 'string', format: 'date-time' },
+  },
+  required: ['statusCode', 'message', 'path', 'timestamp'],
+};
+
+const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const;
+
+/**
+ * Document the shared error envelope as a reusable `ErrorResponse` schema and attach
+ * it as the `default` (error) response on every operation, so the client knows the
+ * exact failure body shape and the domain codes to branch on.
+ */
+function addErrorEnvelope(document: OpenAPIObject): void {
+  const components = (document.components ??= {});
+  const schemas = (components.schemas ??= {});
+  schemas.ErrorResponse = ERROR_RESPONSE_SCHEMA;
+
+  for (const item of Object.values(document.paths)) {
+    for (const method of HTTP_METHODS) {
+      const operation = item[method];
+      if (operation === undefined) {
+        continue;
+      }
+      operation.responses ??= {};
+      operation.responses.default ??= {
+        description: 'Error envelope: statusCode, optional domain code, message, path, timestamp.',
+        content: {
+          'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+        },
+      };
+    }
+  }
+}
 
 const SCHEMA_REF = /"#\/components\/schemas\/([^"]+)"/g;
 
