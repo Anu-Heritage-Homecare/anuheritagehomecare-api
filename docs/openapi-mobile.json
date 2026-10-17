@@ -1490,6 +1490,44 @@
         ]
       }
     },
+    "/api/v1/care-recipients/photo/upload-ticket": {
+      "post": {
+        "description": "Upload the file directly to the returned uploadUrl, then send the returned key as photoKey when creating or updating the care recipient draft.",
+        "operationId": "CareRecipientsController_issuePhotoTicket_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareRecipientPhotoTicketResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Issue a signed ticket to upload a loved one's profile photo",
+        "tags": [
+          "care-recipients"
+        ]
+      }
+    },
     "/api/v1/care-recipients": {
       "post": {
         "operationId": "CareRecipientsController_create_v1",
@@ -4213,6 +4251,53 @@
         ]
       }
     },
+    "/api/v1/profile/preferences/phone-tools": {
+      "patch": {
+        "operationId": "ProfileController_savePhoneTools_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePhoneToolsRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the onboarding phone tools toggles (location services and push notifications)",
+        "tags": [
+          "profile"
+        ]
+      }
+    },
     "/api/v1/profile/emergency-contact": {
       "get": {
         "operationId": "ProfileController_emergencyContact_v1",
@@ -4608,6 +4693,48 @@
           }
         ],
         "summary": "Rotate the calendar feed token, invalidating the old URL",
+        "tags": [
+          "profile"
+        ]
+      }
+    },
+    "/api/v1/profile/care-circle/preview": {
+      "post": {
+        "operationId": "CareCirclePreviewController_previewCode_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemCareCodeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareCirclePreviewResponseDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error envelope: statusCode, optional domain code, message, path, timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Preview whose care circle a code belongs to, before joining",
         "tags": [
           "profile"
         ]
@@ -5637,6 +5764,38 @@
           "durationMinutes"
         ]
       },
+      "CareCirclePreviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "ownerName": {
+            "type": "string",
+            "example": "Joseph Simon"
+          },
+          "ownerPhotoUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "The owner's avatar URL, or null when none is set"
+          }
+        },
+        "required": [
+          "ownerName",
+          "ownerPhotoUrl"
+        ]
+      },
+      "RedeemCareCodeRequestDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "example": "CARE-7319-KLM2"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
       "CalendarFeedResponseDto": {
         "type": "object",
         "properties": {
@@ -5687,20 +5846,6 @@
         "required": [
           "ownerName",
           "alreadyMember"
-        ]
-      },
-      "RedeemCareCodeRequestDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40,
-            "example": "CARE-7319-KLM2"
-          }
-        },
-        "required": [
-          "code"
         ]
       },
       "CareCodeResponseDto": {
@@ -5876,6 +6021,16 @@
               "MEDIUM",
               "LARGE"
             ]
+          },
+          "locationServicesEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Phone tools: device location permission opted in"
+          },
+          "pushNotificationsEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Phone tools: push notification permission opted in"
           }
         },
         "required": [
@@ -5886,7 +6041,9 @@
           "dateFormat",
           "timeFormat",
           "soundEnabled",
-          "textSize"
+          "textSize",
+          "locationServicesEnabled",
+          "pushNotificationsEnabled"
         ]
       },
       "NotificationPreferencesDto": {
@@ -5934,6 +6091,25 @@
           "invoicesAndPayments",
           "paymentReminders",
           "marketingAndOffers"
+        ]
+      },
+      "UpdatePhoneToolsRequestDto": {
+        "type": "object",
+        "properties": {
+          "locationServicesEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the owner granted device location services"
+          },
+          "pushNotificationsEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether the owner granted push notifications"
+          }
+        },
+        "required": [
+          "locationServicesEnabled",
+          "pushNotificationsEnabled"
         ]
       },
       "UpdatePreferencesRequestDto": {
@@ -6172,16 +6348,100 @@
         "type": "object",
         "properties": {
           "vitals": {
+            "nullable": true,
             "type": "object",
-            "nullable": true
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VisitVitalsDto"
+              }
+            ]
           },
           "observation": {
-            "type": "object"
+            "$ref": "#/components/schemas/VisitObservationDto"
           }
         },
         "required": [
           "vitals",
           "observation"
+        ]
+      },
+      "VisitObservationDto": {
+        "type": "object",
+        "properties": {
+          "mood": {
+            "type": "string",
+            "nullable": true,
+            "example": "Good"
+          },
+          "appetite": {
+            "type": "string",
+            "nullable": true,
+            "example": "Ate well"
+          },
+          "mobility": {
+            "type": "string",
+            "nullable": true,
+            "example": "Walked with walker"
+          },
+          "medicationStatus": {
+            "type": "string",
+            "nullable": true,
+            "example": "All taken"
+          }
+        },
+        "required": [
+          "mood",
+          "appetite",
+          "mobility",
+          "medicationStatus"
+        ]
+      },
+      "VisitVitalsDto": {
+        "type": "object",
+        "properties": {
+          "systolic": {
+            "type": "number",
+            "nullable": true,
+            "example": 120
+          },
+          "diastolic": {
+            "type": "number",
+            "nullable": true,
+            "example": 80
+          },
+          "heartRate": {
+            "type": "number",
+            "nullable": true,
+            "example": 72
+          },
+          "oxygenSaturation": {
+            "type": "number",
+            "nullable": true,
+            "example": 98
+          },
+          "weightGrams": {
+            "type": "number",
+            "nullable": true,
+            "example": 98000,
+            "description": "Weight in whole grams"
+          },
+          "temperatureCelsius": {
+            "type": "number",
+            "nullable": true,
+            "example": 36.8
+          },
+          "recordedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "systolic",
+          "diastolic",
+          "heartRate",
+          "oxygenSaturation",
+          "weightGrams",
+          "temperatureCelsius",
+          "recordedAt"
         ]
       },
       "VisitTaskDto": {
@@ -6809,8 +7069,7 @@
         "type": "object",
         "properties": {
           "recipient": {
-            "type": "object",
-            "description": "The recipient card (id, name, gender, age, photoKey)"
+            "$ref": "#/components/schemas/CareOverviewRecipientDto"
           },
           "carePlanName": {
             "type": "string",
@@ -6818,9 +7077,14 @@
             "example": "Standard Care"
           },
           "caregiver": {
-            "type": "object",
             "nullable": true,
-            "description": "The caregiver on today’s visit"
+            "description": "The caregiver on today’s visit",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CareRefDto"
+              }
+            ]
           },
           "currentVisitId": {
             "type": "string",
@@ -6828,8 +7092,7 @@
             "format": "uuid"
           },
           "summary": {
-            "type": "object",
-            "description": "Counts for the overview list (tasks, medications, notes, photos)"
+            "$ref": "#/components/schemas/CareOverviewSummaryDto"
           }
         },
         "required": [
@@ -6838,6 +7101,93 @@
           "caregiver",
           "currentVisitId",
           "summary"
+        ]
+      },
+      "CareOverviewSummaryDto": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "$ref": "#/components/schemas/CountPairDto"
+          },
+          "medications": {
+            "$ref": "#/components/schemas/CountPairDto"
+          },
+          "hasVitals": {
+            "type": "boolean"
+          },
+          "notesCount": {
+            "type": "number"
+          },
+          "photosCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "tasks",
+          "medications",
+          "hasVitals",
+          "notesCount",
+          "photosCount"
+        ]
+      },
+      "CountPairDto": {
+        "type": "object",
+        "properties": {
+          "completed": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "completed",
+          "total"
+        ]
+      },
+      "CareRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "CareOverviewRecipientDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "age": {
+            "type": "number"
+          },
+          "photoKey": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "gender",
+          "age",
+          "photoKey"
         ]
       },
       "FamilyDashboardResponseDto": {
@@ -9929,6 +10279,31 @@
           "fullAddress",
           "relationship",
           "livingSituation"
+        ]
+      },
+      "CareRecipientPhotoTicketResponseDto": {
+        "type": "object",
+        "properties": {
+          "uploadUrl": {
+            "type": "string",
+            "description": "Where the client POSTs the multipart upload"
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Form fields to send alongside the file"
+          },
+          "key": {
+            "type": "string",
+            "description": "The key to persist as photoKey on the care recipient"
+          }
+        },
+        "required": [
+          "uploadUrl",
+          "fields",
+          "key"
         ]
       },
       "SecurityPreferencesResponseDto": {
