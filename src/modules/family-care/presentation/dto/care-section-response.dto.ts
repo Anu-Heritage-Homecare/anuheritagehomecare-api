@@ -5,22 +5,52 @@ import {
   RecipientHealthResult,
 } from '../../application/dto/care-section.result';
 
+/** The recipient card shown at the top of the Care Overview. */
+class CareOverviewRecipientDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() gender!: string;
+  @ApiProperty() age!: number;
+  @ApiProperty({ nullable: true, type: String }) photoKey!: string | null;
+}
+
+/** A minimal person reference (id and display name). */
+class CareRefDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty() name!: string;
+}
+
+/** A completed/total count pair. */
+class CountPairDto {
+  @ApiProperty() completed!: number;
+  @ApiProperty() total!: number;
+}
+
+/** The at a glance counts on the Care Overview. */
+class CareOverviewSummaryDto {
+  @ApiProperty({ type: CountPairDto }) tasks!: CountPairDto;
+  @ApiProperty({ type: CountPairDto }) medications!: CountPairDto;
+  @ApiProperty() hasVitals!: boolean;
+  @ApiProperty() notesCount!: number;
+  @ApiProperty() photosCount!: number;
+}
+
 /** The family owner's Care Overview for a recipient. */
 export class CareOverviewResponseDto {
-  @ApiProperty({ description: 'The recipient card (id, name, gender, age, photoKey)' })
-  recipient!: CareOverviewResult['recipient'];
+  @ApiProperty({ type: CareOverviewRecipientDto })
+  recipient!: CareOverviewRecipientDto;
 
   @ApiProperty({ nullable: true, example: 'Standard Care' })
   carePlanName!: string | null;
 
-  @ApiProperty({ nullable: true, description: 'The caregiver on today’s visit' })
-  caregiver!: CareOverviewResult['caregiver'];
+  @ApiProperty({ type: CareRefDto, nullable: true, description: 'The caregiver on today’s visit' })
+  caregiver!: CareRefDto | null;
 
   @ApiProperty({ nullable: true, format: 'uuid' })
   currentVisitId!: string | null;
 
-  @ApiProperty({ description: 'Counts for the overview list (tasks, medications, notes, photos)' })
-  summary!: CareOverviewResult['summary'];
+  @ApiProperty({ type: CareOverviewSummaryDto })
+  summary!: CareOverviewSummaryDto;
 
   static fromResult(result: CareOverviewResult): CareOverviewResponseDto {
     return Object.assign(new CareOverviewResponseDto(), result);

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, buildConfig } from './config/configuration';
 import { validateEnv } from './config/env.validation';
@@ -42,6 +42,7 @@ import { VisitsModule } from './modules/visits/visits.module';
 import { TrackingModule } from './modules/tracking/tracking.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityModule } from './modules/identity/identity.module';
+import { ThrottlerRetryAfterGuard } from './shared/presentation/throttler-retry-after.guard';
 import { AllExceptionsFilter } from './shared/infrastructure/http/all-exceptions.filter';
 import { DomainExceptionFilter } from './shared/infrastructure/http/domain-exception.filter';
 import { PrismaModule } from './shared/infrastructure/prisma/prisma.module';
@@ -168,7 +169,7 @@ import { SharedModule } from './shared/shared.module';
     AdminLiveMonitoringModule,
   ],
   providers: [
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: ThrottlerRetryAfterGuard },
     // Order matters: the catch all is registered first so the domain specific
     // filter (registered later) takes precedence for domain exceptions.
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

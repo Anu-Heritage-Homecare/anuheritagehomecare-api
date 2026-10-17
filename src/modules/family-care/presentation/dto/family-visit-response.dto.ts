@@ -112,12 +112,28 @@ class VisitPhotoDto {
   url!: string;
 }
 
-class VisitHealthDto {
-  @ApiProperty({ nullable: true })
-  vitals!: FamilyVisitDetailResult['health']['vitals'];
+class VisitVitalsDto {
+  @ApiProperty({ nullable: true, type: Number }) systolic!: number | null;
+  @ApiProperty({ nullable: true, type: Number }) diastolic!: number | null;
+  @ApiProperty({ nullable: true, type: Number }) heartRate!: number | null;
+  @ApiProperty({ nullable: true, type: Number }) temperatureCelsius!: number | null;
+  @ApiProperty({ nullable: true, type: Number }) oxygenSaturation!: number | null;
+  @ApiProperty() recordedAt!: string;
+}
 
-  @ApiProperty()
-  observation!: FamilyVisitDetailResult['health']['observation'];
+class VisitObservationDto {
+  @ApiProperty({ nullable: true, type: String }) mood!: string | null;
+  @ApiProperty({ nullable: true, type: String }) appetite!: string | null;
+  @ApiProperty({ nullable: true, type: String }) mobility!: string | null;
+  @ApiProperty({ nullable: true, type: String }) medicationStatus!: string | null;
+}
+
+class VisitHealthDto {
+  @ApiProperty({ type: VisitVitalsDto, nullable: true })
+  vitals!: VisitVitalsDto | null;
+
+  @ApiProperty({ type: VisitObservationDto })
+  observation!: VisitObservationDto;
 }
 
 class VisitNoteDto {
