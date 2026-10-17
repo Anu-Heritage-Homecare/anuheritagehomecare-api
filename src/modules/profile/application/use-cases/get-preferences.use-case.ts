@@ -16,6 +16,8 @@ export interface PreferencesResult {
   timeFormat: string;
   soundEnabled: boolean;
   textSize: string;
+  locationServicesEnabled: boolean;
+  pushNotificationsEnabled: boolean;
 }
 
 /**
@@ -49,5 +51,7 @@ export function toPreferencesResult(stored: ProfilePreferences): PreferencesResu
     timeFormat: stored.timeFormat,
     soundEnabled: stored.soundEnabled,
     textSize: stored.textSize,
+    locationServicesEnabled: stored.locationServicesEnabled,
+    pushNotificationsEnabled: stored.pushNotificationsEnabled,
   };
 }

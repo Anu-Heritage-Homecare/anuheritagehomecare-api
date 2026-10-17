@@ -38,6 +38,11 @@ export interface RedeemCareCodeResult {
   alreadyMember: boolean;
 }
 
+export interface CareCodePreviewResult {
+  ownerName: string;
+  ownerPhotoUrl: string | null;
+}
+
 export interface MemberAccessResult {
   id: string;
   relationship: string;
@@ -218,6 +223,40 @@ export class RedeemCareCodeUseCase {
     });
     await this.members.save(member);
     return { ownerName, alreadyMember: false };
+  }
+}
+
+/**
+ * Use case: preview the care circle behind a code BEFORE joining, so the app can
+ * show a confirmation step. Public (no authentication) because the person has not
+ * joined yet; the code itself is the bearer credential. Discloses only the owner's
+ * display name and avatar, never membership or any health or account data, and
+ * returns the same error whether the code is unknown, expired or revoked so a
+ * guesser cannot probe which codes exist. Rate limiting is applied at the edge.
+ */
+@Injectable()
+export class PreviewCareCodeUseCase {
+  constructor(
+    @Inject(CARE_CODE_REPOSITORY) private readonly codes: CareCodeRepository,
+    @Inject(PROFILE_USER_DIRECTORY) private readonly users: ProfileUserDirectory,
+    @Inject(PHOTO_STORAGE) private readonly photos: PhotoStorage,
+    @Inject(CLOCK) private readonly clock: Clock,
+  ) {}
+
+  async execute(query: { code: string }): Promise<CareCodePreviewResult> {
+    const now = this.clock.now();
+    const found = await this.codes.findByCode(normaliseCareCode(query.code));
+    if (found === null || !found.isRedeemable(now)) {
+      throw new ValidationException('That care code is not valid or has expired');
+    }
+
+    const owner = await this.users.findById(found.ownerId);
+    const ownerName =
+      owner === null ? 'your family' : `${owner.firstName} ${owner.lastName}`.trim();
+    const photoKey = owner?.photoKey ?? null;
+    const url = photoKey === null || photoKey.length === 0 ? '' : this.photos.urlFor(photoKey);
+
+    return { ownerName, ownerPhotoUrl: url.length === 0 ? null : url };
   }
 }
 

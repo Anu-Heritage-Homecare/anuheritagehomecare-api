@@ -3,6 +3,7 @@ import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validato
 import {
   CareCircleMemberView,
   CareCircleView,
+  CareCodePreviewResult,
   CareCodeView,
   RedeemCareCodeResult,
 } from '../../application/use-cases/care-circle.use-cases';
@@ -67,6 +68,19 @@ export class CareCodeResponseDto {
 
   static fromView(view: CareCodeView): CareCodeResponseDto {
     return Object.assign(new CareCodeResponseDto(), view);
+  }
+}
+
+/** HTTP response previewing a care code before joining: whose circle it is. */
+export class CareCirclePreviewResponseDto {
+  @ApiProperty({ example: 'Joseph Simon' })
+  ownerName!: string;
+
+  @ApiProperty({ nullable: true, description: "The owner's avatar URL, or null when none is set" })
+  ownerPhotoUrl!: string | null;
+
+  static fromResult(result: CareCodePreviewResult): CareCirclePreviewResponseDto {
+    return Object.assign(new CareCirclePreviewResponseDto(), result);
   }
 }
 

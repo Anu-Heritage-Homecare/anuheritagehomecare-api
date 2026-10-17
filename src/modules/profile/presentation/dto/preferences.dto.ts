@@ -62,6 +62,17 @@ export class UpdatePreferencesRequestDto {
   textSize!: string;
 }
 
+/** Request to set the onboarding phone tools toggles (location and push). */
+export class UpdatePhoneToolsRequestDto {
+  @ApiProperty({ example: true, description: 'Whether the owner granted device location services' })
+  @IsBoolean()
+  locationServicesEnabled!: boolean;
+
+  @ApiProperty({ example: true, description: 'Whether the owner granted push notifications' })
+  @IsBoolean()
+  pushNotificationsEnabled!: boolean;
+}
+
 /** HTTP response for the owner's preferences. */
 export class PreferencesResponseDto {
   @ApiProperty({ type: NotificationPreferencesDto })
@@ -87,6 +98,12 @@ export class PreferencesResponseDto {
 
   @ApiProperty({ example: 'MEDIUM', enum: TEXT_SIZES })
   textSize!: string;
+
+  @ApiProperty({ example: true, description: 'Phone tools: device location permission opted in' })
+  locationServicesEnabled!: boolean;
+
+  @ApiProperty({ example: true, description: 'Phone tools: push notification permission opted in' })
+  pushNotificationsEnabled!: boolean;
 
   static fromResult(result: PreferencesResult): PreferencesResponseDto {
     return Object.assign(new PreferencesResponseDto(), result);

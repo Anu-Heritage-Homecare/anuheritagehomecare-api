@@ -19,6 +19,7 @@ import {
 import {
   GetCareCircleUseCase,
   GetCareCodeUseCase,
+  PreviewCareCodeUseCase,
   RedeemCareCodeUseCase,
   RegenerateCareCodeUseCase,
   RemoveCareCircleMemberUseCase,
@@ -31,6 +32,7 @@ import {
 import { GetPreferencesUseCase } from './application/use-cases/get-preferences.use-case';
 import { GetProfileAccountUseCase } from './application/use-cases/get-profile-account.use-case';
 import { UpdatePreferencesUseCase } from './application/use-cases/update-preferences.use-case';
+import { UpdatePhoneToolsUseCase } from './application/use-cases/update-phone-tools.use-case';
 import { CALENDAR_FEED_REPOSITORY } from './domain/calendar-feed.repository';
 import { CARE_CODE_REPOSITORY } from './domain/care-code.repository';
 import { CARE_CIRCLE_REPOSITORY } from './domain/care-circle.repository';
@@ -44,6 +46,7 @@ import { CareCirclePrismaRepository } from './infrastructure/persistence/care-ci
 import { EmergencyContactPrismaRepository } from './infrastructure/persistence/emergency-contact-prisma.repository';
 import { ProfilePreferencesPrismaRepository } from './infrastructure/persistence/profile-preferences-prisma.repository';
 import { CalendarFeedController } from './presentation/calendar-feed.controller';
+import { CareCirclePreviewController } from './presentation/care-circle-preview.controller';
 import { ProfileController } from './presentation/profile.controller';
 
 /**
@@ -60,11 +63,12 @@ import { ProfileController } from './presentation/profile.controller';
     CareRecipientsModule,
     VisitsModule,
   ],
-  controllers: [ProfileController, CalendarFeedController],
+  controllers: [ProfileController, CalendarFeedController, CareCirclePreviewController],
   providers: [
     GetProfileAccountUseCase,
     GetPreferencesUseCase,
     UpdatePreferencesUseCase,
+    UpdatePhoneToolsUseCase,
     GetCalendarFeedUseCase,
     RegenerateCalendarFeedUseCase,
     GetCalendarIcsUseCase,
@@ -74,6 +78,7 @@ import { ProfileController } from './presentation/profile.controller';
     GetCareCodeUseCase,
     RegenerateCareCodeUseCase,
     RedeemCareCodeUseCase,
+    PreviewCareCodeUseCase,
     SetCareCircleMemberAccessUseCase,
     RemoveCareCircleMemberUseCase,
     { provide: PROFILE_USER_DIRECTORY, useClass: IdentityProfileUserDirectory },

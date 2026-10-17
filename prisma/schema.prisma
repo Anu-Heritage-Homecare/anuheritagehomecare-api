@@ -1410,6 +1410,9 @@ model ProfilePreferences {
   timeFormat          String  @default("TWELVE_HOUR") @db.VarChar(20)
   soundEnabled        Boolean @default(true)
   textSize            String  @default("MEDIUM") @db.VarChar(10)
+  // Phone tools (onboarding): device level permissions the owner opted into.
+  locationServicesEnabled  Boolean @default(true)
+  pushNotificationsEnabled Boolean @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

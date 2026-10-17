@@ -39,6 +39,8 @@ export class ProfilePreferencesMapper {
       timeFormat: oneOf(row.timeFormat, TIME_FORMATS, 'TWELVE_HOUR'),
       soundEnabled: row.soundEnabled,
       textSize: oneOf(row.textSize, TEXT_SIZES, 'MEDIUM'),
+      locationServicesEnabled: row.locationServicesEnabled,
+      pushNotificationsEnabled: row.pushNotificationsEnabled,
       updatedAt: row.updatedAt,
     });
   }
@@ -70,6 +72,8 @@ export class ProfilePreferencesMapper {
       timeFormat: preferences.timeFormat,
       soundEnabled: preferences.soundEnabled,
       textSize: preferences.textSize,
+      locationServicesEnabled: preferences.locationServicesEnabled,
+      pushNotificationsEnabled: preferences.pushNotificationsEnabled,
     };
   }
 }

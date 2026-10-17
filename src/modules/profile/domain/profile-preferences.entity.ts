@@ -58,6 +58,8 @@ interface ProfilePreferencesProps {
   timeFormat: TimeFormat;
   soundEnabled: boolean;
   textSize: TextSize;
+  locationServicesEnabled: boolean;
+  pushNotificationsEnabled: boolean;
   updatedAt: Date;
 }
 
@@ -102,6 +104,8 @@ export class ProfilePreferences extends Entity<string> {
       timeFormat: 'TWELVE_HOUR',
       soundEnabled: true,
       textSize: 'MEDIUM',
+      locationServicesEnabled: true,
+      pushNotificationsEnabled: true,
       updatedAt: now,
     });
   }
@@ -174,6 +178,17 @@ export class ProfilePreferences extends Entity<string> {
     this.props.updatedAt = now;
   }
 
+  /** Set the onboarding phone tools toggles (device location and push permissions). */
+  public setPhoneTools(
+    locationServicesEnabled: boolean,
+    pushNotificationsEnabled: boolean,
+    now: Date,
+  ): void {
+    this.props.locationServicesEnabled = locationServicesEnabled;
+    this.props.pushNotificationsEnabled = pushNotificationsEnabled;
+    this.props.updatedAt = now;
+  }
+
   public get notifications(): NotificationPreferences {
     return { ...this.props.notifications };
   }
@@ -204,6 +219,14 @@ export class ProfilePreferences extends Entity<string> {
 
   public get textSize(): TextSize {
     return this.props.textSize;
+  }
+
+  public get locationServicesEnabled(): boolean {
+    return this.props.locationServicesEnabled;
+  }
+
+  public get pushNotificationsEnabled(): boolean {
+    return this.props.pushNotificationsEnabled;
   }
 
   public get updatedAt(): Date {

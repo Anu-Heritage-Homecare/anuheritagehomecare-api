@@ -42,8 +42,13 @@ import {
 import { GetPreferencesUseCase } from '../application/use-cases/get-preferences.use-case';
 import { GetProfileAccountUseCase } from '../application/use-cases/get-profile-account.use-case';
 import { UpdatePreferencesUseCase } from '../application/use-cases/update-preferences.use-case';
+import { UpdatePhoneToolsUseCase } from '../application/use-cases/update-phone-tools.use-case';
 import { ProfileAccountResponseDto } from './dto/profile-account-response.dto';
-import { PreferencesResponseDto, UpdatePreferencesRequestDto } from './dto/preferences.dto';
+import {
+  PreferencesResponseDto,
+  UpdatePhoneToolsRequestDto,
+  UpdatePreferencesRequestDto,
+} from './dto/preferences.dto';
 import {
   CareCircleResponseDto,
   CareCodeResponseDto,
@@ -70,6 +75,7 @@ export class ProfileController {
     private readonly getAccount: GetProfileAccountUseCase,
     private readonly getPreferences: GetPreferencesUseCase,
     private readonly updatePreferences: UpdatePreferencesUseCase,
+    private readonly updatePhoneTools: UpdatePhoneToolsUseCase,
     private readonly getEmergencyContact: GetEmergencyContactUseCase,
     private readonly setEmergencyContact: SetEmergencyContactUseCase,
     private readonly getCareCircle: GetCareCircleUseCase,
@@ -119,6 +125,23 @@ export class ProfileController {
       timeFormat: body.timeFormat,
       soundEnabled: body.soundEnabled,
       textSize: body.textSize,
+    });
+    return PreferencesResponseDto.fromResult(result);
+  }
+
+  @Patch('preferences/phone-tools')
+  @ApiOperation({
+    summary: 'Set the onboarding phone tools toggles (location services and push notifications)',
+  })
+  @ApiOkResponse({ type: PreferencesResponseDto })
+  async savePhoneTools(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: UpdatePhoneToolsRequestDto,
+  ): Promise<PreferencesResponseDto> {
+    const result = await this.updatePhoneTools.execute({
+      userId: principal.userId,
+      locationServicesEnabled: body.locationServicesEnabled,
+      pushNotificationsEnabled: body.pushNotificationsEnabled,
     });
     return PreferencesResponseDto.fromResult(result);
   }
