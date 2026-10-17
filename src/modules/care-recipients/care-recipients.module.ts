@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { CreateCareRecipientDraftUseCase } from './application/use-cases/create-care-recipient-draft.use-case';
+import { CreateCareRecipientPhotoTicketUseCase } from './application/use-cases/create-care-recipient-photo-ticket.use-case';
 import { FinalizeCareRecipientUseCase } from './application/use-cases/finalize-care-recipient.use-case';
 import { GetCareRecipientUseCase } from './application/use-cases/get-care-recipient.use-case';
 import { ListCareRecipientsUseCase } from './application/use-cases/list-care-recipients.use-case';
@@ -54,6 +55,7 @@ import { CareRecipientsController } from './presentation/care-recipients.control
     GetCareRecipientUseCase,
     ListCareRecipientsUseCase,
     SetCareGoalsUseCase,
+    CreateCareRecipientPhotoTicketUseCase,
     { provide: CARE_RECIPIENT_REPOSITORY, useClass: CareRecipientPrismaRepository },
     { provide: CARE_GOAL_REPOSITORY, useClass: CareGoalPrismaRepository },
     { provide: CARE_PLAN_SCHEDULE_REPOSITORY, useClass: CarePlanSchedulePrismaRepository },

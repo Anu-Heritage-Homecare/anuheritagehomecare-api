@@ -21,6 +21,7 @@ import { AuthenticatedPrincipal } from '@shared/presentation/authenticated-princ
 import { CurrentUser } from '@shared/presentation/current-user.decorator';
 import { JwtAuthGuard } from '@shared/presentation/jwt-auth.guard';
 import { CreateCareRecipientDraftUseCase } from '../application/use-cases/create-care-recipient-draft.use-case';
+import { CreateCareRecipientPhotoTicketUseCase } from '../application/use-cases/create-care-recipient-photo-ticket.use-case';
 import { FinalizeCareRecipientUseCase } from '../application/use-cases/finalize-care-recipient.use-case';
 import { GetCareRecipientUseCase } from '../application/use-cases/get-care-recipient.use-case';
 import { ListCareRecipientsUseCase } from '../application/use-cases/list-care-recipients.use-case';
@@ -28,6 +29,7 @@ import { UpdateCareNeedsUseCase } from '../application/use-cases/update-care-nee
 import { UpdateCareScheduleUseCase } from '../application/use-cases/update-care-schedule.use-case';
 import { UpdateHealthInformationUseCase } from '../application/use-cases/update-health-information.use-case';
 import { CareRecipientResponseDto } from './dto/care-recipient-response.dto';
+import { CareRecipientPhotoTicketResponseDto } from './dto/photo-upload-ticket-response.dto';
 import { CreateCareRecipientDraftRequestDto } from './dto/create-care-recipient-draft-request.dto';
 import { UpdateCareNeedsRequestDto } from './dto/update-care-needs-request.dto';
 import { UpdateCareScheduleRequestDto } from './dto/update-care-schedule-request.dto';
@@ -52,7 +54,24 @@ export class CareRecipientsController {
     private readonly finalize: FinalizeCareRecipientUseCase,
     private readonly getOne: GetCareRecipientUseCase,
     private readonly list: ListCareRecipientsUseCase,
+    private readonly createPhotoTicket: CreateCareRecipientPhotoTicketUseCase,
   ) {}
+
+  @Post('photo/upload-ticket')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: "Issue a signed ticket to upload a loved one's profile photo",
+    description:
+      'Upload the file directly to the returned uploadUrl, then send the returned key ' +
+      'as photoKey when creating or updating the care recipient draft.',
+  })
+  @ApiCreatedResponse({ type: CareRecipientPhotoTicketResponseDto })
+  issuePhotoTicket(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): CareRecipientPhotoTicketResponseDto {
+    const ticket = this.createPhotoTicket.execute({ ownerId: principal.userId });
+    return CareRecipientPhotoTicketResponseDto.fromTicket(ticket);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
