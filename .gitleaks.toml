@@ -1,0 +1,17 @@
+# Gitleaks configuration for the secret scan in the delivery pipeline.
+# Extends the default ruleset and allowlists known non-secrets so the scan fails
+# only on real leaks.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures and CI placeholder values are not real secrets."
+# Unit test files use fake passwords, TOTP secrets and encryption keys as fixtures.
+paths = [
+  '''.*\.spec\.ts$''',
+]
+# The performance job in the pipeline uses obvious dummy secrets (prefixed
+# ci_dummy_) purely to satisfy env validation when booting the app for a load test.
+regexes = [
+  '''ci_dummy_[a-z0-9_]+''',
+]

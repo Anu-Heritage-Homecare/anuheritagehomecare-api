@@ -69,7 +69,7 @@ jobs:
           version=8.21.2
           curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
             | tar -xz -C /tmp gitleaks
-          /tmp/gitleaks detect --source . --redact --verbose --no-banner
+          /tmp/gitleaks detect --source . --config .gitleaks.toml --redact --verbose --no-banner
 
       - name: Dependency and config vulnerability scan (trivy)
         run: |
@@ -104,7 +104,9 @@ jobs:
           --health-cmd "pg_isready -U anu_app -d anuheritage"
           --health-interval 10s --health-timeout 5s --health-retries 5
     env:
-      NODE_ENV: production
+      # NODE_ENV is set only on the running step below. Setting it to production at
+      # job level would make `npm ci` skip devDependencies (rimraf, the Nest CLI),
+      # breaking the build.
       PORT: '3000'
       API_PREFIX: api
       API_DEFAULT_VERSION: '1'
@@ -137,6 +139,8 @@ jobs:
       - name: Build
         run: npm run build
       - name: Start API
+        env:
+          NODE_ENV: production
         run: |
           node dist/main.js &
           echo $! > /tmp/api.pid
