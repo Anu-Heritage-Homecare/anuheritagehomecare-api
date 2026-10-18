@@ -71,13 +71,10 @@ jobs:
             | tar -xz -C /tmp gitleaks
           /tmp/gitleaks detect --source . --config .gitleaks.toml --redact --verbose --no-banner
 
-      - name: Dependency and config vulnerability scan (trivy)
-        run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sh -s -- -b /usr/local/bin v0.56.2
-          trivy fs --scanners vuln,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 .
-          # Dockerfile / compose misconfiguration (informational, non blocking).
-          trivy config --severity HIGH,CRITICAL --exit-code 0 .
+      # Dependency vulns are gated above by npm audit (the shipped prod bundle);
+      # secrets by gitleaks; application code by semgrep below. A separate Trivy
+      # filesystem scan was dropped as redundant (it also over-reports devDependencies
+      # that never ship, since the runtime image is pruned with --omit=dev).
 
       - name: Static analysis (semgrep)
         run: |
