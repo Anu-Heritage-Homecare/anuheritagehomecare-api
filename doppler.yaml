@@ -1,0 +1,14 @@
+# Doppler project mapping for this repository. Doppler is the source of truth for
+# backend configuration and secrets (project "homecare").
+#
+# The default local config is "dev" so nobody runs against production by accident.
+# Create a "dev" config in the Doppler dashboard (branch it from "prd" and override
+# DATABASE_URL, CORS_ORIGINS and the provider keys with local/sandbox values), then:
+#   doppler login          # once, to authenticate the CLI
+#   doppler setup          # selects project=homecare, config=dev from this file
+#   npm run start:doppler  # runs the app with secrets injected (no .env file needed)
+#
+# Production (config "prd") is pulled in CI during deploy using a service token.
+setup:
+  project: homecare
+  config: dev

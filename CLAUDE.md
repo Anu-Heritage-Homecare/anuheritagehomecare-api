@@ -378,6 +378,25 @@ If a `deploy` ever fails midway, mark it rolled back with
 redeploy. `prisma migrate diff`/`deploy` never provision a shadow database, so they
 work with only the application role.
 
+## Secrets (Doppler)
+
+Doppler is the source of truth for backend configuration and secrets. The Doppler
+project is `homecare`; the production config is `prd` (fully populated with the 57
+backend env vars the app needs). `doppler.yaml` maps this repo to the project with
+a default local config of `dev` (create a `dev` config in the dashboard, branched
+from `prd` with local overrides, so nobody runs against production by accident).
+
+- **Local:** `doppler login` once, then `doppler setup`, then `npm run start:doppler`
+  injects the secrets (no `.env` file needed). `npm run env:pull` writes a local
+  `.env` from the selected config if a file is preferred.
+- **Production / deploy:** the GitHub Actions deploy job pulls the `prd` config from
+  the Doppler REST API (`?format=docker`) using the `DOPPLER_TOKEN` secret, writes
+  `deploy/.env` (gitignored), uses its `DATABASE_URL` for the migration, and scps it
+  to `/opt/anu-heritage/.env` on the VPS for docker compose. The VPS no longer needs
+  a hand written `.env`.
+- Never commit a real `.env` or any Doppler token. Rotate any token shared in chat.
+  The deploy no longer uses a `PROD_DATABASE_URL` secret; it needs `DOPPLER_TOKEN`.
+
 ## Definition of done for any change
 
 - [ ] Strictly typed, no `any`, lint clean with zero warnings.
