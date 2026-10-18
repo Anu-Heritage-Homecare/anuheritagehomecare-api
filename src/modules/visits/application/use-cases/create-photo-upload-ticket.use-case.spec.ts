@@ -14,7 +14,11 @@ describe('CreatePhotoUploadTicketUseCase', () => {
 
   beforeEach(() => {
     createUploadTicket = jest.fn(() => ({ uploadUrl: 'https://upload', fields: {}, key: 'k' }));
-    storage = { createUploadTicket, urlFor: () => '' };
+    storage = {
+      createUploadTicket,
+      urlFor: () => '',
+      download: () => Promise.resolve(Buffer.alloc(0)),
+    };
     visits = new InMemoryVisitRepository();
     useCase = new CreatePhotoUploadTicketUseCase(visits, storage, ids, fixedClock);
   });
