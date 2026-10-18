@@ -26,7 +26,7 @@ export class AesGcmSecretCipher implements SecretCipher {
 
   encrypt(plaintext: string): string {
     const iv = randomBytes(IV_BYTES);
-    const cipher = createCipheriv(ALGORITHM, this.key, iv);
+    const cipher = createCipheriv(ALGORITHM, this.key, iv, { authTagLength: AUTH_TAG_BYTES });
     const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const authTag = cipher.getAuthTag();
     return Buffer.concat([iv, authTag, encrypted]).toString('base64');
@@ -37,7 +37,7 @@ export class AesGcmSecretCipher implements SecretCipher {
     const iv = packed.subarray(0, IV_BYTES);
     const authTag = packed.subarray(IV_BYTES, IV_BYTES + AUTH_TAG_BYTES);
     const encrypted = packed.subarray(IV_BYTES + AUTH_TAG_BYTES);
-    const decipher = createDecipheriv(ALGORITHM, this.key, iv);
+    const decipher = createDecipheriv(ALGORITHM, this.key, iv, { authTagLength: AUTH_TAG_BYTES });
     decipher.setAuthTag(authTag);
     return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
   }
