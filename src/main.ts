@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { AppConfig } from './config/configuration';
+import { docsBasicAuth } from './shared/infrastructure/http/docs-basic-auth';
 
 async function bootstrap(): Promise<void> {
   // rawBody is retained so payment webhook signatures can be verified against the
@@ -54,8 +55,11 @@ async function bootstrap(): Promise<void> {
   // Flush in flight requests on SIGTERM/SIGINT for zero downtime deploys.
   app.enableShutdownHooks();
 
-  // Publish OpenAPI docs outside production only.
-  if (!isProduction) {
+  // Publish OpenAPI docs. Open in non production; in production only when basic auth
+  // credentials are configured, and then behind that basic auth (fail closed).
+  const hasDocsAuth = appConfig.swaggerUser !== '' && appConfig.swaggerPassword !== '';
+  if (!isProduction || hasDocsAuth) {
+    const docsPath = `${appConfig.apiPrefix}/docs`;
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Anu Heritage Homecare API')
       .setDescription('Enterprise homecare API built with DDD, PostgreSQL and Prisma.')
@@ -63,7 +67,16 @@ async function bootstrap(): Promise<void> {
       .addBearerAuth()
       .build();
     const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup(`${appConfig.apiPrefix}/docs`, app, document);
+
+    if (isProduction) {
+      // Guard the docs UI, its assets and the raw json/yaml behind HTTP Basic auth.
+      const guard = docsBasicAuth(appConfig.swaggerUser, appConfig.swaggerPassword);
+      for (const path of [`/${docsPath}`, `/${docsPath}-json`, `/${docsPath}-yaml`]) {
+        app.use(path, guard);
+      }
+    }
+
+    SwaggerModule.setup(docsPath, app, document);
   }
 
   await app.listen(appConfig.port);

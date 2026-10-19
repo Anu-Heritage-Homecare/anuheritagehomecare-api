@@ -17,6 +17,9 @@ export interface AppConfig {
     readonly limit: number;
   };
   readonly logLevel: Env['LOG_LEVEL'];
+  /** HTTP Basic auth for the OpenAPI docs in production (empty disables them). */
+  readonly swaggerUser: string;
+  readonly swaggerPassword: string;
 }
 
 export interface AuthConfig {
@@ -131,6 +134,8 @@ export function buildConfig(env: Env): {
         limit: env.THROTTLE_LIMIT,
       },
       logLevel: env.LOG_LEVEL,
+      swaggerUser: env.SWAGGER_USER,
+      swaggerPassword: env.SWAGGER_PASSWORD,
     },
     auth: {
       accessSecret: env.JWT_ACCESS_SECRET,

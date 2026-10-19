@@ -26,6 +26,13 @@ export const envSchema = z.object({
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
+  // HTTP Basic auth for the OpenAPI docs in production. When both are set the docs
+  // are published at /<prefix>/docs behind basic auth; if either is empty the docs
+  // are not exposed in production (fail closed). Ignored in non production, where
+  // the docs are always open for local development.
+  SWAGGER_USER: z.string().default(''),
+  SWAGGER_PASSWORD: z.string().default(''),
+
   // Authentication. Secrets must be strong and distinct per token purpose.
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
   JWT_ACCESS_TTL: z.string().min(1).default('15m'),
