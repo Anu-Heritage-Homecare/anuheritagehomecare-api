@@ -248,6 +248,8 @@ jobs:
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             export API_IMAGE="$API_IMAGE"
             docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
+            # --remove-orphans tears down the retired Caddy container so it frees
+            # ports 80/443 for the host nginx.
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
             docker logout ghcr.io
