@@ -226,7 +226,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          source: deploy/docker-compose.prod.yml,deploy/Caddyfile,deploy/.env
+          source: deploy/docker-compose.prod.yml,deploy/.env
           target: /opt/anu-heritage
           strip_components: 1
 
