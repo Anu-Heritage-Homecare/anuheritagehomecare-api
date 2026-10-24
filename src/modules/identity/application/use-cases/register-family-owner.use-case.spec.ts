@@ -12,6 +12,7 @@ import {
   sequentialIds,
 } from '../../test-support/doubles';
 import { RegisterFamilyOwnerCommand } from '../commands/register-family-owner.command';
+import { AccountRegistrar } from '../services/account-registrar.service';
 import { OtpService } from '../services/otp.service';
 import { RegisterFamilyOwnerUseCase } from './register-family-owner.use-case';
 
@@ -48,13 +49,14 @@ describe('RegisterFamilyOwnerUseCase', () => {
       sequentialIds('code'),
       fakeOtpConfig(),
     );
-    useCase = new RegisterFamilyOwnerUseCase(
+    const registrar = new AccountRegistrar(
       users,
       hasher,
       fixedClock,
       sequentialIds('user'),
       otpService,
     );
+    useCase = new RegisterFamilyOwnerUseCase(registrar);
   });
 
   it('creates an unverified account and dispatches a verification code', async () => {

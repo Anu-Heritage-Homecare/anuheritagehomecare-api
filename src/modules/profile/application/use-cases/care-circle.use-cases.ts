@@ -10,6 +10,10 @@ import { CARE_CODE_REPOSITORY, CareCodeRepository } from '../../domain/care-code
 import { CareCircleMember } from '../../domain/care-circle-member.entity';
 import { CARE_CIRCLE_REPOSITORY, CareCircleRepository } from '../../domain/care-circle.repository';
 import {
+  MEMBER_ACCOUNT_REGISTRAR,
+  MemberAccountRegistrar,
+} from '../ports/member-account-registrar.port';
+import {
   PROFILE_USER_DIRECTORY,
   ProfileUser,
   ProfileUserDirectory,
@@ -51,6 +55,12 @@ export interface MemberAccessResult {
 
 /** The relationship a new member holds until the owner corrects it in step three. */
 const DEFAULT_MEMBER_RELATIONSHIP = 'Family Member';
+
+/** The member's self chosen relationship, falling back to the default when blank. */
+function resolveRelationship(relationship: string | undefined): string {
+  const trimmed = relationship?.trim() ?? '';
+  return trimmed.length === 0 ? DEFAULT_MEMBER_RELATIONSHIP : trimmed;
+}
 /** Unambiguous alphabet for the code tail (no 0/O/1/I). */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -193,7 +203,11 @@ export class RedeemCareCodeUseCase {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  async execute(command: { userId: string; code: string }): Promise<RedeemCareCodeResult> {
+  async execute(command: {
+    userId: string;
+    code: string;
+    relationship?: string;
+  }): Promise<RedeemCareCodeResult> {
     const now = this.clock.now();
     const found = await this.codes.findByCode(normaliseCareCode(command.code));
     if (found === null || !found.isRedeemable(now)) {
@@ -217,12 +231,97 @@ export class RedeemCareCodeUseCase {
       id: this.ids.generate(),
       ownerId: found.ownerId,
       memberUserId: command.userId,
-      relationship: DEFAULT_MEMBER_RELATIONSHIP,
+      relationship: resolveRelationship(command.relationship),
       accessLevel: CareAccessLevel.Limited,
       createdAt: now,
     });
     await this.members.save(member);
     return { ownerName, alreadyMember: false };
+  }
+}
+
+export interface RegisterAndLinkResult {
+  userId: string;
+  ownerName: string;
+  emailVerificationRequired: boolean;
+}
+
+/**
+ * Use case: register a brand new member account and join it to a care code's
+ * circle in one step, for the access code activation screen a person with no
+ * account lands on. The code is validated FIRST, so an invalid code never leaves
+ * an orphan account behind. The account is created unverified (an email
+ * verification code is dispatched) and no token is issued: the membership sits
+ * dormant until the person verifies and logs in, so attaching it before
+ * verification exposes nothing. A duplicate email surfaces as ACCOUNT_EXISTS, the
+ * app's cue to switch this person to the login and link flow instead.
+ */
+@Injectable()
+export class RegisterAndLinkUseCase {
+  constructor(
+    @Inject(MEMBER_ACCOUNT_REGISTRAR) private readonly registrar: MemberAccountRegistrar,
+    @Inject(CARE_CODE_REPOSITORY) private readonly codes: CareCodeRepository,
+    @Inject(CARE_CIRCLE_REPOSITORY) private readonly members: CareCircleRepository,
+    @Inject(PROFILE_USER_DIRECTORY) private readonly users: ProfileUserDirectory,
+    @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
+    @Inject(CLOCK) private readonly clock: Clock,
+  ) {}
+
+  async execute(command: {
+    code: string;
+    relationship: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    password: string;
+  }): Promise<RegisterAndLinkResult> {
+    const now = this.clock.now();
+
+    // Validate the code before creating anything, so a bad code never orphans an
+    // account. Same opaque message for unknown, expired or revoked.
+    const found = await this.codes.findByCode(normaliseCareCode(command.code));
+    if (found === null || !found.isRedeemable(now)) {
+      throw new ValidationException('That care code is not valid or has expired');
+    }
+
+    // Create the member account (throws ACCOUNT_EXISTS if the email is taken).
+    const { userId, emailVerificationRequired } = await this.registrar.register({
+      firstName: command.firstName,
+      lastName: command.lastName,
+      email: command.email,
+      phone: command.phone,
+      addressLine1: command.addressLine1,
+      addressLine2: command.addressLine2,
+      city: command.city,
+      state: command.state,
+      postalCode: command.postalCode,
+      country: command.country,
+      password: command.password,
+    });
+
+    const owner = await this.users.findById(found.ownerId);
+    const ownerName =
+      owner === null ? 'your family' : `${owner.firstName} ${owner.lastName}`.trim();
+
+    // A brand new user can neither own this circle nor already be a member.
+    const member = CareCircleMember.create({
+      id: this.ids.generate(),
+      ownerId: found.ownerId,
+      memberUserId: userId,
+      relationship: resolveRelationship(command.relationship),
+      accessLevel: CareAccessLevel.Limited,
+      createdAt: now,
+    });
+    await this.members.save(member);
+
+    return { userId, ownerName, emailVerificationRequired };
   }
 }
 

@@ -212,6 +212,7 @@ export class ProfileController {
     const result = await this.redeemCareCode.execute({
       userId: principal.userId,
       code: body.code,
+      relationship: body.relationship,
     });
     return RedeemCareCodeResponseDto.fromResult(result);
   }

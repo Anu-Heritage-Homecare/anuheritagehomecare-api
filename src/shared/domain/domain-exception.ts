@@ -38,10 +38,24 @@ export class NotFoundDomainException extends DomainException {
 }
 
 export class ConflictDomainException extends DomainException {
-  public readonly code = 'CONFLICT';
+  // Typed as string (not the literal) so specialised conflicts may refine the code.
+  public readonly code: string = 'CONFLICT';
   public readonly kind: DomainExceptionKind = 'CONFLICT';
 
   constructor(message: string) {
+    super(message);
+  }
+}
+
+/**
+ * A specialised conflict for "an account with this email already exists". Stays a
+ * 409 (it extends ConflictDomainException) but carries a distinct ACCOUNT_EXISTS
+ * code so a client can route the user to the login flow rather than retry signup.
+ */
+export class AccountAlreadyExistsException extends ConflictDomainException {
+  public readonly code = 'ACCOUNT_EXISTS';
+
+  constructor(message = 'An account with this email already exists') {
     super(message);
   }
 }

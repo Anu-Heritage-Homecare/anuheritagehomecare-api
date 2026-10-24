@@ -6,6 +6,7 @@ import { OTP_GENERATOR } from './application/ports/otp-generator.port';
 import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
 import { TOKEN_SERVICE } from './application/ports/token-service.port';
 import { LoginEventRecorder } from './application/services/login-event-recorder.service';
+import { AccountRegistrar } from './application/services/account-registrar.service';
 import { OtpService } from './application/services/otp.service';
 import { TokenIssuerService } from './application/services/token-issuer.service';
 import { ChangePasswordUseCase } from './application/use-cases/change-password.use-case';
@@ -93,6 +94,7 @@ import { AuthController } from './presentation/auth.controller';
     GetLoginActivityUseCase,
     GetSecurityOverviewUseCase,
     UpdateSecurityPreferencesUseCase,
+    AccountRegistrar,
     OtpService,
     TokenIssuerService,
     LoginEventRecorder,
@@ -113,7 +115,8 @@ import { AuthController } from './presentation/auth.controller';
     { provide: SECRET_CIPHER, useClass: AesGcmSecretCipher },
   ],
   // Exported so other contexts can read a user (for example the visits context
-  // resolving a recipient's family owner as the emergency contact).
-  exports: [USER_REPOSITORY],
+  // resolving a recipient's family owner as the emergency contact) and register a
+  // mobile account (the profile context's care circle register and link flow).
+  exports: [USER_REPOSITORY, AccountRegistrar],
 })
 export class IdentityModule {}
