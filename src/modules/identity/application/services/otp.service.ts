@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OtpConfig } from '@config/configuration';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
@@ -38,6 +38,8 @@ const COPY: Record<VerificationPurpose, EmailCopy> = {
  */
 @Injectable()
 export class OtpService {
+  private readonly logger = new Logger(OtpService.name);
+
   constructor(
     @Inject(VERIFICATION_CODE_REPOSITORY)
     private readonly codes: VerificationCodeRepository,
@@ -52,7 +54,12 @@ export class OtpService {
   async issueAndSend(user: User, purpose: VerificationPurpose): Promise<void> {
     const otpConfig = this.config.getOrThrow<OtpConfig>('otp');
 
-    const code = this.otp.generateNumeric(otpConfig.length);
+    // TEMPORARY stopgap (OTP_BYPASS_ENABLED): SMTP is not provisioned yet, so use a
+    // fixed all zeros passcode and skip delivery entirely. Verification accepts it
+    // through the normal hash compare. Disable once real SMTP credentials exist.
+    const code = otpConfig.bypassEnabled
+      ? '0'.repeat(otpConfig.length)
+      : this.otp.generateNumeric(otpConfig.length);
     const codeHash = await this.hasher.hash(code);
 
     await this.codes.deleteActiveByUserAndPurpose(user.id, purpose);
@@ -66,6 +73,14 @@ export class OtpService {
       ttlMinutes: otpConfig.ttlMinutes,
     });
     await this.codes.save(verificationCode);
+
+    if (otpConfig.bypassEnabled) {
+      // No email address or code is logged, only that the bypass is active.
+      this.logger.warn(
+        `OTP email delivery is bypassed (OTP_BYPASS_ENABLED); no ${purpose} email sent`,
+      );
+      return;
+    }
 
     const copy = COPY[purpose];
     const text =

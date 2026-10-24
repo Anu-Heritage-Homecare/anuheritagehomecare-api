@@ -57,9 +57,14 @@ export function sequentialIds(prefix = 'id'): IdGenerator {
 }
 
 export function fakeOtpConfig(
-  overrides: Partial<{ length: number; ttlMinutes: number; maxAttempts: number }> = {},
+  overrides: Partial<{
+    length: number;
+    ttlMinutes: number;
+    maxAttempts: number;
+    bypassEnabled: boolean;
+  }> = {},
 ): ConfigService {
-  const otp = { length: 6, ttlMinutes: 10, maxAttempts: 5, ...overrides };
+  const otp = { length: 6, ttlMinutes: 10, maxAttempts: 5, bypassEnabled: false, ...overrides };
   return { getOrThrow: () => otp } as unknown as ConfigService;
 }
 

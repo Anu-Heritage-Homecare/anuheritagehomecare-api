@@ -69,9 +69,18 @@ export const envSchema = z.object({
   OTP_LENGTH: z.coerce.number().int().min(4).max(10).default(6),
   OTP_TTL_MINUTES: z.coerce.number().int().positive().default(10),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
+  // TEMPORARY stopgap until real SMTP credentials exist: when true, OTP emails are
+  // NOT sent and every passcode is a fixed string of zeros that verification
+  // accepts. Must be false in any environment with real users. Remove once SMTP is
+  // configured.
+  OTP_BYPASS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
 
-  // Outbound email over SMTP (nodemailer).
-  SMTP_HOST: z.string().min(1),
+  // Outbound email over SMTP (nodemailer). Host may be empty while SMTP is not yet
+  // provisioned; pair that with OTP_BYPASS_ENABLED=true so no send is attempted.
+  SMTP_HOST: z.string().default(''),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_SECURE: z
     .enum(['true', 'false'])

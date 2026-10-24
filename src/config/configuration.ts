@@ -50,6 +50,12 @@ export interface OtpConfig {
   readonly length: number;
   readonly ttlMinutes: number;
   readonly maxAttempts: number;
+  /**
+   * TEMPORARY: when true, OTP emails are not sent and every passcode is a fixed
+   * string of zeros that verification accepts. Stopgap until SMTP is configured;
+   * must be false with real users.
+   */
+  readonly bypassEnabled: boolean;
 }
 
 export interface MailConfig {
@@ -162,6 +168,7 @@ export function buildConfig(env: Env): {
       length: env.OTP_LENGTH,
       ttlMinutes: env.OTP_TTL_MINUTES,
       maxAttempts: env.OTP_MAX_ATTEMPTS,
+      bypassEnabled: env.OTP_BYPASS_ENABLED,
     },
     mail: {
       host: env.SMTP_HOST,
