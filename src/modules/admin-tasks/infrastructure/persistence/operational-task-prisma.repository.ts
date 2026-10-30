@@ -27,18 +27,37 @@ export class OperationalTaskPrismaRepository implements OperationalTaskRepositor
         description: row.description,
         status: row.status,
         priority: row.priority,
+        category: row.category,
         assignedToAdminId: row.assignedToAdminId,
+        assigneeLabel: row.assigneeLabel,
         relatedCareRecipientId: row.relatedCareRecipientId,
+        relatedVisitId: row.relatedVisitId,
         dueAt: row.dueAt,
+        recurrenceLabel: row.recurrenceLabel,
+        estimatedMinutes: row.estimatedMinutes,
+        startedAt: row.startedAt,
+        assignedAt: row.assignedAt,
         updatedAt: row.updatedAt,
         completedAt: row.completedAt,
       },
     });
   }
 
+  async delete(id: string): Promise<void> {
+    await this.prisma.operationalTask.delete({ where: { id } });
+  }
+
   async findById(id: string): Promise<OperationalTask | null> {
     const row = await this.prisma.operationalTask.findUnique({ where: { id } });
     return row ? OperationalTaskMapper.toDomain(row) : null;
+  }
+
+  async findByIds(ids: string[]): Promise<OperationalTask[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.operationalTask.findMany({ where: { id: { in: ids } } });
+    return rows.map((row) => OperationalTaskMapper.toDomain(row));
   }
 
   async list(statusFilter: TaskStatus | null, limit: number): Promise<OperationalTask[]> {

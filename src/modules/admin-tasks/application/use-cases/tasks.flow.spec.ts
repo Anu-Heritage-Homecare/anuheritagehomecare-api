@@ -4,6 +4,7 @@ import { NotFoundDomainException, ValidationException } from '@shared/domain/dom
 import { OperationalTask } from '../../domain/operational-task.entity';
 import { OperationalTaskRepository } from '../../domain/operational-task.repository';
 import { TaskStatus } from '../../domain/task-status.enum';
+import { TaskChildStore } from '../ports/task-child.store';
 import { CreateTaskUseCase } from './create-task.use-case';
 import { ListTasksUseCase } from './list-tasks.use-case';
 import { UpdateTaskStatusUseCase } from './update-task-status.use-case';
@@ -29,8 +30,19 @@ class InMemoryTaskRepository implements OperationalTaskRepository {
     return Promise.resolve();
   }
 
+  delete(id: string): Promise<void> {
+    this.store.delete(id);
+    return Promise.resolve();
+  }
+
   findById(id: string): Promise<OperationalTask | null> {
     return Promise.resolve(this.store.get(id) ?? null);
+  }
+
+  findByIds(ids: string[]): Promise<OperationalTask[]> {
+    return Promise.resolve(
+      ids.map((id) => this.store.get(id)).filter((t): t is OperationalTask => t !== undefined),
+    );
   }
 
   list(statusFilter: TaskStatus | null, limit: number): Promise<OperationalTask[]> {
@@ -45,10 +57,17 @@ class InMemoryTaskRepository implements OperationalTaskRepository {
   }
 }
 
+const childStore: TaskChildStore = {
+  createChecklistItems: () => Promise.resolve(),
+  findChecklistItemTaskId: () => Promise.resolve(null),
+  setChecklistItemDone: () => Promise.resolve(),
+  addComment: () => Promise.resolve(),
+};
+
 describe('operational tasks', () => {
   it('creates a task that counts as open, then completes it', async () => {
     const repo = new InMemoryTaskRepository();
-    const created = await new CreateTaskUseCase(repo, clock, sequentialIds()).execute({
+    const created = await new CreateTaskUseCase(repo, childStore, clock, sequentialIds()).execute({
       createdByAdminId: 'admin-1',
       title: 'Chase CPR renewal',
     });
@@ -66,7 +85,7 @@ describe('operational tasks', () => {
 
   it('filters the list by status', async () => {
     const repo = new InMemoryTaskRepository();
-    const create = new CreateTaskUseCase(repo, clock, sequentialIds());
+    const create = new CreateTaskUseCase(repo, childStore, clock, sequentialIds());
     const a = await create.execute({ createdByAdminId: 'admin-1', title: 'A' });
     await create.execute({ createdByAdminId: 'admin-1', title: 'B' });
     await new UpdateTaskStatusUseCase(repo, clock).execute({ taskId: a.id, transition: 'START' });
