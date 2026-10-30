@@ -19,6 +19,7 @@ import { AddVisitNoteUseCase } from './application/use-cases/add-visit-note.use-
 import { CreatePhotoUploadTicketUseCase } from './application/use-cases/create-photo-upload-ticket.use-case';
 import { SaveVisitPhotosUseCase } from './application/use-cases/save-visit-photos.use-case';
 import { SetTaskCompletionUseCase } from './application/use-cases/set-task-completion.use-case';
+import { StartTaskUseCase } from './application/use-cases/start-task.use-case';
 import { StartBreakUseCase } from './application/use-cases/start-break.use-case';
 import { SOS_ALERT_REPOSITORY } from './domain/sos-alert.repository';
 import { VISIT_REPOSITORY } from './domain/visit.repository';
@@ -60,6 +61,7 @@ import { CaregiverVisitCareController } from './presentation/caregiver-visit-car
     SaveVisitPhotosUseCase,
     CreatePhotoUploadTicketUseCase,
     SetTaskCompletionUseCase,
+    StartTaskUseCase,
     RaiseSosUseCase,
     CancelSosUseCase,
     { provide: VISIT_REPOSITORY, useClass: VisitPrismaRepository },

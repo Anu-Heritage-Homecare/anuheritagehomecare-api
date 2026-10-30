@@ -110,8 +110,8 @@ class VisitObservationDto {
 }
 
 class VisitNoteDto {
-  @ApiProperty({ format: 'uuid' })
-  authorId!: string;
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  authorId!: string | null;
 
   @ApiProperty({ example: 'FAMILY' })
   audience!: string;

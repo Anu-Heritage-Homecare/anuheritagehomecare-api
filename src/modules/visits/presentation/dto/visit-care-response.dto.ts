@@ -102,8 +102,13 @@ export class VisitObservationsResponseDto {
 }
 
 class VisitNoteStateDto {
-  @ApiProperty({ format: 'uuid', description: 'The caregiver who wrote the note' })
-  authorId!: string;
+  @ApiProperty({
+    format: 'uuid',
+    nullable: true,
+    type: String,
+    description: 'The caregiver who wrote the note; null for a non caregiver note',
+  })
+  authorId!: string | null;
 
   @ApiProperty({ enum: NoteAudience, enumName: 'NoteAudience' })
   audience!: string;

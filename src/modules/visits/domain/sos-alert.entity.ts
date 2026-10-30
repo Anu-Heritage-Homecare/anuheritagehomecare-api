@@ -19,6 +19,11 @@ interface SosAlertProps {
   status: SosAlertStatus;
   dispatchedAt: Date | null;
   cancelledAt: Date | null;
+  acknowledgedAt: Date | null;
+  acknowledgedByAdminId: string | null;
+  assignedTo: string | null;
+  resolvedAt: Date | null;
+  resolvedByAdminId: string | null;
   createdAt: Date;
 }
 
@@ -56,6 +61,11 @@ export class SosAlert extends Entity<string> {
       status: SosAlertStatus.Active,
       dispatchedAt: null,
       cancelledAt: null,
+      acknowledgedAt: null,
+      acknowledgedByAdminId: null,
+      assignedTo: null,
+      resolvedAt: null,
+      resolvedByAdminId: null,
       createdAt: params.now,
     });
   }
@@ -65,9 +75,9 @@ export class SosAlert extends Entity<string> {
     return new SosAlert(id, props);
   }
 
-  /** Cancel an alert raised in error. Idempotent: cancelling twice is a no-op. */
+  /** Cancel an alert raised in error. A no-op once the alert is terminal. */
   public cancel(now: Date): void {
-    if (this.props.status === SosAlertStatus.Cancelled) {
+    if (this.props.status !== SosAlertStatus.Active) {
       return;
     }
     this.props.status = SosAlertStatus.Cancelled;
@@ -86,8 +96,63 @@ export class SosAlert extends Entity<string> {
     this.props.dispatchedAt = now;
   }
 
+  /**
+   * Admin acknowledges the emergency and assigns the response to a responder (for
+   * example a regional supervisor). Acknowledging also dispatches it if active, so
+   * the Live Monitoring and Alerts screens agree. A cancelled alert cannot be
+   * acknowledged.
+   */
+  public acknowledgeAndAssign(adminId: string, assignedTo: string | null, now: Date): void {
+    if (this.props.status === SosAlertStatus.Cancelled) {
+      throw new ValidationException('A cancelled alert cannot be acknowledged');
+    }
+    if (this.props.acknowledgedAt === null) {
+      this.props.acknowledgedAt = now;
+    }
+    this.props.acknowledgedByAdminId = adminId;
+    this.props.assignedTo = assignedTo === null ? null : assignedTo.trim().slice(0, 200) || null;
+    this.dispatch(now);
+  }
+
+  /**
+   * The office resolves (closes out) the emergency. Distinct from a caregiver
+   * cancellation: a resolution is an outcome, a cancellation is a false alarm. A
+   * cancelled alert cannot be resolved; resolving twice keeps the first resolver.
+   */
+  public resolve(adminId: string, now: Date): void {
+    if (this.props.status === SosAlertStatus.Cancelled) {
+      throw new ValidationException('A cancelled alert cannot be resolved');
+    }
+    if (this.props.status === SosAlertStatus.Resolved) {
+      return;
+    }
+    this.props.status = SosAlertStatus.Resolved;
+    this.props.resolvedByAdminId = adminId;
+    this.props.resolvedAt = now;
+  }
+
   public get dispatchedAt(): Date | null {
     return this.props.dispatchedAt;
+  }
+
+  public get resolvedAt(): Date | null {
+    return this.props.resolvedAt;
+  }
+
+  public get resolvedByAdminId(): string | null {
+    return this.props.resolvedByAdminId;
+  }
+
+  public get acknowledgedAt(): Date | null {
+    return this.props.acknowledgedAt;
+  }
+
+  public get acknowledgedByAdminId(): string | null {
+    return this.props.acknowledgedByAdminId;
+  }
+
+  public get assignedTo(): string | null {
+    return this.props.assignedTo;
   }
 
   public get caregiverId(): string {

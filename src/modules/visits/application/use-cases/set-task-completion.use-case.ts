@@ -10,6 +10,7 @@ export interface SetTaskCompletionCommand {
   taskIndex: number;
   completed: boolean;
   durationMinutes?: number | null;
+  note?: string | null;
 }
 
 /**
@@ -31,6 +32,7 @@ export class SetTaskCompletionUseCase {
       command.completed,
       this.clock.now(),
       command.durationMinutes ?? null,
+      command.note,
     );
     await this.visits.save(visit);
 

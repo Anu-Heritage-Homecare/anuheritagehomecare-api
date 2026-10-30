@@ -59,7 +59,7 @@ export interface VisitDetailResult {
     medicationStatus: string | null;
   };
   notes: {
-    authorId: string;
+    authorId: string | null;
     audience: string;
     text: string;
     createdAt: string;

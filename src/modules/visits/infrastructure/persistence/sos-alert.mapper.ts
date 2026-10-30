@@ -23,6 +23,11 @@ export class SosAlertMapper {
       status: SosAlertMapper.TO_PERSISTENCE_STATUS[alert.status],
       dispatchedAt: alert.dispatchedAt,
       cancelledAt: alert.cancelledAt,
+      acknowledgedAt: alert.acknowledgedAt,
+      acknowledgedByAdminId: alert.acknowledgedByAdminId,
+      assignedTo: alert.assignedTo,
+      resolvedAt: alert.resolvedAt,
+      resolvedByAdminId: alert.resolvedByAdminId,
       createdAt: alert.createdAt,
     };
   }
@@ -50,17 +55,24 @@ export class SosAlertMapper {
       status: SosAlertMapper.TO_DOMAIN_STATUS[row.status],
       dispatchedAt: row.dispatchedAt,
       cancelledAt: row.cancelledAt,
+      acknowledgedAt: row.acknowledgedAt,
+      acknowledgedByAdminId: row.acknowledgedByAdminId,
+      assignedTo: row.assignedTo,
+      resolvedAt: row.resolvedAt,
+      resolvedByAdminId: row.resolvedByAdminId,
       createdAt: row.createdAt,
     });
   }
 
   private static readonly TO_DOMAIN_STATUS: Record<PrismaSosAlertStatus, SosAlertStatus> = {
     ACTIVE: SosAlertStatus.Active,
+    RESOLVED: SosAlertStatus.Resolved,
     CANCELLED: SosAlertStatus.Cancelled,
   };
 
   private static readonly TO_PERSISTENCE_STATUS: Record<SosAlertStatus, PrismaSosAlertStatus> = {
     [SosAlertStatus.Active]: 'ACTIVE',
+    [SosAlertStatus.Resolved]: 'RESOLVED',
     [SosAlertStatus.Cancelled]: 'CANCELLED',
   };
 }

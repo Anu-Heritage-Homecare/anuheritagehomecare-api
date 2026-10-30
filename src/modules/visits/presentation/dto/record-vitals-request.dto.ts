@@ -75,4 +75,14 @@ export class RecordVitalsRequestDto {
   @Min(0)
   @Max(2000)
   bloodGlucose?: number | null;
+
+  @ApiPropertyOptional({
+    minimum: 0,
+    example: 2,
+    description: 'The checklist task position this reading was recorded under',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  visitTaskPosition?: number;
 }

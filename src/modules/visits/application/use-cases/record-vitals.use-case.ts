@@ -15,6 +15,7 @@ export interface RecordVitalsCommand {
   weightGrams?: number | null;
   temperatureCelsius?: number | null;
   bloodGlucose?: number | null;
+  visitTaskPosition?: number | null;
 }
 
 /**
@@ -40,6 +41,7 @@ export class RecordVitalsUseCase {
       weightGrams: command.weightGrams,
       temperatureCelsius: command.temperatureCelsius,
       bloodGlucose: command.bloodGlucose,
+      visitTaskPosition: command.visitTaskPosition,
       recordedAt: now,
     });
     visit.recordVitals(reading, now);

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import { MedicationAdministrationOutcome } from '../../domain/medication-administration-outcome.enum';
 
 const MAX_NOTE_LENGTH = 500;
@@ -19,4 +19,14 @@ export class RecordMedicationRequestDto {
   @IsString()
   @MaxLength(MAX_NOTE_LENGTH)
   note?: string | null;
+
+  @ApiPropertyOptional({
+    minimum: 0,
+    description: 'The checklist task position this was administered under',
+    example: 3,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  visitTaskPosition?: number;
 }

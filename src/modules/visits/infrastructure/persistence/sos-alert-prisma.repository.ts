@@ -14,7 +14,16 @@ export class SosAlertPrismaRepository implements SosAlertRepository {
     await this.prisma.sosAlert.upsert({
       where: { id: row.id },
       create: row,
-      update: { status: row.status, dispatchedAt: row.dispatchedAt, cancelledAt: row.cancelledAt },
+      update: {
+        status: row.status,
+        dispatchedAt: row.dispatchedAt,
+        cancelledAt: row.cancelledAt,
+        acknowledgedAt: row.acknowledgedAt,
+        acknowledgedByAdminId: row.acknowledgedByAdminId,
+        assignedTo: row.assignedTo,
+        resolvedAt: row.resolvedAt,
+        resolvedByAdminId: row.resolvedByAdminId,
+      },
     });
   }
 
@@ -27,6 +36,15 @@ export class SosAlertPrismaRepository implements SosAlertRepository {
     const rows = await this.prisma.sosAlert.findMany({
       where: { status: 'ACTIVE' },
       orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((row) => SosAlertMapper.toDomain(row));
+  }
+
+  async listResolvedSince(since: Date, limit: number): Promise<SosAlert[]> {
+    const rows = await this.prisma.sosAlert.findMany({
+      where: { status: 'RESOLVED', resolvedAt: { gte: since } },
+      orderBy: { resolvedAt: 'desc' },
+      take: limit,
     });
     return rows.map((row) => SosAlertMapper.toDomain(row));
   }

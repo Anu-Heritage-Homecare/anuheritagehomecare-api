@@ -31,7 +31,7 @@ export interface VisitObservationsResult {
 
 /** One note on a visit's feed, as written by a caregiver. */
 export interface VisitNoteResult {
-  authorId: string;
+  authorId: string | null;
   audience: string;
   text: string;
   createdAt: string;

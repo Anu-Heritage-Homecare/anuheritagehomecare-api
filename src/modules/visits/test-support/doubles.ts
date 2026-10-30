@@ -69,12 +69,12 @@ export function buildVisit(options: BuildVisitOptions = {}): Visit {
   const type = options.type ?? VisitType.PersonalCare;
   const priority = options.priority ?? VisitPriority.Normal;
   const tasks = (options.tasks ?? []).map((task) =>
-    VisitTask.create(
-      task.label,
-      task.completed,
-      task.completedAt ?? null,
-      task.durationMinutes ?? null,
-    ),
+    VisitTask.create({
+      label: task.label,
+      completed: task.completed,
+      completedAt: task.completedAt ?? null,
+      durationMinutes: task.durationMinutes ?? null,
+    }),
   );
 
   const visit = Visit.schedule({
@@ -247,6 +247,20 @@ export class InMemorySosAlertRepository implements SosAlertRepository {
       [...this.store.values()]
         .filter((a) => a.status === SosAlertStatus.Active)
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+    );
+  }
+
+  listResolvedSince(since: Date, limit: number): Promise<SosAlert[]> {
+    return Promise.resolve(
+      [...this.store.values()]
+        .filter(
+          (a) =>
+            a.status === SosAlertStatus.Resolved &&
+            a.resolvedAt !== null &&
+            a.resolvedAt.getTime() >= since.getTime(),
+        )
+        .sort((a, b) => (b.resolvedAt as Date).getTime() - (a.resolvedAt as Date).getTime())
+        .slice(0, limit),
     );
   }
 

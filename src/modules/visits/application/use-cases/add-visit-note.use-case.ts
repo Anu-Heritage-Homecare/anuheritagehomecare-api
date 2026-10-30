@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
+import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generator.port';
 import { NoteAudience } from '../../domain/note-audience.enum';
 import { VISIT_REPOSITORY, VisitRepository } from '../../domain/visit.repository';
 import { VisitNotesResult, toVisitNotesResult } from '../dto/visit-care.result';
@@ -21,6 +22,7 @@ export interface AddVisitNoteCommand {
 export class AddVisitNoteUseCase {
   constructor(
     @Inject(VISIT_REPOSITORY) private readonly visits: VisitRepository,
+    @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -28,6 +30,7 @@ export class AddVisitNoteUseCase {
     const visit = await loadOwnedVisit(this.visits, command.visitId, command.caregiverId);
 
     visit.addNote({
+      id: this.ids.generate(),
       authorId: command.caregiverId,
       audience: command.audience,
       text: command.text,

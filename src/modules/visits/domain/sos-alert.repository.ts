@@ -10,6 +10,8 @@ export interface SosAlertRepository {
   findById(id: string): Promise<SosAlert | null>;
   /** Active alerts, most recent first, for the admin Live Monitoring screen. */
   listActive(): Promise<SosAlert[]>;
+  /** Alerts resolved at or after `since`, most recently resolved first, capped at `limit`. */
+  listResolvedSince(since: Date, limit: number): Promise<SosAlert[]>;
 }
 
 /** Injection token, since TypeScript interfaces do not exist at runtime. */

@@ -10,7 +10,7 @@ const VISIT_INCLUDE = {
   medicationAdministrations: true,
   vitals: true,
   breaks: true,
-  notes: true,
+  notes: { include: { replies: true } },
 } as const;
 
 /**
@@ -31,6 +31,7 @@ export class VisitPrismaRepository implements VisitRepository {
     const vitals = VisitMapper.toVitalsRows(visit);
     const breaks = VisitMapper.toBreakRows(visit);
     const notes = VisitMapper.toNoteRows(visit);
+    const noteReplies = VisitMapper.toNoteReplyRows(visit);
 
     await this.prisma.$transaction([
       this.prisma.visit.upsert({
@@ -69,10 +70,14 @@ export class VisitPrismaRepository implements VisitRepository {
       this.prisma.visitBreak.createMany({
         data: breaks.map((entry) => ({ ...entry, visitId: row.id })),
       }),
+      // Replies reference notes by id, so clear them before the notes and recreate
+      // them after (ids are stable and supplied by the mapper).
+      this.prisma.visitNoteReply.deleteMany({ where: { note: { visitId: row.id } } }),
       this.prisma.visitNote.deleteMany({ where: { visitId: row.id } }),
       this.prisma.visitNote.createMany({
         data: notes.map((note) => ({ ...note, visitId: row.id })),
       }),
+      this.prisma.visitNoteReply.createMany({ data: noteReplies }),
     ]);
   }
 

@@ -6,6 +6,7 @@ interface MedicationAdministrationProps {
   medicationId: string;
   outcome: MedicationAdministrationOutcome;
   note: string | null;
+  visitTaskPosition: number | null;
   recordedAt: Date;
 }
 
@@ -26,6 +27,7 @@ export class MedicationAdministration extends ValueObject<MedicationAdministrati
     medicationId: string;
     outcome: MedicationAdministrationOutcome;
     note?: string | null;
+    visitTaskPosition?: number | null;
     recordedAt: Date;
   }): MedicationAdministration {
     if (Number.isNaN(params.recordedAt.getTime())) {
@@ -38,6 +40,7 @@ export class MedicationAdministration extends ValueObject<MedicationAdministrati
       medicationId: params.medicationId,
       outcome: params.outcome,
       note,
+      visitTaskPosition: cleanTaskPosition(params.visitTaskPosition),
       recordedAt: params.recordedAt,
     });
   }
@@ -68,7 +71,23 @@ export class MedicationAdministration extends ValueObject<MedicationAdministrati
     return this.props.note;
   }
 
+  /** The position of the visit task this was recorded under, or null. */
+  public get visitTaskPosition(): number | null {
+    return this.props.visitTaskPosition;
+  }
+
   public get recordedAt(): Date {
     return this.props.recordedAt;
   }
+}
+
+/** A task position reference must be a non negative whole number, or null. */
+function cleanTaskPosition(value: number | null | undefined): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (!Number.isInteger(value) || value < 0) {
+    throw new ValidationException('A task position must be a non negative whole number');
+  }
+  return value;
 }

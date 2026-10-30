@@ -9,12 +9,16 @@ import { VisitType } from './visit-type.enum';
 import { MedicationAdministration } from './value-objects/medication-administration.vo';
 import { VisitBreak } from './value-objects/visit-break.vo';
 import { VisitNote } from './value-objects/visit-note.vo';
+import { VisitNoteReply } from './value-objects/visit-note-reply.vo';
 import { VisitTask } from './value-objects/visit-task.vo';
 import { VisitWindow } from './value-objects/visit-window.vo';
 import { VisitObservation } from './value-objects/visit-observation.vo';
 import { VitalsReading } from './value-objects/vitals-reading.vo';
 
 interface VisitProps {
+  // DB generated reference number, present only once persisted (absent/null for a
+  // new, not yet saved visit). Behind the VIS-<country>-<year>-<sequence> code.
+  sequence?: number | null;
   caregiverId: string | null;
   assignedAt: Date | null;
   careRecipientId: string;
@@ -56,6 +60,7 @@ export interface VisitCompletionChecklist {
 
 /** Text of a note plus who it is for, as the caregiver adds it to the feed. */
 export interface AddNoteInput {
+  id: string;
   authorId: string;
   audience: NoteAudience;
   text: string;
@@ -141,6 +146,7 @@ export class Visit extends AggregateRoot<string> {
     now: Date;
   }): Visit {
     return new Visit(params.id, {
+      sequence: null,
       caregiverId: null,
       assignedAt: null,
       careRecipientId: params.careRecipientId,
@@ -314,6 +320,7 @@ export class Visit extends AggregateRoot<string> {
     medicationId: string;
     outcome: MedicationAdministrationOutcome;
     note?: string | null;
+    visitTaskPosition?: number | null;
     now: Date;
   }): MedicationAdministration {
     this.assertInProgress('recording medication');
@@ -321,6 +328,7 @@ export class Visit extends AggregateRoot<string> {
       medicationId: params.medicationId,
       outcome: params.outcome,
       note: params.note,
+      visitTaskPosition: params.visitTaskPosition,
       recordedAt: params.now,
     });
     this.props.medicationAdministrations = [
@@ -342,37 +350,77 @@ export class Visit extends AggregateRoot<string> {
 
   /**
    * Mark a checklist task, identified by its position, complete or not. When
-   * completing a task the caregiver may record how long it took in minutes;
-   * clearing a task drops any recorded time and duration.
+   * completing a task the caregiver may record how long it took in minutes and a
+   * note; clearing a task drops the recorded time and duration (the note is kept).
+   * Completing a task that was never started stamps the start time too, so the
+   * record always has a coherent started then completed order. The task's category
+   * and planned time (office set) are preserved across the update.
    */
   public setTaskCompletion(
     index: number,
     completed: boolean,
     now: Date,
     durationMinutes: number | null = null,
+    note?: string | null,
   ): void {
     this.assertInProgress('updating a task');
-    if (!Number.isInteger(index) || index < 0 || index >= this.props.tasks.length) {
-      throw new ValidationException('That task does not exist on this visit');
-    }
-    const current = this.props.tasks[index];
+    const current = this.taskAt(index);
     this.props.tasks = this.props.tasks.map((task, position) =>
       position === index
-        ? VisitTask.create(
-            current.label,
+        ? VisitTask.create({
+            label: current.label,
+            category: current.category,
+            scheduledMinute: current.scheduledMinute,
             completed,
-            completed ? now : null,
-            completed ? durationMinutes : null,
-          )
+            completedAt: completed ? now : null,
+            startedAt: completed ? (current.startedAt ?? now) : current.startedAt,
+            durationMinutes: completed ? durationMinutes : null,
+            note: note === undefined ? current.note : note,
+          })
         : task,
     );
     this.props.updatedAt = now;
   }
 
+  /**
+   * Mark a checklist task as started (the caregiver is working on it now), stamping
+   * the start time so the admin can show an in progress "Ongoing" state. Idempotent:
+   * a task that already has a start time keeps its original one. Everything else on
+   * the task is preserved.
+   */
+  public startTask(index: number, now: Date): void {
+    this.assertInProgress('starting a task');
+    const current = this.taskAt(index);
+    if (current.completed || current.startedAt !== null) {
+      return;
+    }
+    this.props.tasks = this.props.tasks.map((task, position) =>
+      position === index
+        ? VisitTask.create({
+            label: current.label,
+            category: current.category,
+            scheduledMinute: current.scheduledMinute,
+            completed: false,
+            startedAt: now,
+            note: current.note,
+          })
+        : task,
+    );
+    this.props.updatedAt = now;
+  }
+
+  private taskAt(index: number): VisitTask {
+    if (!Number.isInteger(index) || index < 0 || index >= this.props.tasks.length) {
+      throw new ValidationException('That task does not exist on this visit');
+    }
+    return this.props.tasks[index];
+  }
+
   /** Append a note to the visit's notes feed and return it. */
   public addNote(params: AddNoteInput): VisitNote {
     this.assertInProgress('adding a note');
-    const note = VisitNote.create({
+    const note = VisitNote.createCaregiverNote({
+      id: params.id,
       authorId: params.authorId,
       audience: params.audience,
       text: params.text,
@@ -381,6 +429,62 @@ export class Visit extends AggregateRoot<string> {
     this.props.notes = [...this.props.notes, note];
     this.props.updatedAt = params.now;
     return note;
+  }
+
+  /**
+   * Add an office coordinator's note to the visit (from the admin review surface).
+   * Not bound to the shift, so it is allowed whatever the visit status.
+   */
+  public addCoordinatorNote(params: {
+    id: string;
+    authorAdminId: string;
+    authorName: string;
+    authorRole: string;
+    text: string;
+    now: Date;
+  }): VisitNote {
+    const note = VisitNote.createCoordinatorNote({
+      id: params.id,
+      authorAdminId: params.authorAdminId,
+      authorName: params.authorName,
+      authorRole: params.authorRole,
+      text: params.text,
+      createdAt: params.now,
+    });
+    this.props.notes = [...this.props.notes, note];
+    this.props.updatedAt = params.now;
+    return note;
+  }
+
+  /** A coordinator acknowledges a note (reviewed). */
+  public acknowledgeNote(noteId: string, byName: string, now: Date): void {
+    this.replaceNote(noteId, (note) => note.acknowledge(byName, now), now);
+  }
+
+  /** Flag a note for coordinator attention. */
+  public flagNote(noteId: string, now: Date): void {
+    this.replaceNote(noteId, (note) => note.flagForCoordinator(now), now);
+  }
+
+  /** Edit a coordinator note's text. */
+  public editNote(noteId: string, text: string, now: Date): void {
+    this.replaceNote(noteId, (note) => note.edit(text, now), now);
+  }
+
+  /** Append a reply to a note. */
+  public replyToNote(noteId: string, reply: VisitNoteReply, now: Date): void {
+    this.replaceNote(noteId, (note) => note.reply(reply), now);
+  }
+
+  private replaceNote(noteId: string, change: (note: VisitNote) => VisitNote, now: Date): void {
+    const index = this.props.notes.findIndex((note) => note.id === noteId);
+    if (index === -1) {
+      throw new ValidationException('That note does not exist on this visit');
+    }
+    this.props.notes = this.props.notes.map((note, position) =>
+      position === index ? change(note) : note,
+    );
+    this.props.updatedAt = now;
   }
 
   /** Replace the visit's attached photo keys. */
@@ -459,6 +563,11 @@ export class Visit extends AggregateRoot<string> {
 
   public get scheduledDate(): Date {
     return this.props.scheduledDate;
+  }
+
+  /** DB generated reference number; null for a visit that has not been persisted. */
+  public get sequence(): number | null {
+    return this.props.sequence ?? null;
   }
 
   public get window(): VisitWindow {

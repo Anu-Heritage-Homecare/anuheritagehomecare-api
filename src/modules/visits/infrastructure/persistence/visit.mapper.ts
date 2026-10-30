@@ -5,9 +5,12 @@ import {
   Visit as PrismaVisit,
   VisitBreak as PrismaVisitBreak,
   VisitNote as PrismaVisitNote,
+  VisitNoteReply as PrismaVisitNoteReply,
+  VisitNoteSource as PrismaVisitNoteSource,
   VisitPriority as PrismaVisitPriority,
   VisitStatus as PrismaVisitStatus,
   VisitTask as PrismaVisitTask,
+  VisitTaskCategory as PrismaVisitTaskCategory,
   VisitType as PrismaVisitType,
   VisitVitals as PrismaVisitVitals,
 } from '@prisma/client';
@@ -21,25 +24,64 @@ import { VisitType } from '../../domain/visit-type.enum';
 import { MedicationAdministration } from '../../domain/value-objects/medication-administration.vo';
 import { VisitBreak } from '../../domain/value-objects/visit-break.vo';
 import { VisitNote } from '../../domain/value-objects/visit-note.vo';
+import { VisitNoteReply } from '../../domain/value-objects/visit-note-reply.vo';
+import { VisitNoteSource } from '../../domain/value-objects/visit-note-source.enum';
+
+const TO_DOMAIN_NOTE_SOURCE: Record<PrismaVisitNoteSource, VisitNoteSource> = {
+  CAREGIVER: VisitNoteSource.Caregiver,
+  COORDINATOR: VisitNoteSource.Coordinator,
+  SYSTEM: VisitNoteSource.System,
+};
+
+const TO_PERSISTENCE_NOTE_SOURCE: Record<VisitNoteSource, PrismaVisitNoteSource> = {
+  [VisitNoteSource.Caregiver]: 'CAREGIVER',
+  [VisitNoteSource.Coordinator]: 'COORDINATOR',
+  [VisitNoteSource.System]: 'SYSTEM',
+};
 import { VisitObservation } from '../../domain/value-objects/visit-observation.vo';
 import { VisitTask } from '../../domain/value-objects/visit-task.vo';
+import { VisitTaskCategory } from '../../domain/value-objects/visit-task-category.enum';
 import { VisitWindow } from '../../domain/value-objects/visit-window.vo';
 import { VitalsReading } from '../../domain/value-objects/vitals-reading.vo';
+
+const TO_DOMAIN_TASK_CATEGORY: Record<PrismaVisitTaskCategory, VisitTaskCategory> = {
+  COMPANIONSHIP: VisitTaskCategory.Companionship,
+  PERSONAL_CARE: VisitTaskCategory.PersonalCare,
+  CLINICAL_VITALS: VisitTaskCategory.ClinicalVitals,
+  MEDICAL_SUPPORT: VisitTaskCategory.MedicalSupport,
+  NUTRITION_DIETARY: VisitTaskCategory.NutritionDietary,
+  REPORTING_ADMIN: VisitTaskCategory.ReportingAdmin,
+  GENERAL: VisitTaskCategory.General,
+};
+
+const TO_PERSISTENCE_TASK_CATEGORY: Record<VisitTaskCategory, PrismaVisitTaskCategory> = {
+  [VisitTaskCategory.Companionship]: 'COMPANIONSHIP',
+  [VisitTaskCategory.PersonalCare]: 'PERSONAL_CARE',
+  [VisitTaskCategory.ClinicalVitals]: 'CLINICAL_VITALS',
+  [VisitTaskCategory.MedicalSupport]: 'MEDICAL_SUPPORT',
+  [VisitTaskCategory.NutritionDietary]: 'NUTRITION_DIETARY',
+  [VisitTaskCategory.ReportingAdmin]: 'REPORTING_ADMIN',
+  [VisitTaskCategory.General]: 'GENERAL',
+};
 
 type VisitRow = PrismaVisit & {
   tasks: PrismaVisitTask[];
   medicationAdministrations: PrismaMedicationAdministration[];
   vitals: PrismaVisitVitals[];
   breaks: PrismaVisitBreak[];
-  notes: PrismaVisitNote[];
+  notes: (PrismaVisitNote & { replies: PrismaVisitNoteReply[] })[];
 };
 
 /** Persisted shape of a single task, ready to write under its parent visit. */
 export interface VisitTaskRow {
   label: string;
+  category: PrismaVisitTaskCategory;
   completed: boolean;
   completedAt: Date | null;
+  startedAt: Date | null;
   durationMinutes: number | null;
+  scheduledMinute: number | null;
+  note: string | null;
   position: number;
 }
 
@@ -48,6 +90,7 @@ export interface MedicationAdministrationRow {
   medicationId: string;
   outcome: PrismaOutcome;
   note: string | null;
+  visitTaskPosition: number | null;
   recordedAt: Date;
 }
 
@@ -60,6 +103,7 @@ export interface VisitVitalsRow {
   weightGrams: number | null;
   temperatureTenths: number | null;
   bloodGlucose: number | null;
+  visitTaskPosition: number | null;
   recordedAt: Date;
 }
 
@@ -71,8 +115,28 @@ export interface VisitBreakRow {
 
 /** Persisted shape of one note under its parent visit. */
 export interface VisitNoteRow {
-  authorId: string;
+  id: string;
+  source: PrismaVisitNoteSource;
+  authorId: string | null;
+  authorAdminId: string | null;
+  authorName: string | null;
+  authorRole: string | null;
   audience: PrismaNoteAudience;
+  text: string;
+  acknowledgedAt: Date | null;
+  acknowledgedByName: string | null;
+  flaggedForCoordinator: boolean;
+  flaggedAt: Date | null;
+  editedAt: Date | null;
+  createdAt: Date;
+}
+
+/** Persisted shape of one reply under its parent visit note. */
+export interface VisitNoteReplyRow {
+  id: string;
+  visitNoteId: string;
+  authorName: string;
+  authorRole: string;
   text: string;
   createdAt: Date;
 }
@@ -88,7 +152,16 @@ export class VisitMapper {
     const tasks = [...row.tasks]
       .sort((a, b) => a.position - b.position)
       .map((task) =>
-        VisitTask.create(task.label, task.completed, task.completedAt, task.durationMinutes),
+        VisitTask.create({
+          label: task.label,
+          category: TO_DOMAIN_TASK_CATEGORY[task.category],
+          completed: task.completed,
+          completedAt: task.completedAt,
+          startedAt: task.startedAt,
+          durationMinutes: task.durationMinutes,
+          scheduledMinute: task.scheduledMinute,
+          note: task.note,
+        }),
       );
 
     const medicationAdministrations = [...row.medicationAdministrations]
@@ -98,6 +171,7 @@ export class VisitMapper {
           medicationId: administration.medicationId,
           outcome: VisitMapper.TO_DOMAIN_OUTCOME[administration.outcome],
           note: administration.note,
+          visitTaskPosition: administration.visitTaskPosition,
           recordedAt: administration.recordedAt,
         }),
       );
@@ -114,6 +188,7 @@ export class VisitMapper {
           temperatureCelsius:
             reading.temperatureTenths === null ? null : reading.temperatureTenths / 10,
           bloodGlucose: reading.bloodGlucose,
+          visitTaskPosition: reading.visitTaskPosition,
           recordedAt: reading.recordedAt,
         }),
       );
@@ -125,10 +200,31 @@ export class VisitMapper {
     const notes = [...row.notes]
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
       .map((note) =>
-        VisitNote.create({
+        VisitNote.rehydrate({
+          id: note.id,
+          source: TO_DOMAIN_NOTE_SOURCE[note.source],
           authorId: note.authorId,
+          authorAdminId: note.authorAdminId,
+          authorName: note.authorName,
+          authorRole: note.authorRole,
           audience: VisitMapper.TO_DOMAIN_AUDIENCE[note.audience],
           text: note.text,
+          acknowledgedAt: note.acknowledgedAt,
+          acknowledgedByName: note.acknowledgedByName,
+          flaggedForCoordinator: note.flaggedForCoordinator,
+          flaggedAt: note.flaggedAt,
+          editedAt: note.editedAt,
+          replies: [...note.replies]
+            .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+            .map((reply) =>
+              VisitNoteReply.create({
+                id: reply.id,
+                authorName: reply.authorName,
+                authorRole: reply.authorRole,
+                text: reply.text,
+                createdAt: reply.createdAt,
+              }),
+            ),
           createdAt: note.createdAt,
         }),
       );
@@ -139,6 +235,7 @@ export class VisitMapper {
         : Coordinates.create(row.arrivalLatitude, row.arrivalLongitude);
 
     return Visit.rehydrate(row.id, {
+      sequence: row.sequence,
       caregiverId: row.caregiverId,
       assignedAt: row.assignedAt,
       careRecipientId: row.careRecipientId,
@@ -168,7 +265,9 @@ export class VisitMapper {
     });
   }
 
-  static toPersistence(visit: Visit): PrismaVisit {
+  // `sequence` is a DB generated reference (default autoincrement); it is never part
+  // of the domain, so it is omitted here and assigned by the database on insert.
+  static toPersistence(visit: Visit): Omit<PrismaVisit, 'sequence'> {
     return {
       id: visit.id,
       caregiverId: visit.caregiverId,
@@ -198,9 +297,13 @@ export class VisitMapper {
   static toTaskRows(visit: Visit): VisitTaskRow[] {
     return visit.tasks.map((task, index) => ({
       label: task.label,
+      category: TO_PERSISTENCE_TASK_CATEGORY[task.category],
       completed: task.completed,
       completedAt: task.completedAt,
+      startedAt: task.startedAt,
       durationMinutes: task.durationMinutes,
+      scheduledMinute: task.scheduledMinute,
+      note: task.note,
       position: index,
     }));
   }
@@ -210,6 +313,7 @@ export class VisitMapper {
       medicationId: administration.medicationId,
       outcome: VisitMapper.TO_PERSISTENCE_OUTCOME[administration.outcome],
       note: administration.note,
+      visitTaskPosition: administration.visitTaskPosition,
       recordedAt: administration.recordedAt,
     }));
   }
@@ -223,6 +327,7 @@ export class VisitMapper {
       weightGrams: reading.weightGrams,
       temperatureTenths: reading.temperatureTenths,
       bloodGlucose: reading.bloodGlucose,
+      visitTaskPosition: reading.visitTaskPosition,
       recordedAt: reading.recordedAt,
     }));
   }
@@ -236,11 +341,34 @@ export class VisitMapper {
 
   static toNoteRows(visit: Visit): VisitNoteRow[] {
     return visit.notes.map((note) => ({
+      id: note.id,
+      source: TO_PERSISTENCE_NOTE_SOURCE[note.source],
       authorId: note.authorId,
+      authorAdminId: note.authorAdminId,
+      authorName: note.authorName,
+      authorRole: note.authorRole,
       audience: VisitMapper.TO_PERSISTENCE_AUDIENCE[note.audience],
       text: note.text,
+      acknowledgedAt: note.acknowledgedAt,
+      acknowledgedByName: note.acknowledgedByName,
+      flaggedForCoordinator: note.flaggedForCoordinator,
+      flaggedAt: note.flaggedAt,
+      editedAt: note.editedAt,
       createdAt: note.createdAt,
     }));
+  }
+
+  static toNoteReplyRows(visit: Visit): VisitNoteReplyRow[] {
+    return visit.notes.flatMap((note) =>
+      note.replies.map((reply) => ({
+        id: reply.id,
+        visitNoteId: note.id,
+        authorName: reply.authorName,
+        authorRole: reply.authorRole,
+        text: reply.text,
+        createdAt: reply.createdAt,
+      })),
+    );
   }
 
   private static readonly TO_DOMAIN_TYPE: Record<PrismaVisitType, VisitType> = {

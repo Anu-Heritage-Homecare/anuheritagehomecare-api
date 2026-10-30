@@ -1,7 +1,12 @@
 import { ValidationException } from '@shared/domain/domain-exception';
 import { NoteAudience } from '../../domain/note-audience.enum';
 import { VisitStatus } from '../../domain/visit-status.enum';
-import { InMemoryVisitRepository, buildVisit, fixedClock } from '../../test-support/doubles';
+import {
+  InMemoryVisitRepository,
+  buildVisit,
+  fixedClock,
+  sequentialIds,
+} from '../../test-support/doubles';
 import { AddVisitNoteUseCase } from './add-visit-note.use-case';
 
 describe('AddVisitNoteUseCase', () => {
@@ -10,7 +15,7 @@ describe('AddVisitNoteUseCase', () => {
 
   beforeEach(() => {
     visits = new InMemoryVisitRepository();
-    useCase = new AddVisitNoteUseCase(visits, fixedClock);
+    useCase = new AddVisitNoteUseCase(visits, sequentialIds('note'), fixedClock);
   });
 
   it('appends a note to the feed authored by the caregiver', async () => {

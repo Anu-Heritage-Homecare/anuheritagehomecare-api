@@ -16,6 +16,7 @@ export interface RecordMedicationAdministrationCommand {
   medicationId: string;
   outcome: MedicationAdministrationOutcome;
   note?: string | null;
+  visitTaskPosition?: number | null;
 }
 
 /**
@@ -50,6 +51,7 @@ export class RecordMedicationAdministrationUseCase {
       medicationId: command.medicationId,
       outcome: command.outcome,
       note: command.note,
+      visitTaskPosition: command.visitTaskPosition,
       now: this.clock.now(),
     });
     await this.visits.save(visit);

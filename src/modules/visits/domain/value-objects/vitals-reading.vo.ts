@@ -9,6 +9,7 @@ interface VitalsReadingProps {
   weightGrams: number | null;
   temperatureTenths: number | null;
   bloodGlucose: number | null;
+  visitTaskPosition: number | null;
   recordedAt: Date;
 }
 
@@ -42,6 +43,7 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
     weightGrams?: number | null;
     temperatureCelsius?: number | null;
     bloodGlucose?: number | null;
+    visitTaskPosition?: number | null;
     recordedAt: Date;
   }): VitalsReading {
     const systolic = VitalsReading.cleanMeasure(params.systolic, 'Systolic', MAX_PRESSURE);
@@ -78,6 +80,8 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
       throw new ValidationException('The time the vitals were recorded is not valid');
     }
 
+    const visitTaskPosition = VitalsReading.cleanTaskPosition(params.visitTaskPosition);
+
     return new VitalsReading({
       systolic,
       diastolic,
@@ -86,8 +90,20 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
       weightGrams,
       temperatureTenths,
       bloodGlucose,
+      visitTaskPosition,
       recordedAt: params.recordedAt,
     });
+  }
+
+  /** A task position reference must be a non negative whole number, or null. */
+  private static cleanTaskPosition(value: number | null | undefined): number | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    if (!Number.isInteger(value) || value < 0) {
+      throw new ValidationException('A task position must be a non negative whole number');
+    }
+    return value;
   }
 
   /** Accept a Celsius reading with one decimal and store it as whole tenths. */
@@ -152,6 +168,11 @@ export class VitalsReading extends ValueObject<VitalsReadingProps> {
   /** Blood glucose in mg/dL, or null. */
   public get bloodGlucose(): number | null {
     return this.props.bloodGlucose;
+  }
+
+  /** The position of the visit task this was recorded under, or null. */
+  public get visitTaskPosition(): number | null {
+    return this.props.visitTaskPosition;
   }
 
   public get recordedAt(): Date {

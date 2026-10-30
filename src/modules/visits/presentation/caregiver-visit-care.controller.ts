@@ -30,6 +30,7 @@ import { RecordObservationsUseCase } from '../application/use-cases/record-obser
 import { RecordVitalsUseCase } from '../application/use-cases/record-vitals.use-case';
 import { SaveVisitPhotosUseCase } from '../application/use-cases/save-visit-photos.use-case';
 import { SetTaskCompletionUseCase } from '../application/use-cases/set-task-completion.use-case';
+import { StartTaskUseCase } from '../application/use-cases/start-task.use-case';
 import { AddVisitNoteRequestDto } from './dto/add-visit-note-request.dto';
 import { RecordMedicationRequestDto } from './dto/record-medication-request.dto';
 import { RecordObservationsRequestDto } from './dto/record-observations-request.dto';
@@ -66,6 +67,7 @@ export class CaregiverVisitCareController {
     private readonly savePhotos: SaveVisitPhotosUseCase,
     private readonly createPhotoUploadTicket: CreatePhotoUploadTicketUseCase,
     private readonly setTaskCompletion: SetTaskCompletionUseCase,
+    private readonly startTask: StartTaskUseCase,
   ) {}
 
   @Put(':id/medications/:medicationId')
@@ -84,6 +86,7 @@ export class CaregiverVisitCareController {
       medicationId,
       outcome: body.outcome,
       note: body.note,
+      visitTaskPosition: body.visitTaskPosition,
     });
     return MedicationAdministrationResponseDto.fromResult(result);
   }
@@ -107,6 +110,7 @@ export class CaregiverVisitCareController {
       weightGrams: body.weightGrams,
       temperatureCelsius: body.temperatureCelsius,
       bloodGlucose: body.bloodGlucose,
+      visitTaskPosition: body.visitTaskPosition,
     });
     return VitalsResponseDto.fromResult(result);
   }
@@ -201,6 +205,24 @@ export class CaregiverVisitCareController {
       taskIndex: index,
       completed: body.completed,
       durationMinutes: body.durationMinutes,
+      note: body.note,
+    });
+    return VisitTasksResponseDto.fromResult(result);
+  }
+
+  @Put(':id/tasks/:index/start')
+  @ApiOperation({ summary: 'Mark a checklist task as started (Ongoing), by its position' })
+  @ApiOkResponse({ type: VisitTasksResponseDto })
+  async startTaskAction(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('index', ParseIntPipe) index: number,
+  ): Promise<VisitTasksResponseDto> {
+    this.assertCaregiver(principal);
+    const result = await this.startTask.execute({
+      caregiverId: principal.userId,
+      visitId: id,
+      taskIndex: index,
     });
     return VisitTasksResponseDto.fromResult(result);
   }

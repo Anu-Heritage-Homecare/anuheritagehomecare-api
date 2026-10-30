@@ -6,6 +6,7 @@ import { VisitStatus } from './visit-status.enum';
 import { VisitType } from './visit-type.enum';
 import { Visit } from './visit.entity';
 import { VisitTask } from './value-objects/visit-task.vo';
+import { VisitTaskCategory } from './value-objects/visit-task-category.enum';
 import { VisitWindow } from './value-objects/visit-window.vo';
 import { VitalsReading } from './value-objects/vitals-reading.vo';
 
@@ -74,8 +75,10 @@ describe('Visit', () => {
   });
 
   it('keeps its task checklist', () => {
-    const visit = schedule({ tasks: [VisitTask.create('Blood Pressure', true)] });
-    expect(visit.tasks).toEqual([VisitTask.create('Blood Pressure', true)]);
+    const visit = schedule({
+      tasks: [VisitTask.create({ label: 'Blood Pressure', completed: true })],
+    });
+    expect(visit.tasks).toEqual([VisitTask.create({ label: 'Blood Pressure', completed: true })]);
   });
 
   it('reschedules a scheduled visit to a new day and window', () => {
@@ -190,26 +193,60 @@ describe('Visit care actions', () => {
   });
 
   it('toggles a checklist task by position', () => {
-    const visit = started([VisitTask.create('Assist with morning'), VisitTask.create('Bathing')]);
+    const visit = started([
+      VisitTask.create({ label: 'Assist with morning' }),
+      VisitTask.create({ label: 'Bathing' }),
+    ]);
     visit.setTaskCompletion(1, true, NOW);
     expect(visit.tasks[1].completed).toBe(true);
     expect(visit.tasks[0].completed).toBe(false);
   });
 
   it('rejects toggling a task that does not exist', () => {
-    const visit = started([VisitTask.create('Assist with morning')]);
+    const visit = started([VisitTask.create({ label: 'Assist with morning' })]);
     expect(() => visit.setTaskCompletion(5, true, NOW)).toThrow(ValidationException);
+  });
+
+  it('starts a task, then completes it with a note, preserving category and start time', () => {
+    const start = new Date('2026-07-24T10:05:00.000Z');
+    const done = new Date('2026-07-24T10:25:00.000Z');
+    const visit = started([
+      VisitTask.create({ label: 'Mobility Assistance', category: VisitTaskCategory.Companionship }),
+    ]);
+
+    visit.startTask(0, start);
+    expect(visit.tasks[0].startedAt).toEqual(start);
+    expect(visit.tasks[0].completed).toBe(false);
+
+    visit.setTaskCompletion(0, true, done, 20, 'Light walk around the garden.');
+    const task = visit.tasks[0];
+    expect(task.completed).toBe(true);
+    expect(task.completedAt).toEqual(done);
+    expect(task.startedAt).toEqual(start); // original start preserved
+    expect(task.note).toBe('Light walk around the garden.');
+    expect(task.category).toBe(VisitTaskCategory.Companionship);
+  });
+
+  it('links a vitals reading and a medication to a task by position', () => {
+    const visit = started([VisitTask.create({ label: 'Blood Pressure Check' })]);
+    visit.recordVitals(
+      VitalsReading.create({ systolic: 135, diastolic: 85, visitTaskPosition: 0, recordedAt: NOW }),
+      NOW,
+    );
+    expect(visit.vitals[0].visitTaskPosition).toBe(0);
   });
 
   it('appends notes to the feed and trims the text', () => {
     const visit = started();
     visit.addNote({
+      id: 'note-1',
       authorId: 'caregiver-1',
       audience: NoteAudience.Family,
       text: '  Patient in good spirits  ',
       now: NOW,
     });
     visit.addNote({
+      id: 'note-2',
       authorId: 'caregiver-1',
       audience: NoteAudience.CareTeam,
       text: 'Follow up on medication.',
@@ -225,6 +262,7 @@ describe('Visit care actions', () => {
     const visit = started();
     expect(() =>
       visit.addNote({
+        id: 'note-x',
         authorId: 'caregiver-1',
         audience: NoteAudience.Family,
         text: '   ',
@@ -325,6 +363,6 @@ describe('VisitWindow', () => {
 
 describe('VisitTask', () => {
   it('requires a non empty label', () => {
-    expect(() => VisitTask.create('   ')).toThrow(ValidationException);
+    expect(() => VisitTask.create({ label: '   ' })).toThrow(ValidationException);
   });
 });

@@ -35,7 +35,8 @@ describe('GetVisitReviewUseCase', () => {
         ],
         vitals: [],
         notes: [
-          VisitNote.create({
+          VisitNote.createCaregiverNote({
+            id: 'note-1',
             authorId: 'caregiver-1',
             audience: NoteAudience.CareTeam,
             text: 'Client in good spirits.',
