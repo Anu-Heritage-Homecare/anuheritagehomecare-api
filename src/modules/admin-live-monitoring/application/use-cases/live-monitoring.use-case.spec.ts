@@ -6,7 +6,11 @@ import {
   LiveVisitRow,
 } from '../ports/live-monitoring-read.port';
 import { GetLiveOverviewUseCase } from './get-live-overview.use-case';
-import { ListActiveVisitsUseCase, ListAttentionUseCase } from './live-monitoring-tabs.use-case';
+import {
+  GetMapViewUseCase,
+  ListActiveVisitsUseCase,
+  ListAttentionUseCase,
+} from './live-monitoring-tabs.use-case';
 import { SweepLiveAlertsUseCase } from './sweep-live-alerts.use-case';
 
 const NOW = new Date('2026-07-24T16:45:00.000Z'); // 16:45 UTC -> minute 1005
@@ -16,6 +20,9 @@ const sweep = { execute: () => Promise.resolve() } as unknown as SweepLiveAlerts
 
 function visit(over: Partial<LiveVisitRow> & { id: string }): LiveVisitRow {
   return {
+    sequence: 872,
+    scheduledDate: new Date('2026-07-24T00:00:00.000Z'),
+    country: 'NG',
     status: 'SCHEDULED',
     caregiverId: 'cg',
     careRecipientId: 'r',
@@ -26,8 +33,10 @@ function visit(over: Partial<LiveVisitRow> & { id: string }): LiveVisitRow {
     clockInAt: null,
     clockOutAt: null,
     recipientName: 'Recipient',
+    recipientAddress: '12 Marina Rd, Lagos',
     caregiverName: 'Caregiver',
     caregiverBranch: 'West',
+    caregiverTitle: 'Registered Nurse (RN)',
     recipientLatitude: null,
     recipientLongitude: null,
     medications: [],
@@ -186,11 +195,53 @@ describe('Live Monitoring tabs', () => {
     const result = await new ListActiveVisitsUseCase(reads(snapshot(), []), clock).execute({
       branch: null,
       serviceType: 'COMPANIONSHIP',
+      status: null,
       page: 1,
       pageSize: 20,
     });
     expect(result.total).toBe(1);
     expect(result.rows[0].visitId).toBe('v-chioma');
+    expect(result.rows[0].reference).toBe('VIS-NG-2026-0872');
+    expect(result.rows[0].checkInTimeLabel).toBe('4:15 PM'); // clocked in 16:15 UTC
+    expect(result.rows[0].status).toBe('Active');
+  });
+
+  it('buckets the whole live workload with pill counts', async () => {
+    const result = await new ListActiveVisitsUseCase(reads(snapshot(), []), clock).execute({
+      branch: null,
+      serviceType: null,
+      status: null,
+      page: 1,
+      pageSize: 20,
+    });
+    // workload = chioma (in progress), okafor (overdue), yusuf (missed/attention),
+    // late (running late), due (pending); done is COMPLETED so excluded.
+    expect(result.total).toBe(5);
+    expect(result.counts).toEqual({
+      allActive: 5,
+      checkedIn: 2, // in progress + overdue
+      inProgress: 1,
+      runningLate: 1,
+      overdue: 1,
+      attention: 1,
+    });
+    const pending = result.rows.find((r) => r.visitId === 'v-due');
+    expect(pending?.status).toBe('Pending');
+    expect(pending?.checkInTimeLabel).toBeNull();
+  });
+
+  it('narrows to a single status pill (Checked In covers in progress and overdue)', async () => {
+    const result = await new ListActiveVisitsUseCase(reads(snapshot(), []), clock).execute({
+      branch: null,
+      serviceType: null,
+      status: 'CHECKED_IN',
+      page: 1,
+      pageSize: 20,
+    });
+    expect(result.total).toBe(2);
+    expect(result.rows.map((r) => r.visitId).sort()).toEqual(['v-chioma', 'v-okafor']);
+    // counts stay over the full (unfiltered) set.
+    expect(result.counts.allActive).toBe(5);
   });
 
   it('lists the attention items (SOS plus open alerts)', async () => {
@@ -201,5 +252,32 @@ describe('Live Monitoring tabs', () => {
     ).execute();
     expect(result).toHaveLength(3);
     expect(result.map((a) => a.priority)).toEqual(['CRITICAL', 'HIGH', 'HIGH']);
+  });
+
+  it('plots active and running-late points with legend counts and the selected visit panel', async () => {
+    const snap = snapshot();
+    snap.caregiverLocations = [
+      {
+        caregiverId: 'cg-blessing',
+        latitude: 6.5,
+        longitude: 3.4,
+        recordedAt: new Date('2026-07-24T16:40:00.000Z'), // 5 min before NOW
+      },
+    ];
+    const result = await new GetMapViewUseCase(reads(snap, []), clock).execute(NO_FILTERS);
+
+    // chioma + okafor are in progress; yusuf (35m) + late (15m) are running late; 1 SOS.
+    expect(result.counts).toEqual({ active: 2, runningLate: 2, sos: 1 });
+
+    const chioma = result.visits.find((p) => p.visitId === 'v-chioma');
+    expect(chioma?.category).toBe('ACTIVE');
+    expect(chioma?.reference).toBe('VIS-NG-2026-0872');
+    expect(chioma?.recipientAddress).toBe('12 Marina Rd, Lagos');
+    expect(chioma?.caregiverTitle).toBe('Registered Nurse (RN)');
+    expect(chioma?.checkInTimeLabel).toBe('4:15 PM');
+    expect(chioma?.lastPingLabel).toBe('4:40 PM');
+    expect(chioma?.lastPingActive).toBe(true);
+
+    expect(result.visits.find((p) => p.category === 'RUNNING_LATE')?.status).toBe('Running Late');
   });
 });

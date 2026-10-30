@@ -11,6 +11,13 @@ export interface OperationalAlertRepository {
   listOpen(limit: number): Promise<OperationalAlert[]>;
   countOpen(): Promise<number>;
   /**
+   * The Alerts and Incidents screen set: every active alert (open, acknowledged or
+   * investigating) plus any resolved or dismissed since `resolvedSince`.
+   */
+  listForOverview(resolvedSince: Date, limit: number): Promise<OperationalAlert[]>;
+  /** Alerts resolved or dismissed at or after `since`, most recently resolved first. */
+  listResolvedSince(since: Date, limit: number): Promise<OperationalAlert[]>;
+  /**
    * Whether an open alert of a given type already exists for a visit. Used by the
    * derived detectors to avoid raising duplicates for the same problem.
    */

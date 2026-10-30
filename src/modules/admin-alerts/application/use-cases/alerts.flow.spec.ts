@@ -41,6 +41,31 @@ class InMemoryAlertRepository implements OperationalAlertRepository {
     );
   }
 
+  listForOverview(resolvedSince: Date, limit: number): Promise<OperationalAlert[]> {
+    return Promise.resolve(
+      [...this.store.values()]
+        .filter(
+          (a) =>
+            (a.status !== AlertStatus.Resolved && a.status !== AlertStatus.Dismissed) ||
+            (a.resolvedAt !== null && a.resolvedAt >= resolvedSince),
+        )
+        .slice(0, limit),
+    );
+  }
+
+  listResolvedSince(since: Date, limit: number): Promise<OperationalAlert[]> {
+    return Promise.resolve(
+      [...this.store.values()]
+        .filter(
+          (a) =>
+            (a.status === AlertStatus.Resolved || a.status === AlertStatus.Dismissed) &&
+            a.resolvedAt !== null &&
+            a.resolvedAt >= since,
+        )
+        .slice(0, limit),
+    );
+  }
+
   countOpen(): Promise<number> {
     return Promise.resolve(
       [...this.store.values()].filter((a) => a.status === AlertStatus.Open).length,

@@ -17,8 +17,20 @@ export class OperationalAlertPrismaRepository implements OperationalAlertReposit
       create: row,
       update: {
         status: row.status,
+        acknowledgedAt: row.acknowledgedAt,
+        acknowledgedByAdminId: row.acknowledgedByAdminId,
+        acknowledgeNote: row.acknowledgeNote,
+        escalatedAt: row.escalatedAt,
+        escalatedByAdminId: row.escalatedByAdminId,
+        escalationLevel: row.escalationLevel,
+        escalationAssignee: row.escalationAssignee,
+        escalationReason: row.escalationReason,
+        escalationNote: row.escalationNote,
         resolvedAt: row.resolvedAt,
         resolvedByAdminId: row.resolvedByAdminId,
+        resolutionCategory: row.resolutionCategory,
+        resolutionActionTaken: row.resolutionActionTaken,
+        resolutionInternalNote: row.resolutionInternalNote,
       },
     });
   }
@@ -26,6 +38,39 @@ export class OperationalAlertPrismaRepository implements OperationalAlertReposit
   async findById(id: string): Promise<OperationalAlert | null> {
     const row = await this.prisma.operationalAlert.findUnique({ where: { id } });
     return row ? OperationalAlertMapper.toDomain(row) : null;
+  }
+
+  async listForOverview(resolvedSince: Date, limit: number): Promise<OperationalAlert[]> {
+    const rows = await this.prisma.operationalAlert.findMany({
+      where: {
+        OR: [
+          {
+            status: {
+              in: [AlertStatus.OPEN, AlertStatus.ACKNOWLEDGED, AlertStatus.INVESTIGATING],
+            },
+          },
+          {
+            status: { in: [AlertStatus.RESOLVED, AlertStatus.DISMISSED] },
+            resolvedAt: { gte: resolvedSince },
+          },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return rows.map((row) => OperationalAlertMapper.toDomain(row));
+  }
+
+  async listResolvedSince(since: Date, limit: number): Promise<OperationalAlert[]> {
+    const rows = await this.prisma.operationalAlert.findMany({
+      where: {
+        status: { in: [AlertStatus.RESOLVED, AlertStatus.DISMISSED] },
+        resolvedAt: { gte: since },
+      },
+      orderBy: { resolvedAt: 'desc' },
+      take: limit,
+    });
+    return rows.map((row) => OperationalAlertMapper.toDomain(row));
   }
 
   async listOpen(limit: number): Promise<OperationalAlert[]> {

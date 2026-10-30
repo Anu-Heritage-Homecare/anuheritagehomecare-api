@@ -1,8 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  LiveActiveVisitCountsResult,
   LiveActiveVisitResult,
+  LiveActiveVisitRowResult,
   LiveActivityResult,
   LiveAttentionResult,
+  LiveMapCountsResult,
+  LiveMapPointResult,
   LiveMapResult,
   LiveOverviewResult,
   LiveSummaryResult,
@@ -70,12 +74,32 @@ export class LiveOverviewResponseDto implements LiveOverviewResult {
   }
 }
 
+class ActiveVisitRowDto implements LiveActiveVisitRowResult {
+  @ApiProperty() reference!: string;
+  @ApiProperty() visitId!: string;
+  @ApiProperty() recipientName!: string;
+  @ApiProperty({ nullable: true, type: String }) caregiverName!: string | null;
+  @ApiProperty() service!: string;
+  @ApiProperty({ nullable: true, type: String }) checkInTimeLabel!: string | null;
+  @ApiProperty() status!: string;
+}
+
+class ActiveVisitCountsDto implements LiveActiveVisitCountsResult {
+  @ApiProperty() allActive!: number;
+  @ApiProperty() checkedIn!: number;
+  @ApiProperty() inProgress!: number;
+  @ApiProperty() runningLate!: number;
+  @ApiProperty() overdue!: number;
+  @ApiProperty() attention!: number;
+}
+
 /** A paginated active visit list (the Active Visits tab). */
 export class LiveVisitPageResponseDto implements LiveVisitPageResult {
   @ApiProperty() total!: number;
   @ApiProperty() page!: number;
   @ApiProperty() pageSize!: number;
-  @ApiProperty({ type: [ActiveVisitDto] }) rows!: ActiveVisitDto[];
+  @ApiProperty({ type: ActiveVisitCountsDto }) counts!: ActiveVisitCountsDto;
+  @ApiProperty({ type: [ActiveVisitRowDto] }) rows!: ActiveVisitRowDto[];
 
   static fromResult(result: LiveVisitPageResult): LiveVisitPageResponseDto {
     return result;
@@ -101,8 +125,10 @@ export class LiveAttentionResponseDto implements LiveAttentionResult {
   }
 }
 
-class MapPointDto {
+class MapPointDto implements LiveMapPointResult {
   @ApiProperty() visitId!: string;
+  @ApiProperty() reference!: string;
+  @ApiProperty({ enum: ['ACTIVE', 'RUNNING_LATE'] }) category!: 'ACTIVE' | 'RUNNING_LATE';
   @ApiProperty() recipientName!: string;
   @ApiProperty({ nullable: true, type: Number }) recipientLatitude!: number | null;
   @ApiProperty({ nullable: true, type: Number }) recipientLongitude!: number | null;
@@ -110,6 +136,18 @@ class MapPointDto {
   @ApiProperty({ nullable: true, type: Number }) caregiverLatitude!: number | null;
   @ApiProperty({ nullable: true, type: Number }) caregiverLongitude!: number | null;
   @ApiProperty() status!: string;
+  @ApiProperty({ nullable: true, type: String }) recipientAddress!: string | null;
+  @ApiProperty({ nullable: true, type: String }) caregiverTitle!: string | null;
+  @ApiProperty() serviceScheduled!: string;
+  @ApiProperty({ nullable: true, type: String }) checkInTimeLabel!: string | null;
+  @ApiProperty({ nullable: true, type: String }) lastPingLabel!: string | null;
+  @ApiProperty() lastPingActive!: boolean;
+}
+
+class MapCountsDto implements LiveMapCountsResult {
+  @ApiProperty() active!: number;
+  @ApiProperty() runningLate!: number;
+  @ApiProperty() sos!: number;
 }
 
 class MapSosDto {
@@ -121,6 +159,7 @@ class MapSosDto {
 
 /** The Map View response. */
 export class LiveMapResponseDto implements LiveMapResult {
+  @ApiProperty({ type: MapCountsDto }) counts!: MapCountsDto;
   @ApiProperty({ type: [MapPointDto] }) visits!: MapPointDto[];
   @ApiProperty({ type: [MapSosDto] }) sos!: MapSosDto[];
 

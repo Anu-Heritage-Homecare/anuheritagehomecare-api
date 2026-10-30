@@ -21,6 +21,8 @@ export class LiveMonitoringReadPrisma implements LiveMonitoringReadModel {
       where: { scheduledDate: { gte: dayStart, lt: nextDay } },
       select: {
         id: true,
+        sequence: true,
+        scheduledDate: true,
         status: true,
         caregiverId: true,
         careRecipientId: true,
@@ -45,7 +47,14 @@ export class LiveMonitoringReadPrisma implements LiveMonitoringReadModel {
         ? Promise.resolve([])
         : this.prisma.careRecipient.findMany({
             where: { id: { in: recipientIds } },
-            select: { id: true, name: true, latitude: true, longitude: true },
+            select: {
+              id: true,
+              name: true,
+              ownerId: true,
+              fullAddress: true,
+              latitude: true,
+              longitude: true,
+            },
           }),
       caregiverIds.length === 0
         ? Promise.resolve([])
@@ -57,7 +66,7 @@ export class LiveMonitoringReadPrisma implements LiveMonitoringReadModel {
         ? Promise.resolve([])
         : this.prisma.caregiverProfile.findMany({
             where: { userId: { in: caregiverIds } },
-            select: { userId: true, branch: true },
+            select: { userId: true, branch: true, title: true },
           }),
       this.prisma.sosAlert.findMany({
         where: { status: 'ACTIVE' },
@@ -69,18 +78,33 @@ export class LiveMonitoringReadPrisma implements LiveMonitoringReadModel {
             where: { caregiverId: { in: caregiverIds } },
             distinct: ['caregiverId'],
             orderBy: [{ caregiverId: 'asc' }, { recordedAt: 'desc' }],
-            select: { caregiverId: true, latitude: true, longitude: true },
+            select: { caregiverId: true, latitude: true, longitude: true, recordedAt: true },
           }),
     ]);
 
     const recipientById = new Map(recipients.map((r) => [r.id, r]));
     const nameById = new Map(users.map((u) => [u.id, `${u.firstName} ${u.lastName}`.trim()]));
     const branchById = new Map(profiles.map((p) => [p.userId, p.branch]));
+    const titleById = new Map(profiles.map((p) => [p.userId, p.title]));
+
+    // The owner carries the market country for the visit reference prefix.
+    const ownerIds = [...new Set(recipients.map((r) => r.ownerId))];
+    const owners =
+      ownerIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: ownerIds } },
+            select: { id: true, country: true },
+          });
+    const countryByOwner = new Map(owners.map((o) => [o.id, String(o.country)]));
 
     const rows: LiveVisitRow[] = visits.map((v) => {
       const recipient = recipientById.get(v.careRecipientId);
       return {
         id: v.id,
+        sequence: v.sequence,
+        scheduledDate: v.scheduledDate,
+        country: recipient === undefined ? null : (countryByOwner.get(recipient.ownerId) ?? null),
         status: String(v.status),
         caregiverId: v.caregiverId,
         careRecipientId: v.careRecipientId,
@@ -91,8 +115,10 @@ export class LiveMonitoringReadPrisma implements LiveMonitoringReadModel {
         clockInAt: v.clockInAt,
         clockOutAt: v.clockOutAt,
         recipientName: recipient?.name ?? 'Unknown',
+        recipientAddress: recipient?.fullAddress ?? null,
         caregiverName: v.caregiverId === null ? null : (nameById.get(v.caregiverId) ?? null),
         caregiverBranch: v.caregiverId === null ? null : (branchById.get(v.caregiverId) ?? null),
+        caregiverTitle: v.caregiverId === null ? null : (titleById.get(v.caregiverId) ?? null),
         recipientLatitude: recipient?.latitude ?? null,
         recipientLongitude: recipient?.longitude ?? null,
         medications: v.medicationAdministrations.map((m) => ({
@@ -126,6 +152,7 @@ export class LiveMonitoringReadPrisma implements LiveMonitoringReadModel {
         caregiverId: l.caregiverId,
         latitude: l.latitude,
         longitude: l.longitude,
+        recordedAt: l.recordedAt,
       })),
     };
   }

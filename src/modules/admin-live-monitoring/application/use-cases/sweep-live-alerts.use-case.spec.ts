@@ -31,6 +31,18 @@ class InMemoryAlertRepository implements OperationalAlertRepository {
     return Promise.resolve(this.saved.filter((a) => a.status === AlertStatus.Open).slice(0, limit));
   }
 
+  listForOverview(_resolvedSince: Date, limit: number): Promise<OperationalAlert[]> {
+    return Promise.resolve(this.saved.slice(0, limit));
+  }
+
+  listResolvedSince(_since: Date, limit: number): Promise<OperationalAlert[]> {
+    return Promise.resolve(
+      this.saved
+        .filter((a) => a.status === AlertStatus.Resolved || a.status === AlertStatus.Dismissed)
+        .slice(0, limit),
+    );
+  }
+
   countOpen(): Promise<number> {
     return Promise.resolve(this.saved.filter((a) => a.status === AlertStatus.Open).length);
   }
@@ -58,6 +70,9 @@ class InMemoryAlertRepository implements OperationalAlertRepository {
 
 function visit(over: Partial<LiveVisitRow> & { id: string }): LiveVisitRow {
   return {
+    sequence: 1,
+    scheduledDate: new Date('2026-07-24T00:00:00.000Z'),
+    country: 'NG',
     status: 'SCHEDULED',
     caregiverId: 'cg',
     careRecipientId: 'r',
@@ -68,8 +83,10 @@ function visit(over: Partial<LiveVisitRow> & { id: string }): LiveVisitRow {
     clockInAt: null,
     clockOutAt: null,
     recipientName: 'Recipient',
+    recipientAddress: '12 Marina Rd, Lagos',
     caregiverName: 'Caregiver',
     caregiverBranch: 'West',
+    caregiverTitle: 'Registered Nurse (RN)',
     recipientLatitude: null,
     recipientLongitude: null,
     medications: [],

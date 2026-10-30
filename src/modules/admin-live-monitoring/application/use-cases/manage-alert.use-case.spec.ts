@@ -5,7 +5,11 @@ import { OperationalAlert } from '@modules/admin-alerts/domain/operational-alert
 import { OperationalAlertRepository } from '@modules/admin-alerts/domain/operational-alert.repository';
 import { Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
-import { AcknowledgeAlertUseCase, ResolveAlertUseCase } from './manage-alert.use-case';
+import {
+  AcknowledgeAlertUseCase,
+  EscalateAlertUseCase,
+  ResolveAlertUseCase,
+} from './manage-alert.use-case';
 
 const NOW = new Date('2026-07-24T16:45:00.000Z');
 const clock: Clock = { now: () => NOW };
@@ -35,6 +39,8 @@ function repoWith(alert: OperationalAlert | null): {
       return Promise.resolve();
     },
     listOpen: () => Promise.resolve([]),
+    listForOverview: () => Promise.resolve([]),
+    listResolvedSince: () => Promise.resolve([]),
     countOpen: () => Promise.resolve(0),
     existsOpenForVisit: () => Promise.resolve(false),
     existsOpenForCaregiver: () => Promise.resolve(false),
@@ -43,12 +49,17 @@ function repoWith(alert: OperationalAlert | null): {
 }
 
 describe('AcknowledgeAlertUseCase', () => {
-  it('dismisses an open alert and saves it', async () => {
+  it('acknowledges an open alert with the coordinator and note, and saves it', async () => {
     const alert = openAlert();
     const { repo, saved } = repoWith(alert);
-    await new AcknowledgeAlertUseCase(repo, clock).execute('a-1', ADMIN_ID);
-    expect(alert.status).toBe(AlertStatus.Dismissed);
-    expect(alert.resolvedByAdminId).toBe(ADMIN_ID);
+    await new AcknowledgeAlertUseCase(repo, clock).execute(
+      'a-1',
+      ADMIN_ID,
+      'Attempting to contact caregiver',
+    );
+    expect(alert.status).toBe(AlertStatus.Acknowledged);
+    expect(alert.acknowledgedByAdminId).toBe(ADMIN_ID);
+    expect(alert.acknowledgeNote).toBe('Attempting to contact caregiver');
     expect(saved).toHaveLength(1);
   });
 
@@ -61,12 +72,18 @@ describe('AcknowledgeAlertUseCase', () => {
 });
 
 describe('ResolveAlertUseCase', () => {
-  it('resolves an open alert and saves it', async () => {
+  it('resolves an open alert with the resolution detail and saves it', async () => {
     const alert = openAlert();
     const { repo, saved } = repoWith(alert);
-    await new ResolveAlertUseCase(repo, clock).execute('a-1', ADMIN_ID);
+    await new ResolveAlertUseCase(repo, clock).execute('a-1', ADMIN_ID, {
+      category: 'Caregiver Arrived Late',
+      actionTaken: 'Visit extended by 30 min with family approval.',
+      internalNote: 'Billing adjusted.',
+    });
     expect(alert.status).toBe(AlertStatus.Resolved);
     expect(alert.resolvedByAdminId).toBe(ADMIN_ID);
+    expect(alert.resolutionCategory).toBe('Caregiver Arrived Late');
+    expect(alert.resolutionActionTaken).toBe('Visit extended by 30 min with family approval.');
     expect(saved).toHaveLength(1);
   });
 
@@ -74,6 +91,38 @@ describe('ResolveAlertUseCase', () => {
     const { repo } = repoWith(null);
     await expect(
       new ResolveAlertUseCase(repo, clock).execute('missing', ADMIN_ID),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+  });
+});
+
+describe('EscalateAlertUseCase', () => {
+  it('escalates an open alert, capturing level, assignee, reason and note', async () => {
+    const alert = openAlert();
+    const { repo, saved } = repoWith(alert);
+    await new EscalateAlertUseCase(repo, clock).execute({
+      alertId: 'a-1',
+      adminId: ADMIN_ID,
+      level: 'Operations Manager',
+      assignTo: 'Bola Ogundimu',
+      reason: 'Unresponsive Caregiver',
+      notes: 'Caregiver not responding to calls for 35 minutes.',
+    });
+    expect(alert.status).toBe(AlertStatus.Investigating);
+    expect(alert.escalatedByAdminId).toBe(ADMIN_ID);
+    expect(alert.escalationLevel).toBe('Operations Manager');
+    expect(alert.escalationAssignee).toBe('Bola Ogundimu');
+    expect(alert.escalationReason).toBe('Unresponsive Caregiver');
+    expect(saved).toHaveLength(1);
+  });
+
+  it('rejects an unknown alert', async () => {
+    const { repo } = repoWith(null);
+    await expect(
+      new EscalateAlertUseCase(repo, clock).execute({
+        alertId: 'missing',
+        adminId: ADMIN_ID,
+        level: 'Operations Manager',
+      }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 });

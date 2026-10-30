@@ -15,6 +15,11 @@ export interface LiveVitalsEvent {
 /** One visit scheduled today, hydrated with the names, branch and coordinates. */
 export interface LiveVisitRow {
   id: string;
+  /** Autoincrement number behind the VIS-<country>-<year>-<sequence> reference. */
+  sequence: number;
+  scheduledDate: Date;
+  /** The owner's market (US or NG); null when the owner cannot be resolved. */
+  country: string | null;
   status: string;
   caregiverId: string | null;
   careRecipientId: string;
@@ -25,8 +30,10 @@ export interface LiveVisitRow {
   clockInAt: Date | null;
   clockOutAt: Date | null;
   recipientName: string;
+  recipientAddress: string | null;
   caregiverName: string | null;
   caregiverBranch: string | null;
+  caregiverTitle: string | null;
   recipientLatitude: number | null;
   recipientLongitude: number | null;
   medications: LiveMedicationEvent[];
@@ -67,6 +74,7 @@ export interface LiveCaregiverLocation {
   caregiverId: string;
   latitude: number;
   longitude: number;
+  recordedAt: Date;
 }
 
 /** The whole live snapshot for a day. */

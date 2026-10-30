@@ -3,10 +3,12 @@ import { PassportModule } from '@nestjs/passport';
 import { AdminAlertsModule } from '@modules/admin-alerts/admin-alerts.module';
 import { VisitsModule } from '@modules/visits/visits.module';
 import { LIVE_MONITORING_READ_MODEL } from './application/ports/live-monitoring-read.port';
+import { MONITORING_HISTORY_READ_MODEL } from './application/ports/monitoring-history-read.port';
 import { DispatchSosUseCase } from './application/use-cases/dispatch-sos.use-case';
 import { GetLiveOverviewUseCase } from './application/use-cases/get-live-overview.use-case';
 import {
   AcknowledgeAlertUseCase,
+  EscalateAlertUseCase,
   ResolveAlertUseCase,
 } from './application/use-cases/manage-alert.use-case';
 import {
@@ -14,8 +16,14 @@ import {
   ListActiveVisitsUseCase,
   ListAttentionUseCase,
 } from './application/use-cases/live-monitoring-tabs.use-case';
+import {
+  GetCompletedVisitsUseCase,
+  GetPastAlertsUseCase,
+  GetPastIncidentsUseCase,
+} from './application/use-cases/monitoring-history.use-case';
 import { SweepLiveAlertsUseCase } from './application/use-cases/sweep-live-alerts.use-case';
 import { LiveMonitoringReadPrisma } from './infrastructure/persistence/live-monitoring-read.prisma';
+import { MonitoringHistoryReadPrisma } from './infrastructure/persistence/monitoring-history-read.prisma';
 import { AdminLiveMonitoringController } from './presentation/admin-live-monitoring.controller';
 
 /**
@@ -36,7 +44,12 @@ import { AdminLiveMonitoringController } from './presentation/admin-live-monitor
     SweepLiveAlertsUseCase,
     AcknowledgeAlertUseCase,
     ResolveAlertUseCase,
+    EscalateAlertUseCase,
+    GetCompletedVisitsUseCase,
+    GetPastAlertsUseCase,
+    GetPastIncidentsUseCase,
     { provide: LIVE_MONITORING_READ_MODEL, useClass: LiveMonitoringReadPrisma },
+    { provide: MONITORING_HISTORY_READ_MODEL, useClass: MonitoringHistoryReadPrisma },
   ],
 })
 export class AdminLiveMonitoringModule {}

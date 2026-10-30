@@ -26,8 +26,20 @@ export class OperationalAlertMapper {
       relatedCaregiverId: row.relatedCaregiverId,
       relatedCareRecipientId: row.relatedCareRecipientId,
       createdAt: row.createdAt,
+      acknowledgedAt: row.acknowledgedAt,
+      acknowledgedByAdminId: row.acknowledgedByAdminId,
+      acknowledgeNote: row.acknowledgeNote,
+      escalatedAt: row.escalatedAt,
+      escalatedByAdminId: row.escalatedByAdminId,
+      escalationLevel: row.escalationLevel,
+      escalationAssignee: row.escalationAssignee,
+      escalationReason: row.escalationReason,
+      escalationNote: row.escalationNote,
       resolvedAt: row.resolvedAt,
       resolvedByAdminId: row.resolvedByAdminId,
+      resolutionCategory: row.resolutionCategory,
+      resolutionActionTaken: row.resolutionActionTaken,
+      resolutionInternalNote: row.resolutionInternalNote,
     });
   }
 
@@ -44,8 +56,20 @@ export class OperationalAlertMapper {
       relatedCaregiverId: alert.relatedCaregiverId,
       relatedCareRecipientId: alert.relatedCareRecipientId,
       createdAt: alert.createdAt,
+      acknowledgedAt: alert.acknowledgedAt,
+      acknowledgedByAdminId: alert.acknowledgedByAdminId,
+      acknowledgeNote: alert.acknowledgeNote,
+      escalatedAt: alert.escalatedAt,
+      escalatedByAdminId: alert.escalatedByAdminId,
+      escalationLevel: alert.escalationLevel,
+      escalationAssignee: alert.escalationAssignee,
+      escalationReason: alert.escalationReason,
+      escalationNote: alert.escalationNote,
       resolvedAt: alert.resolvedAt,
       resolvedByAdminId: alert.resolvedByAdminId,
+      resolutionCategory: alert.resolutionCategory,
+      resolutionActionTaken: alert.resolutionActionTaken,
+      resolutionInternalNote: alert.resolutionInternalNote,
     };
   }
 
@@ -85,12 +109,16 @@ export class OperationalAlertMapper {
 
   private static readonly TO_DOMAIN_STATUS: Record<PrismaAlertStatus, AlertStatus> = {
     OPEN: AlertStatus.Open,
+    ACKNOWLEDGED: AlertStatus.Acknowledged,
+    INVESTIGATING: AlertStatus.Investigating,
     RESOLVED: AlertStatus.Resolved,
     DISMISSED: AlertStatus.Dismissed,
   };
 
   private static readonly TO_PERSISTENCE_STATUS: Record<AlertStatus, PrismaAlertStatus> = {
     [AlertStatus.Open]: 'OPEN',
+    [AlertStatus.Acknowledged]: 'ACKNOWLEDGED',
+    [AlertStatus.Investigating]: 'INVESTIGATING',
     [AlertStatus.Resolved]: 'RESOLVED',
     [AlertStatus.Dismissed]: 'DISMISSED',
   };

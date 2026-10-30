@@ -1,7 +1,7 @@
 import { AggregateRoot } from '@shared/domain/aggregate-root.base';
 import { ValidationException } from '@shared/domain/domain-exception';
 import { AlertSeverity } from './alert-severity.enum';
-import { AlertStatus } from './alert-status.enum';
+import { AlertStatus, isActiveStatus } from './alert-status.enum';
 import { AlertType } from './alert-type.enum';
 
 const MAX_TITLE_LENGTH = 160;
@@ -20,8 +20,20 @@ interface OperationalAlertProps {
   relatedCaregiverId: string | null;
   relatedCareRecipientId: string | null;
   createdAt: Date;
+  acknowledgedAt: Date | null;
+  acknowledgedByAdminId: string | null;
+  acknowledgeNote: string | null;
+  escalatedAt: Date | null;
+  escalatedByAdminId: string | null;
+  escalationLevel: string | null;
+  escalationAssignee: string | null;
+  escalationReason: string | null;
+  escalationNote: string | null;
   resolvedAt: Date | null;
   resolvedByAdminId: string | null;
+  resolutionCategory: string | null;
+  resolutionActionTaken: string | null;
+  resolutionInternalNote: string | null;
 }
 
 /**
@@ -69,8 +81,20 @@ export class OperationalAlert extends AggregateRoot<string> {
       relatedCaregiverId: params.relatedCaregiverId ?? null,
       relatedCareRecipientId: params.relatedCareRecipientId ?? null,
       createdAt: params.now,
+      acknowledgedAt: null,
+      acknowledgedByAdminId: null,
+      acknowledgeNote: null,
+      escalatedAt: null,
+      escalatedByAdminId: null,
+      escalationLevel: null,
+      escalationAssignee: null,
+      escalationReason: null,
+      escalationNote: null,
       resolvedAt: null,
       resolvedByAdminId: null,
+      resolutionCategory: null,
+      resolutionActionTaken: null,
+      resolutionInternalNote: null,
     });
   }
 
@@ -78,18 +102,105 @@ export class OperationalAlert extends AggregateRoot<string> {
     return new OperationalAlert(id, props);
   }
 
-  /** Mark the alert actioned by a coordinator. Only an open alert can be closed. */
-  public resolve(adminId: string, now: Date): void {
-    this.close(AlertStatus.Resolved, adminId, now);
+  /**
+   * A coordinator has seen the alert. Only an open alert can be acknowledged. The
+   * acknowledging coordinator and an optional note are captured when supplied (the
+   * Live Monitoring modal); the Alerts screen progress call supplies neither.
+   */
+  public acknowledge(
+    adminId: string | null = null,
+    note: string | null = null,
+    now: Date | null = null,
+  ): void {
+    this.transitionActive(AlertStatus.Acknowledged, [AlertStatus.Open]);
+    this.props.acknowledgedByAdminId = adminId;
+    this.props.acknowledgeNote = OperationalAlert.cleanOptional(note, MAX_DESCRIPTION_LENGTH);
+    this.props.acknowledgedAt = now;
   }
 
-  /** Acknowledge the alert as not needing action. Only an open alert can be closed. */
+  /** A coordinator is working the alert. From open or acknowledged. */
+  public investigate(): void {
+    this.transitionActive(AlertStatus.Investigating, [AlertStatus.Open, AlertStatus.Acknowledged]);
+  }
+
+  /**
+   * Escalate the alert to a higher level, assigning it and recording the reason and
+   * an optional note. Moves an active alert to Investigating (being worked). The
+   * level, assignee and reason are free text (the dropdown values).
+   */
+  public escalate(params: {
+    adminId: string;
+    level: string;
+    assignee?: string | null;
+    reason?: string | null;
+    note?: string | null;
+    now: Date;
+  }): void {
+    if (!isActiveStatus(this.props.status)) {
+      throw new ValidationException('A closed alert cannot be escalated');
+    }
+    this.props.status = AlertStatus.Investigating;
+    this.props.escalatedAt = params.now;
+    this.props.escalatedByAdminId = params.adminId;
+    this.props.escalationLevel = OperationalAlert.clean(
+      params.level,
+      MAX_COORDINATOR_LENGTH,
+      'Escalation level',
+    );
+    this.props.escalationAssignee = OperationalAlert.cleanOptional(
+      params.assignee,
+      MAX_COORDINATOR_LENGTH,
+    );
+    this.props.escalationReason = OperationalAlert.cleanOptional(
+      params.reason,
+      MAX_COORDINATOR_LENGTH,
+    );
+    this.props.escalationNote = OperationalAlert.cleanOptional(params.note, MAX_DESCRIPTION_LENGTH);
+  }
+
+  /**
+   * Mark the alert actioned by a coordinator. Allowed from any active state. The
+   * Resolve Alert modal supplies a resolution category, the action taken and an
+   * optional internal note; the simple resolve call supplies none.
+   */
+  public resolve(
+    adminId: string,
+    now: Date,
+    details: {
+      category?: string | null;
+      actionTaken?: string | null;
+      internalNote?: string | null;
+    } = {},
+  ): void {
+    this.close(AlertStatus.Resolved, adminId, now);
+    this.props.resolutionCategory = OperationalAlert.cleanOptional(
+      details.category,
+      MAX_COORDINATOR_LENGTH,
+    );
+    this.props.resolutionActionTaken = OperationalAlert.cleanOptional(
+      details.actionTaken,
+      MAX_DESCRIPTION_LENGTH,
+    );
+    this.props.resolutionInternalNote = OperationalAlert.cleanOptional(
+      details.internalNote,
+      MAX_DESCRIPTION_LENGTH,
+    );
+  }
+
+  /** Dismiss the alert as not needing action. Allowed from any active state. */
   public dismiss(adminId: string, now: Date): void {
     this.close(AlertStatus.Dismissed, adminId, now);
   }
 
+  private transitionActive(next: AlertStatus, allowedFrom: AlertStatus[]): void {
+    if (!allowedFrom.includes(this.props.status)) {
+      throw new ValidationException(`An alert cannot move to ${next} from ${this.props.status}`);
+    }
+    this.props.status = next;
+  }
+
   private close(status: AlertStatus, adminId: string, now: Date): void {
-    if (this.props.status !== AlertStatus.Open) {
+    if (!isActiveStatus(this.props.status)) {
       throw new ValidationException('This alert has already been closed');
     }
     this.props.status = status;
@@ -162,5 +273,53 @@ export class OperationalAlert extends AggregateRoot<string> {
 
   public get resolvedByAdminId(): string | null {
     return this.props.resolvedByAdminId;
+  }
+
+  public get acknowledgedAt(): Date | null {
+    return this.props.acknowledgedAt;
+  }
+
+  public get acknowledgedByAdminId(): string | null {
+    return this.props.acknowledgedByAdminId;
+  }
+
+  public get acknowledgeNote(): string | null {
+    return this.props.acknowledgeNote;
+  }
+
+  public get escalatedAt(): Date | null {
+    return this.props.escalatedAt;
+  }
+
+  public get escalatedByAdminId(): string | null {
+    return this.props.escalatedByAdminId;
+  }
+
+  public get escalationLevel(): string | null {
+    return this.props.escalationLevel;
+  }
+
+  public get escalationAssignee(): string | null {
+    return this.props.escalationAssignee;
+  }
+
+  public get escalationReason(): string | null {
+    return this.props.escalationReason;
+  }
+
+  public get escalationNote(): string | null {
+    return this.props.escalationNote;
+  }
+
+  public get resolutionCategory(): string | null {
+    return this.props.resolutionCategory;
+  }
+
+  public get resolutionActionTaken(): string | null {
+    return this.props.resolutionActionTaken;
+  }
+
+  public get resolutionInternalNote(): string | null {
+    return this.props.resolutionInternalNote;
   }
 }

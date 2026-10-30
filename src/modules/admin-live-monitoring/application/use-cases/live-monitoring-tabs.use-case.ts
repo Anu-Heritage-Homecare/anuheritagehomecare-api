@@ -11,16 +11,21 @@ import {
 } from '../dto/live-monitoring.result';
 import {
   buildAttention,
-  computeActiveVisits,
+  computeActiveWorkload,
   computeMap,
   filterVisits,
   LiveFilters,
+  LiveStatusFilter,
+  matchesStatusFilter,
   nextUtcDay,
   startOfUtcDay,
 } from '../live-monitoring.util';
 import { SweepLiveAlertsUseCase } from './sweep-live-alerts.use-case';
 
-/** The Active Visits tab: a paginated list of the currently active visits. */
+/**
+ * The Active Visits tab: the day's live workload (clocked in plus scheduled pending),
+ * with the pill counts, optionally narrowed to one status pill and paginated.
+ */
 @Injectable()
 export class ListActiveVisitsUseCase {
   constructor(
@@ -29,17 +34,21 @@ export class ListActiveVisitsUseCase {
   ) {}
 
   async execute(
-    command: LiveFilters & { page: number; pageSize: number },
+    command: LiveFilters & { status: LiveStatusFilter | null; page: number; pageSize: number },
   ): Promise<LiveVisitPageResult> {
     const now = this.clock.now();
     const snapshot = await this.reads.snapshot(startOfUtcDay(now), nextUtcDay(now));
-    const rows = computeActiveVisits(filterVisits(snapshot.visits, command), now);
+    const { counts, items } = computeActiveWorkload(filterVisits(snapshot.visits, command), now);
+    const status = command.status;
+    const filtered =
+      status === null ? items : items.filter((i) => matchesStatusFilter(i.bucket, status));
     const start = Math.max(0, (command.page - 1) * command.pageSize);
     return {
-      total: rows.length,
+      total: filtered.length,
       page: command.page,
       pageSize: command.pageSize,
-      rows: rows.slice(start, start + command.pageSize),
+      counts,
+      rows: filtered.slice(start, start + command.pageSize).map((i) => i.row),
     };
   }
 }
@@ -73,6 +82,6 @@ export class GetMapViewUseCase {
   async execute(filters: LiveFilters): Promise<LiveMapResult> {
     const now = this.clock.now();
     const snapshot = await this.reads.snapshot(startOfUtcDay(now), nextUtcDay(now));
-    return computeMap(filterVisits(snapshot.visits, filters), snapshot);
+    return computeMap(filterVisits(snapshot.visits, filters), snapshot, now);
   }
 }

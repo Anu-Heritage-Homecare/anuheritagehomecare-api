@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -24,6 +25,7 @@ import { GetLiveOverviewUseCase } from '../application/use-cases/get-live-overvi
 import { DispatchSosUseCase } from '../application/use-cases/dispatch-sos.use-case';
 import {
   AcknowledgeAlertUseCase,
+  EscalateAlertUseCase,
   ResolveAlertUseCase,
 } from '../application/use-cases/manage-alert.use-case';
 import {
@@ -31,6 +33,14 @@ import {
   ListActiveVisitsUseCase,
   ListAttentionUseCase,
 } from '../application/use-cases/live-monitoring-tabs.use-case';
+import {
+  GetCompletedVisitsUseCase,
+  GetPastAlertsUseCase,
+  GetPastIncidentsUseCase,
+} from '../application/use-cases/monitoring-history.use-case';
+import { AcknowledgeAlertDto } from './dto/acknowledge-alert.dto';
+import { EscalateAlertDto } from './dto/escalate-alert.dto';
+import { ResolveAlertDto } from './dto/resolve-alert.dto';
 import { ActiveVisitsQueryDto, LiveMonitoringQueryDto } from './dto/live-monitoring-query.dto';
 import {
   LiveAttentionResponseDto,
@@ -38,9 +48,38 @@ import {
   LiveOverviewResponseDto,
   LiveVisitPageResponseDto,
 } from './dto/live-monitoring-response.dto';
+import {
+  CompletedVisitsQueryDto,
+  MonitoringHistoryQueryDto,
+  PastAlertsQueryDto,
+  PastIncidentsQueryDto,
+} from './dto/monitoring-history-query.dto';
+import {
+  CompletedVisitsPageDto,
+  PastAlertsPageDto,
+  PastIncidentsPageDto,
+} from './dto/monitoring-history-response.dto';
 
 function toFilters(query: LiveMonitoringQueryDto): LiveFilters {
   return { branch: query.branch ?? null, serviceType: query.serviceType ?? null };
+}
+
+function toHistoryQuery(query: MonitoringHistoryQueryDto): {
+  days?: number;
+  branch: string | null;
+  careRecipientId: string | null;
+  caregiverId: string | null;
+  page?: number;
+  pageSize?: number;
+} {
+  return {
+    days: query.days,
+    branch: query.branch ?? null,
+    careRecipientId: query.careRecipientId ?? null,
+    caregiverId: query.caregiverId ?? null,
+    page: query.page,
+    pageSize: query.pageSize,
+  };
 }
 
 /**
@@ -61,7 +100,52 @@ export class AdminLiveMonitoringController {
     private readonly dispatchSos: DispatchSosUseCase,
     private readonly acknowledgeAlert: AcknowledgeAlertUseCase,
     private readonly resolveAlert: ResolveAlertUseCase,
+    private readonly escalateAlert: EscalateAlertUseCase,
+    private readonly getCompletedVisits: GetCompletedVisitsUseCase,
+    private readonly getPastAlerts: GetPastAlertsUseCase,
+    private readonly getPastIncidents: GetPastIncidentsUseCase,
   ) {}
+
+  @Get('history/completed-visits')
+  @ApiOperation({ summary: 'Monitoring History: completed visits (duration, on-time or late)' })
+  @ApiOkResponse({ type: CompletedVisitsPageDto })
+  async completedVisits(@Query() query: CompletedVisitsQueryDto): Promise<CompletedVisitsPageDto> {
+    const result = await this.getCompletedVisits.execute({
+      days: query.days,
+      branch: query.branch ?? null,
+      careRecipientId: query.careRecipientId ?? null,
+      caregiverId: query.caregiverId ?? null,
+      status: query.status,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+    return CompletedVisitsPageDto.fromResult(result);
+  }
+
+  @Get('history/past-alerts')
+  @ApiOperation({ summary: 'Monitoring History: resolved or dismissed past alerts' })
+  @ApiOkResponse({ type: PastAlertsPageDto })
+  async pastAlerts(@Query() query: PastAlertsQueryDto): Promise<PastAlertsPageDto> {
+    const result = await this.getPastAlerts.execute({
+      ...toHistoryQuery(query),
+      severity: query.priority ?? null,
+      alertType: query.alertType ?? null,
+    });
+    return PastAlertsPageDto.fromResult(result);
+  }
+
+  @Get('history/past-incidents')
+  @ApiOperation({ summary: 'Monitoring History: resolved or closed past incidents' })
+  @ApiOkResponse({ type: PastIncidentsPageDto })
+  async pastIncidents(@Query() query: PastIncidentsQueryDto): Promise<PastIncidentsPageDto> {
+    const result = await this.getPastIncidents.execute({
+      ...toHistoryQuery(query),
+      category: query.type ?? null,
+      severity: query.priority ?? null,
+      status: query.status ?? null,
+    });
+    return PastIncidentsPageDto.fromResult(result);
+  }
 
   @Get()
   @ApiOperation({
@@ -79,6 +163,7 @@ export class AdminLiveMonitoringController {
   async activeVisits(@Query() query: ActiveVisitsQueryDto): Promise<LiveVisitPageResponseDto> {
     const result = await this.listActiveVisits.execute({
       ...toFilters(query),
+      status: query.status ?? null,
       page: query.page ?? 1,
       pageSize: query.pageSize ?? 20,
     });
@@ -113,23 +198,48 @@ export class AdminLiveMonitoringController {
 
   @Post('alerts/:id/acknowledge')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Acknowledge an operational alert' })
+  @ApiOperation({ summary: 'Acknowledge an operational alert, with an optional note' })
   @ApiNoContentResponse()
   async acknowledge(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AcknowledgeAlertDto,
     @CurrentAdmin() principal: AdminPrincipal,
   ): Promise<void> {
-    await this.acknowledgeAlert.execute(id, principal.adminUserId);
+    await this.acknowledgeAlert.execute(id, principal.adminUserId, dto.note ?? null);
   }
 
   @Post('alerts/:id/resolve')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Resolve an operational alert' })
+  @ApiOperation({ summary: 'Resolve an operational alert (category, action taken, internal note)' })
   @ApiNoContentResponse()
   async resolve(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ResolveAlertDto,
     @CurrentAdmin() principal: AdminPrincipal,
   ): Promise<void> {
-    await this.resolveAlert.execute(id, principal.adminUserId);
+    await this.resolveAlert.execute(id, principal.adminUserId, {
+      category: dto.category ?? null,
+      actionTaken: dto.actionTaken ?? null,
+      internalNote: dto.internalNote ?? null,
+    });
+  }
+
+  @Post('alerts/:id/escalate')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Escalate an operational alert (level, assignee, reason, note)' })
+  @ApiNoContentResponse()
+  async escalate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: EscalateAlertDto,
+    @CurrentAdmin() principal: AdminPrincipal,
+  ): Promise<void> {
+    await this.escalateAlert.execute({
+      alertId: id,
+      adminId: principal.adminUserId,
+      level: dto.level,
+      assignTo: dto.assignTo ?? null,
+      reason: dto.reason ?? null,
+      notes: dto.notes ?? null,
+    });
   }
 }

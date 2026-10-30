@@ -2,7 +2,9 @@ import { AlertSeverity } from '@modules/admin-alerts/domain/alert-severity.enum'
 import { AlertType } from '@modules/admin-alerts/domain/alert-type.enum';
 import { LiveAlertRow, LiveSnapshot, LiveVisitRow } from './ports/live-monitoring-read.port';
 import {
+  LiveActiveVisitCountsResult,
   LiveActiveVisitResult,
+  LiveActiveVisitRowResult,
   LiveActivityResult,
   LiveAttentionResult,
   LiveMapResult,
@@ -312,6 +314,100 @@ export function computeActiveVisits(visits: LiveVisitRow[], now: Date): LiveActi
     .sort((a, b) => b.elapsedMinutes - a.elapsedMinutes);
 }
 
+/** The Active Visits tab status filter (the pills that narrow the table). */
+export type LiveStatusFilter =
+  'CHECKED_IN' | 'IN_PROGRESS' | 'RUNNING_LATE' | 'OVERDUE' | 'ATTENTION';
+
+/** The bucket a workload visit falls in (mutually exclusive). */
+export type WorkloadBucket = 'IN_PROGRESS' | 'OVERDUE' | 'RUNNING_LATE' | 'ATTENTION' | 'PENDING';
+
+/** A visit is in the Active Visits workload if it is clocked in, or scheduled and pending. */
+function inActiveWorkload(v: LiveVisitRow): boolean {
+  return isActive(v) || (v.status === 'SCHEDULED' && v.clockInAt === null);
+}
+
+/** Classify one workload visit into its bucket and the status shown in the table. */
+function classifyWorkload(
+  v: LiveVisitRow,
+  nowMinute: number,
+): { bucket: WorkloadBucket; status: string } {
+  if (isActive(v)) {
+    const overBy = nowMinute - v.endMinute;
+    return overBy >= OVERDUE_THRESHOLD_MINUTES
+      ? { bucket: 'OVERDUE', status: 'Overdue' }
+      : { bucket: 'IN_PROGRESS', status: 'Active' };
+  }
+  const lateBy = nowMinute - v.startMinute;
+  if (lateBy >= MISSED_THRESHOLD_MINUTES) {
+    return { bucket: 'ATTENTION', status: 'Missed' };
+  }
+  if (lateBy >= LATE_THRESHOLD_MINUTES) {
+    return { bucket: 'RUNNING_LATE', status: 'Running Late' };
+  }
+  return { bucket: 'PENDING', status: 'Pending' };
+}
+
+/** VIS-<country>-<year>-<sequence> (country falls back to XX when the owner is unknown). */
+export function visitReference(v: LiveVisitRow): string {
+  const country = v.country ?? 'XX';
+  return `VIS-${country}-${v.scheduledDate.getUTCFullYear()}-${String(v.sequence).padStart(4, '0')}`;
+}
+
+/** Does a classified bucket satisfy the pill filter? Checked In covers In Progress and Overdue. */
+export function matchesStatusFilter(bucket: WorkloadBucket, filter: LiveStatusFilter): boolean {
+  if (filter === 'CHECKED_IN') {
+    return bucket === 'IN_PROGRESS' || bucket === 'OVERDUE';
+  }
+  return bucket === filter;
+}
+
+/**
+ * The Active Visits tab: the day's live workload (clocked in plus scheduled pending),
+ * each classified into a bucket, with the pill counts. Checked In is the parent of
+ * In Progress and Overdue, so the pills intentionally overlap and do not sum to all.
+ */
+export function computeActiveWorkload(
+  visits: LiveVisitRow[],
+  now: Date,
+): {
+  counts: LiveActiveVisitCountsResult;
+  items: { bucket: WorkloadBucket; row: LiveActiveVisitRowResult }[];
+} {
+  const nowMinute = minuteOfUtcDay(now);
+  const items = visits
+    .filter(inActiveWorkload)
+    .map((v) => {
+      const { bucket, status } = classifyWorkload(v, nowMinute);
+      const row: LiveActiveVisitRowResult = {
+        reference: visitReference(v),
+        visitId: v.id,
+        recipientName: v.recipientName,
+        caregiverName: v.caregiverName,
+        service: displayService(v.visitType),
+        checkInTimeLabel: v.clockInAt === null ? null : formatClock(v.clockInAt),
+        status,
+      };
+      return { bucket, row, startMinute: v.startMinute, sequence: v.sequence };
+    })
+    .sort((a, b) => a.startMinute - b.startMinute || a.sequence - b.sequence)
+    .map(({ bucket, row }) => ({ bucket, row }));
+
+  const count = (b: WorkloadBucket): number => items.filter((i) => i.bucket === b).length;
+  const inProgress = count('IN_PROGRESS');
+  const overdue = count('OVERDUE');
+  return {
+    counts: {
+      allActive: items.length,
+      checkedIn: inProgress + overdue,
+      inProgress,
+      runningLate: count('RUNNING_LATE'),
+      overdue,
+      attention: count('ATTENTION'),
+    },
+    items,
+  };
+}
+
 export function computeActivity(visits: LiveVisitRow[], _now: Date): LiveActivityResult[] {
   const items: { at: Date; item: Omit<LiveActivityResult, 'timeLabel'> }[] = [];
   const push = (type: string, title: string, description: string, at: Date): void => {
@@ -360,22 +456,62 @@ export function computeActivity(visits: LiveVisitRow[], _now: Date): LiveActivit
     .map((e) => ({ ...e.item, timeLabel: formatClock(e.at) }));
 }
 
-export function computeMap(visits: LiveVisitRow[], snapshot: LiveSnapshot): LiveMapResult {
+/** Minutes within which a caregiver's last location ping counts as actively tracked. */
+const LAST_PING_ACTIVE_MINUTES = 10;
+
+/**
+ * The Map View: the active visits (green) and the scheduled visits running late
+ * (orange) as plotted points, each carrying the Selected Active Visit panel detail,
+ * plus the legend counts (the SOS alerts are the red points).
+ */
+export function computeMap(
+  visits: LiveVisitRow[],
+  snapshot: LiveSnapshot,
+  now: Date,
+): LiveMapResult {
+  const nowMinute = minuteOfUtcDay(now);
   const locationByCaregiver = new Map(snapshot.caregiverLocations.map((l) => [l.caregiverId, l]));
-  return {
-    visits: visits.filter(isActive).map((v) => {
+
+  const points = visits
+    .filter(
+      (v) =>
+        isActive(v) ||
+        (v.status === 'SCHEDULED' &&
+          v.clockInAt === null &&
+          nowMinute - v.startMinute >= LATE_THRESHOLD_MINUTES),
+    )
+    .map((v) => {
       const location = v.caregiverId === null ? undefined : locationByCaregiver.get(v.caregiverId);
+      const category = isActive(v) ? ('ACTIVE' as const) : ('RUNNING_LATE' as const);
       return {
         visitId: v.id,
+        reference: visitReference(v),
+        category,
         recipientName: v.recipientName,
         recipientLatitude: v.recipientLatitude,
         recipientLongitude: v.recipientLongitude,
         caregiverName: v.caregiverName,
         caregiverLatitude: location?.latitude ?? null,
         caregiverLongitude: location?.longitude ?? null,
-        status: displayStatus(v.status),
+        status: category === 'ACTIVE' ? displayStatus(v.status) : 'Running Late',
+        recipientAddress: v.recipientAddress,
+        caregiverTitle: v.caregiverTitle,
+        serviceScheduled: displayService(v.visitType),
+        checkInTimeLabel: v.clockInAt === null ? null : formatClock(v.clockInAt),
+        lastPingLabel: location === undefined ? null : formatClock(location.recordedAt),
+        lastPingActive:
+          location !== undefined &&
+          (now.getTime() - location.recordedAt.getTime()) / MINUTE_MS <= LAST_PING_ACTIVE_MINUTES,
       };
-    }),
+    });
+
+  return {
+    counts: {
+      active: points.filter((p) => p.category === 'ACTIVE').length,
+      runningLate: points.filter((p) => p.category === 'RUNNING_LATE').length,
+      sos: snapshot.sosAlerts.length,
+    },
+    visits: points,
     sos: snapshot.sosAlerts.map((s) => ({
       id: s.id,
       caregiverName: s.caregiverName,
