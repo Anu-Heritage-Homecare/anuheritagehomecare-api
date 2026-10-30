@@ -653,6 +653,9 @@ model RecipientInvoice {
   lines         RecipientInvoiceLine[]
 
   @@index([careRecipientId, issuedAt])
+  // The org wide Billing dashboard aggregates by market, status and date.
+  @@index([currency, status, issuedAt])
+  @@index([currency, status, dueDate])
   @@map("recipient_invoices")
 }
 
@@ -675,6 +678,9 @@ model RecipientInvoiceLine {
 // display safe method label is stored, never card data.
 model RecipientInvoicePayment {
   id              String   @id @default(uuid()) @db.Uuid
+  // Human friendly transaction number (rendered as TXN-<sequence>) for the Billing
+  // screen. Stored so the reference is stable and sequential, never derived from the id.
+  sequence        Int      @unique @default(autoincrement())
   careRecipientId String   @db.Uuid
   invoiceId       String?  @db.Uuid
   amountMinor     Int
@@ -686,6 +692,7 @@ model RecipientInvoicePayment {
   careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
 
   @@index([careRecipientId, receivedAt])
+  @@index([currency, receivedAt])
   @@map("recipient_invoice_payments")
 }
 
@@ -1101,6 +1108,9 @@ model Booking {
 // address) is not duplicated here; it is read from the care recipients context.
 model Visit {
   id                  String      @id @default(uuid()) @db.Uuid
+  // Human friendly visit number (rendered as VIS-<country>-<year>-<sequence>) for the
+  // admin screens. Stored so the reference is stable and sequential, never derived.
+  sequence            Int         @unique @default(autoincrement())
   // Null while the visit is unassigned (planned by the office but no caregiver
   // yet). An admin assigns a caregiver, which stamps assignedAt.
   caregiverId         String?     @db.Uuid
@@ -1154,17 +1164,56 @@ enum NoteAudience {
 // author is a user id (resolved to a name and role by the reading side); the text
 // is sensitive free text about the recipient and is kept out of logs.
 model VisitNote {
-  id        String       @id @default(uuid()) @db.Uuid
-  visitId   String       @db.Uuid
-  authorId  String       @db.Uuid
-  audience  NoteAudience @default(FAMILY)
-  text      String       @db.VarChar(4000)
-  createdAt DateTime     @default(now())
+  id        String          @id @default(uuid()) @db.Uuid
+  visitId   String          @db.Uuid
+  // Who wrote the note: a caregiver (a mobile User, `authorId`), an office
+  // coordinator (an AdminUser, `authorAdminId`), or the system. The author name and
+  // role are snapshotted for coordinator and system notes; caregiver notes resolve
+  // their author live on the read side.
+  source    VisitNoteSource @default(CAREGIVER)
+  authorId  String?         @db.Uuid
+  authorAdminId String?     @db.Uuid
+  authorName String?        @db.VarChar(200)
+  authorRole String?        @db.VarChar(200)
+  audience  NoteAudience    @default(FAMILY)
+  text      String          @db.VarChar(4000)
+  // Acknowledgement by a coordinator (reviewed), and flagging for coordinator
+  // attention. Edit time is stamped when a note's text is changed.
+  acknowledgedAt     DateTime?
+  acknowledgedByName String?  @db.VarChar(200)
+  flaggedForCoordinator Boolean @default(false)
+  flaggedAt  DateTime?
+  editedAt   DateTime?
+  createdAt  DateTime        @default(now())
 
-  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  visit   Visit            @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  replies VisitNoteReply[]
 
   @@index([visitId, createdAt])
   @@map("visit_notes")
+}
+
+enum VisitNoteSource {
+  CAREGIVER
+  COORDINATOR
+  SYSTEM
+
+  @@map("visit_note_source")
+}
+
+// A reply on a visit note. Append only; the author name and role are snapshotted.
+model VisitNoteReply {
+  id          String   @id @default(uuid()) @db.Uuid
+  visitNoteId String   @db.Uuid
+  authorName  String   @db.VarChar(200)
+  authorRole  String   @db.VarChar(200)
+  text        String   @db.VarChar(4000)
+  createdAt   DateTime @default(now())
+
+  note VisitNote @relation(fields: [visitNoteId], references: [id], onDelete: Cascade)
+
+  @@index([visitNoteId, createdAt])
+  @@map("visit_note_replies")
 }
 
 // A break a caregiver takes during a visit. Append only interval: `startedAt` is
@@ -1193,6 +1242,9 @@ model MedicationAdministration {
   medicationId String                         @db.Uuid
   outcome      MedicationAdministrationOutcome
   note         String?                        @db.VarChar(500)
+  // The position of the visit task this medication was administered under, so the
+  // admin Care Tasks tab can list it on its task. Null when not tied to a task.
+  visitTaskPosition Int?
   recordedAt   DateTime
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
@@ -1218,6 +1270,9 @@ model VisitVitals {
   temperatureTenths Int?
   // Blood glucose in mg/dL.
   bloodGlucose      Int?
+  // The position of the visit task this reading was recorded under, so the admin
+  // Care Tasks tab can show the reading on its task. Null when not tied to a task.
+  visitTaskPosition Int?
   recordedAt        DateTime
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
@@ -1256,6 +1311,13 @@ model SosAlert {
   status      SosAlertStatus @default(ACTIVE)
   dispatchedAt DateTime?
   cancelledAt DateTime?
+  // Admin acknowledgement of the emergency and who the response was assigned to.
+  acknowledgedAt    DateTime?
+  acknowledgedByAdminId String? @db.Uuid
+  assignedTo        String?  @db.VarChar(200)
+  // Office resolution of the emergency (distinct from a caregiver cancellation).
+  resolvedAt        DateTime?
+  resolvedByAdminId String?  @db.Uuid
   createdAt   DateTime       @default(now())
 
   @@index([caregiverId, createdAt])
@@ -1266,6 +1328,7 @@ model SosAlert {
 
 enum SosAlertStatus {
   ACTIVE
+  RESOLVED
   CANCELLED
 
   @@map("sos_alert_status")
@@ -1274,21 +1337,43 @@ enum SosAlertStatus {
 // A single task on a visit checklist (for example Blood Pressure, Meal
 // Preparation). Owned by the Visit aggregate and replaced wholesale on save.
 model VisitTask {
-  id          String    @id @default(uuid()) @db.Uuid
-  visitId     String    @db.Uuid
-  label       String    @db.VarChar(200)
-  completed   Boolean   @default(false)
+  id          String            @id @default(uuid()) @db.Uuid
+  visitId     String            @db.Uuid
+  label       String            @db.VarChar(200)
+  // The kind of care activity, for the admin Care Tasks grouping and icon.
+  category    VisitTaskCategory @default(GENERAL)
+  completed   Boolean           @default(false)
   // When the task was ticked off, so the activity feed can place it on a
   // timeline. Null while the task is not complete.
   completedAt DateTime?
+  // When the caregiver started the task (null until started), so the admin can
+  // show an in progress "Ongoing / Started at" state distinct from pending.
+  startedAt   DateTime?
   // How long the task took, in whole minutes. Optional, only set when completed.
   durationMinutes Int?
+  // The planned time of day for the task, minutes from midnight. Office set when the
+  // visit is planned; null when the task has no planned time.
+  scheduledMinute Int?
+  // The caregiver's free text note for this specific task (health related).
+  note        String?           @db.VarChar(2000)
   position    Int
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
 
   @@index([visitId])
   @@map("visit_tasks")
+}
+
+enum VisitTaskCategory {
+  COMPANIONSHIP
+  PERSONAL_CARE
+  CLINICAL_VITALS
+  MEDICAL_SUPPORT
+  NUTRITION_DIETARY
+  REPORTING_ADMIN
+  GENERAL
+
+  @@map("visit_task_category")
 }
 
 // A recurring monthly subscription for the Standard, Premium or Live in plans.
@@ -2099,6 +2184,8 @@ model FamilyDirectoryEntry {
   subjectKind              FamilyDirectorySubjectKind
   userId                   String?                    @unique @db.Uuid
   fullName                 String                     @db.VarChar(200)
+  accountName              String?                    @db.VarChar(200)
+  branch                   String?                    @db.VarChar(120)
   phone                    String?                    @db.VarChar(40)
   email                    String?                    @db.VarChar(255)
   relationship             String?                    @db.VarChar(120)
@@ -2357,8 +2444,25 @@ model OperationalAlert {
   relatedCaregiverId     String?       @db.Uuid
   relatedCareRecipientId String?       @db.Uuid
   createdAt              DateTime      @default(now())
+  // A coordinator's acknowledgement of the alert (seen it), with an optional note.
+  acknowledgedAt         DateTime?
+  acknowledgedByAdminId  String?       @db.Uuid
+  acknowledgeNote        String?       @db.VarChar(500)
+  // Escalation of the alert to a higher level. Level, assignee and reason are free
+  // text (the dropdown values) since their option sets are not finalised.
+  escalatedAt            DateTime?
+  escalatedByAdminId     String?       @db.Uuid
+  escalationLevel        String?       @db.VarChar(120)
+  escalationAssignee     String?       @db.VarChar(160)
+  escalationReason       String?       @db.VarChar(160)
+  escalationNote         String?       @db.VarChar(500)
   resolvedAt             DateTime?
   resolvedByAdminId      String?       @db.Uuid
+  // Resolution detail captured on the Resolve Alert modal. Category is free text
+  // (the dropdown value) since its option set is not finalised.
+  resolutionCategory     String?       @db.VarChar(120)
+  resolutionActionTaken  String?       @db.VarChar(500)
+  resolutionInternalNote String?       @db.VarChar(500)
 
   @@index([status, createdAt])
   @@index([relatedVisitId])
@@ -2388,10 +2492,203 @@ enum AlertSeverity {
 
 enum AlertStatus {
   OPEN
+  ACKNOWLEDGED
+  INVESTIGATING
   RESOLVED
   DISMISSED
 
   @@map("alert_status")
+}
+
+// A reportable care event filed by staff or the office (a fall, a medication
+// concern, a service complaint), distinct from a system raised operational alert.
+// It carries a human reference (INC-<market>-<year>-<sequence>) built from the
+// monotonic `sequence`, a reporter, a category, a severity and a lifecycle.
+model Incident {
+  id                     String           @id @default(uuid()) @db.Uuid
+  sequence               Int              @unique @default(autoincrement())
+  category               IncidentCategory
+  severity               AlertSeverity
+  status                 IncidentStatus   @default(OPEN)
+  detail                 String?          @db.VarChar(1000)
+  reporterName           String?          @db.VarChar(160)
+  reportedByAdminId      String?          @db.Uuid
+  assignedCoordinatorAdminId String?      @db.Uuid
+  relatedVisitId         String?          @db.Uuid
+  relatedCaregiverId     String?          @db.Uuid
+  relatedCareRecipientId String?          @db.Uuid
+  createdAt              DateTime         @default(now())
+  resolvedAt             DateTime?
+  resolvedByAdminId      String?          @db.Uuid
+
+  @@index([status, createdAt])
+  @@map("incidents")
+}
+
+enum IncidentCategory {
+  MEDICATION_CONCERN
+  RECIPIENT_FALL
+  SERVICE_COMPLAINT
+  BEHAVIOURAL
+  OTHER
+
+  @@map("incident_category")
+}
+
+// An appended entry on an incident's history timeline: a coordinator action, a
+// caregiver contact, a family notification, a supervisor review step or a note.
+// Structural events (reported, resolved) are derived from the incident itself and
+// are not stored here. `actorName`/`actorRole` are captured free text so a role
+// outside the admin role set (for example Supervisor) can be recorded.
+model IncidentTimelineEvent {
+  id            String                    @id @default(uuid()) @db.Uuid
+  incidentId    String                    @db.Uuid
+  at            DateTime                  @default(now())
+  kind          IncidentTimelineEventKind
+  title         String                    @db.VarChar(160)
+  description   String                    @db.VarChar(500)
+  actorName     String?                   @db.VarChar(160)
+  actorRole     String?                   @db.VarChar(80)
+  authorAdminId String?                   @db.Uuid
+
+  @@index([incidentId, at])
+  @@map("incident_timeline_events")
+}
+
+enum IncidentTimelineEventKind {
+  COORDINATOR_NOTIFIED
+  CAREGIVER_CONTACT
+  FAMILY_NOTIFICATION
+  REVIEW_STARTED
+  NOTE
+  OTHER
+
+  @@map("incident_timeline_event_kind")
+}
+
+// A documented communication regarding an incident: a contact attempt with a
+// caregiver, family member or supervisor, its channel and outcome, and notes.
+// `contactName`/`contactRole` are captured free text so any party can be recorded.
+model IncidentCommunication {
+  id            String                @id @default(uuid()) @db.Uuid
+  incidentId    String                @db.Uuid
+  at            DateTime              @default(now())
+  channel       CommunicationChannel
+  outcome       CommunicationOutcome
+  contactName   String                @db.VarChar(160)
+  contactRole   String?               @db.VarChar(80)
+  notes         String?               @db.VarChar(1000)
+  authorAdminId String?               @db.Uuid
+
+  @@index([incidentId, at])
+  @@map("incident_communications")
+}
+
+enum CommunicationChannel {
+  PHONE_CALL
+  INTERNAL_MESSAGE
+  EMAIL
+  SMS
+
+  @@map("communication_channel")
+}
+
+enum CommunicationOutcome {
+  REACHED
+  NO_ANSWER
+  LEFT_MESSAGE
+  ACKNOWLEDGED
+
+  @@map("communication_outcome")
+}
+
+// The resolution form for an incident (one per incident): a saved draft of the
+// resolution summary, actions taken and any required follow up, finalised when the
+// incident is marked resolved. The resolved-by and resolution-time shown on the
+// screen are derived from the incident itself (resolvedByAdminId, created to
+// resolved), not stored here.
+model IncidentResolution {
+  id               String                   @id @default(uuid()) @db.Uuid
+  incidentId       String                   @unique @db.Uuid
+  status           IncidentResolutionStatus @default(PENDING_RESOLUTION)
+  summary          String?                  @db.VarChar(1000)
+  actionsTaken     String?                  @db.VarChar(1000)
+  followUpRequired Boolean                  @default(false)
+  followUpDate     DateTime?                @db.Date
+  followUpNotes    String?                  @db.VarChar(1000)
+  updatedByAdminId String?                  @db.Uuid
+  updatedAt        DateTime                 @updatedAt
+  createdAt        DateTime                 @default(now())
+
+  @@map("incident_resolutions")
+}
+
+// Placeholder option set pending the real resolution dropdown values.
+enum IncidentResolutionStatus {
+  PENDING_RESOLUTION
+  RESOLVED
+  ESCALATED
+
+  @@map("incident_resolution_status")
+}
+
+enum IncidentStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
+
+  @@map("incident_status")
+}
+
+// A coordinator's completion of one step of the emergency response protocol for an
+// SOS alert. Presence of a row means the step is done. Owned by the admin side;
+// `sosAlertId` references the visits SOS alert by id (no cross context FK).
+model SosProtocolCompletion {
+  id                String                @id @default(uuid()) @db.Uuid
+  sosAlertId        String                @db.Uuid
+  step              EmergencyProtocolStep
+  completedAt       DateTime              @default(now())
+  completedByAdminId String?              @db.Uuid
+
+  @@unique([sosAlertId, step])
+  @@index([sosAlertId])
+  @@map("sos_protocol_completions")
+}
+
+// An appended entry on an SOS emergency's response timeline that is not derivable
+// from the SOS itself: a callback attempt, a geofence check, a logged incident or a
+// free note. Structural events (raised, acknowledged, assigned) are derived.
+model SosResponseEvent {
+  id            String               @id @default(uuid()) @db.Uuid
+  sosAlertId    String               @db.Uuid
+  at            DateTime             @default(now())
+  kind          SosResponseEventKind
+  description   String               @db.VarChar(500)
+  actorAdminId  String?              @db.Uuid
+  linkedIncidentId String?           @db.Uuid
+
+  @@index([sosAlertId, at])
+  @@map("sos_response_events")
+}
+
+enum EmergencyProtocolStep {
+  SOS_CONFIRMATION
+  ASSESS_VISIT
+  NOTIFY_FAMILY
+  DISPATCH_SUPERVISOR
+  LOG_INCIDENT
+
+  @@map("emergency_protocol_step")
+}
+
+enum SosResponseEventKind {
+  CALLBACK
+  GEOFENCE_CHECK
+  INCIDENT_LOGGED
+  NOTE
+
+  @@map("sos_response_event_kind")
 }
 
 // An operational task: a unit of back office work a coordinator tracks (chase a
@@ -2403,17 +2700,135 @@ model OperationalTask {
   description            String?      @db.VarChar(1000)
   status                 TaskStatus   @default(OPEN)
   priority               TaskPriority @default(MEDIUM)
+  category               TaskCategory @default(OTHER)
   assignedToAdminId      String?      @db.Uuid
+  // Free text assignee for people or teams that are not an admin account (for
+  // example "HR Team", "Admin"); shown when assignedToAdminId is not set.
+  assigneeLabel          String?      @db.VarChar(160)
   createdByAdminId       String?      @db.Uuid
   relatedCareRecipientId String?      @db.Uuid
+  relatedVisitId         String?      @db.Uuid
   dueAt                  DateTime?
+  // Display only on the task detail screen (no recurring-task engine yet): a free
+  // text cadence label and an estimated effort in minutes.
+  recurrenceLabel        String?      @db.VarChar(80)
+  estimatedMinutes       Int?
+  // Lifecycle timestamps; the detail screen derives its activity trail from these
+  // (created, assigned, started, completed) rather than a separate event log.
+  startedAt              DateTime?
+  assignedAt             DateTime?
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
   completedAt            DateTime?
 
+  checklistItems         TaskChecklistItem[]
+  comments               TaskComment[]
+
   @@index([status, createdAt])
   @@index([assignedToAdminId])
+  @@index([dueAt])
+  @@index([relatedCareRecipientId])
   @@map("operational_tasks")
+}
+
+// A single checklist line on an operational task. The task detail screen renders
+// these with progress (completed of total) and lets a coordinator tick them.
+model TaskChecklistItem {
+  id          String          @id @default(uuid()) @db.Uuid
+  taskId      String          @db.Uuid
+  task        OperationalTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label       String          @db.VarChar(200)
+  position    Int
+  done        Boolean         @default(false)
+  completedAt DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@index([taskId])
+  @@map("task_checklist_items")
+}
+
+// A note or operational comment on a task. authorAdminId is the admin who wrote it
+// (null for a system note); the detail screen resolves the author's name.
+model TaskComment {
+  id            String          @id @default(uuid()) @db.Uuid
+  taskId        String          @db.Uuid
+  task          OperationalTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorAdminId String?         @db.Uuid
+  body          String          @db.VarChar(2000)
+  createdAt     DateTime        @default(now())
+
+  @@index([taskId, createdAt])
+  @@map("task_comments")
+}
+
+// A reusable task blueprint ("Load reusable task models"). Instantiating one creates
+// a fresh operational task pre-filled from these defaults.
+model TaskTemplate {
+  id                   String       @id @default(uuid()) @db.Uuid
+  name                 String       @db.VarChar(160)
+  title                String       @db.VarChar(160)
+  description          String?      @db.VarChar(1000)
+  category             TaskCategory @default(OTHER)
+  priority             TaskPriority @default(MEDIUM)
+  defaultAssigneeLabel String?      @db.VarChar(160)
+  // Default checklist line labels copied onto a task when the template is used.
+  checklistItems       String[]     @default([])
+  // Display only (no scheduler yet): a cadence label and estimated effort.
+  scheduleLabel        String?      @db.VarChar(80)
+  estimatedMinutes     Int?
+  // Deactivated templates stay for reference but are filtered out by default.
+  active               Boolean      @default(true)
+  createdByAdminId     String?      @db.Uuid
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@map("task_templates")
+}
+
+// Task Settings overlay: per category display config (colour, icon, auto-assign
+// target, active). Keyed by the fixed TaskCategory enum; rows hold overrides only,
+// the read model fills defaults. "Delete" on the screen deactivates (active=false).
+model TaskCategorySetting {
+  id              String       @id @default(uuid()) @db.Uuid
+  category        TaskCategory @unique
+  color           String?      @db.VarChar(16)
+  icon            String?      @db.VarChar(40)
+  autoAssignLabel String?      @db.VarChar(160)
+  active          Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("task_category_settings")
+}
+
+// Per priority display config (colour, label, SLA hours, escalation rule, default).
+// Keyed by the fixed TaskPriority enum. SLA and escalation are stored config only;
+// no scheduler acts on them yet.
+model TaskPrioritySetting {
+  id         String       @id @default(uuid()) @db.Uuid
+  priority   TaskPriority @unique
+  color      String?      @db.VarChar(16)
+  label      String?      @db.VarChar(40)
+  slaHours   Int?
+  escalation String?      @db.VarChar(160)
+  isDefault  Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@map("task_priority_settings")
+}
+
+// A task notification/reminder preference, keyed by a fixed notification type.
+// Stored config only; no notification sender acts on these yet.
+model TaskNotificationSetting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique @db.VarChar(40)
+  enabled   Boolean  @default(true)
+  channels  String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("task_notification_settings")
 }
 
 enum TaskStatus {
@@ -2431,6 +2846,19 @@ enum TaskPriority {
   URGENT
 
   @@map("task_priority")
+}
+
+// Placeholder option set pending the real task category list.
+enum TaskCategory {
+  CARE_ACTIVITY
+  MEDICATION
+  DOCUMENTATION
+  SCHEDULING
+  COMPLIANCE
+  ADMINISTRATIVE
+  OTHER
+
+  @@map("task_category")
 }
 
 // A family member's satisfaction rating (1 to 5) for the care a recipient
@@ -2568,4 +2996,143 @@ enum CaregiverTrainingStatus {
   IN_PROGRESS
 
   @@map("caregiver_training_status")
+}
+
+// Messaging: back office conversations with mobile users (caregivers, families),
+// visit threads, team and announcement threads. Stored in our own database (no
+// third party chat provider); a realtime delivery layer is added separately.
+model Conversation {
+  id                    String           @id @default(uuid()) @db.Uuid
+  kind                  ConversationKind @default(DIRECT)
+  // Title for non person threads (VISIT/TEAM/ANNOUNCEMENT), or the optional subject
+  // typed on New Message. For DIRECT with no subject the counterparty's name is shown.
+  title                 String?          @db.VarChar(200)
+  // Compose time priority captured on New Message (no read surface yet).
+  priority              ConversationPriority @default(NORMAL)
+  // The owning admin whose inbox this conversation belongs to.
+  adminId               String           @db.Uuid
+  // The mobile user on the other side of a DIRECT conversation.
+  counterpartyUserId    String?          @db.Uuid
+  // Optional linked records surfaced in the thread header.
+  linkedCareRecipientId String?          @db.Uuid
+  linkedVisitId         String?          @db.Uuid
+  // When the owning admin last read the thread; drives the unread count.
+  adminLastReadAt       DateTime?
+  lastMessageAt         DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  messages Message[]
+
+  @@index([adminId, lastMessageAt])
+  @@index([adminId, counterpartyUserId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String            @id @default(uuid()) @db.Uuid
+  conversationId String            @db.Uuid
+  conversation   Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderType     MessageSenderType
+  senderAdminId  String?           @db.Uuid
+  senderUserId   String?           @db.Uuid
+  body           String            @db.VarChar(4000)
+  createdAt      DateTime          @default(now())
+
+  attachments MessageAttachment[]
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+// A file attached to a message. Carries the metadata the File Preview panel shows
+// (name, size, upload time); the uploader and any linked visit are derived from the
+// parent message and conversation. The bytes live in object storage keyed by
+// storageKey (delivery URL via the shared PhotoStorage; real upload/blob delete
+// reuse that port, which fails closed until configured).
+model MessageAttachment {
+  id         String   @id @default(uuid()) @db.Uuid
+  messageId  String   @db.Uuid
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  storageKey String   @db.VarChar(500)
+  fileName   String   @db.VarChar(255)
+  sizeBytes  Int
+  createdAt  DateTime @default(now())
+
+  @@index([messageId])
+  @@map("message_attachments")
+}
+
+enum ConversationKind {
+  DIRECT
+  VISIT
+  TEAM
+  ANNOUNCEMENT
+
+  @@map("conversation_kind")
+}
+
+enum ConversationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@map("conversation_priority")
+}
+
+enum MessageSenderType {
+  ADMIN
+  USER
+  SYSTEM
+
+  @@map("message_sender_type")
+}
+
+/// A back office broadcast announcement to a staff audience. Its own lifecycle
+/// (draft, scheduled, published, archived); not a 1:1 conversation. Delivery
+/// fan-out to recipients is display only for now (no per recipient rows yet).
+model Announcement {
+  id            String                 @id @default(uuid()) @db.Uuid
+  title         String                 @db.VarChar(200)
+  body          String                 @db.VarChar(8000)
+  // One or more target audiences selected on the composer (at least one).
+  audiences     AnnouncementAudience[]
+  priority      AnnouncementPriority   @default(NORMAL)
+  status        AnnouncementStatus     @default(DRAFT)
+  authorAdminId String                 @db.Uuid
+  scheduledFor  DateTime?
+  publishedAt   DateTime?
+  archivedAt    DateTime?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([status, createdAt])
+  @@map("announcements")
+}
+
+enum AnnouncementAudience {
+  ALL_STAFF
+  CAREGIVERS
+  COORDINATORS
+
+  @@map("announcement_audience")
+}
+
+enum AnnouncementPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@map("announcement_priority")
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+
+  @@map("announcement_status")
 }
