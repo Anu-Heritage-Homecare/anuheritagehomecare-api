@@ -6,6 +6,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AppConfig, buildConfig } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
+import { AdminBillingModule } from './modules/admin-billing/admin-billing.module';
 import { AdminCareRecipientsModule } from './modules/admin-care-recipients/admin-care-recipients.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { AdminCarePlansModule } from './modules/admin-care-plans/admin-care-plans.module';
@@ -16,6 +17,8 @@ import { AdminLiveMonitoringModule } from './modules/admin-live-monitoring/admin
 import { AdminIdentityModule } from './modules/admin-identity/admin-identity.module';
 import { AdminPlansBillingModule } from './modules/admin-plans-billing/admin-plans-billing.module';
 import { AdminTasksModule } from './modules/admin-tasks/admin-tasks.module';
+import { MessagingModule } from './modules/messaging/messaging.module';
+import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { CarePlansModule } from './modules/care-plans/care-plans.module';
@@ -158,6 +161,7 @@ import { SharedModule } from './shared/shared.module';
     AdminDashboardModule,
     AdminCareRecipientsModule,
     AdminPlansBillingModule,
+    AdminBillingModule,
     AdminCarePlansModule,
     ClientOnboardingModule,
     SubscriptionManagementModule,
@@ -167,6 +171,8 @@ import { SharedModule } from './shared/shared.module';
     AdminCaregiversModule,
     AdminSchedulingModule,
     AdminLiveMonitoringModule,
+    MessagingModule,
+    AnnouncementsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerRetryAfterGuard },
