@@ -46,7 +46,7 @@ export interface FamilyVisitHealthResult {
 }
 
 export interface FamilyVisitNoteResult {
-  authorId: string;
+  authorId: string | null;
   authorName: string | null;
   authorRole: string | null;
   authorPhotoKey: string | null;

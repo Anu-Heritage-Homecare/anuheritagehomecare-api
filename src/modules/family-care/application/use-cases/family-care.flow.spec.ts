@@ -78,7 +78,8 @@ describe('family Care reads', () => {
       }),
     ],
     notes: [
-      VisitNote.create({
+      VisitNote.createCaregiverNote({
+        id: 'note-1',
         authorId: 'cg1',
         audience: NoteAudience.CareTeam,
         text: 'Mary was cheerful today.',

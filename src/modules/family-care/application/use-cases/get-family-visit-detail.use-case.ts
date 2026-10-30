@@ -198,12 +198,14 @@ export class GetFamilyVisitDetailUseCase {
     return [...visit.notes]
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
       .map((note) => {
-        const author = usersById.get(note.authorId) ?? null;
+        const author = note.authorId === null ? null : (usersById.get(note.authorId) ?? null);
         return {
           authorId: note.authorId,
           authorName:
-            author === null ? null : `${author.name.firstName} ${author.name.lastName}`.trim(),
-          authorRole: author === null ? null : String(author.userType),
+            author !== null
+              ? `${author.name.firstName} ${author.name.lastName}`.trim()
+              : note.authorName,
+          authorRole: author !== null ? String(author.userType) : note.authorRole,
           authorPhotoKey: author?.photoKey ?? null,
           at: note.createdAt.toISOString(),
           audience: String(note.audience) as 'CARE_TEAM' | 'FAMILY',
