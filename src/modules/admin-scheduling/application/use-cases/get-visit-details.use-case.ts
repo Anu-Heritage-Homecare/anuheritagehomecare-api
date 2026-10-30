@@ -1,4 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { GeofenceConfig } from '@config/configuration';
+import { Coordinates } from '@shared/domain/coordinates.vo';
 import {
   CARE_RECIPIENT_REPOSITORY,
   CareRecipientRepository,
@@ -16,6 +19,8 @@ import {
 import { USER_REPOSITORY, UserRepository } from '@modules/identity/domain/user.repository';
 import { UserType } from '@modules/identity/domain/user-type.enum';
 import { Visit } from '@modules/visits/domain/visit.entity';
+import { VisitNote } from '@modules/visits/domain/value-objects/visit-note.vo';
+import { VisitNoteSource } from '@modules/visits/domain/value-objects/visit-note-source.enum';
 import { VISIT_REPOSITORY, VisitRepository } from '@modules/visits/domain/visit.repository';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
@@ -23,11 +28,18 @@ import {
   RelatedVisitResult,
   VisitCarePlanResult,
   VisitCaregiverResult,
+  VisitCheckInResult,
   VisitDetailResult,
+  VisitLocationResult,
   VisitNoteResult,
+  VisitNotesResult,
   VisitRecipientResult,
   VisitTimelineEventResult,
 } from '../dto/visit-details.result';
+import {
+  VISIT_LOCATION_READ_MODEL,
+  VisitLocationReadModel,
+} from '../ports/visit-location-read.port';
 import {
   displayPriority,
   displayService,
@@ -37,6 +49,8 @@ import {
 
 const DAY_MS = 86_400_000;
 const RELATED_WINDOW_DAYS = 120;
+/** How many recent location pings the operational log shows. */
+const LOCATION_LOG_LIMIT = 20;
 const WEEKDAY_LABELS: Record<Weekday, string> = {
   [Weekday.Monday]: 'Mon',
   [Weekday.Tuesday]: 'Tue',
@@ -66,7 +80,9 @@ export class GetVisitDetailsUseCase {
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(CAREGIVER_PROFILE_REPOSITORY) private readonly profiles: CaregiverProfileRepository,
     @Inject(CARE_RATING_REPOSITORY) private readonly ratings: CareRatingRepository,
+    @Inject(VISIT_LOCATION_READ_MODEL) private readonly locations: VisitLocationReadModel,
     @Inject(CLOCK) private readonly clock: Clock,
+    private readonly config: ConfigService,
   ) {}
 
   async execute(visitId: string): Promise<VisitDetailResult> {
@@ -95,13 +111,35 @@ export class GetVisitDetailsUseCase {
     const userById = new Map(users.map((u) => [u.id, u]));
 
     const caregiver = await this.caregiverCard(visit, userById, now);
+    const ownerCountry = ownerId === null ? null : (userById.get(ownerId)?.address.country ?? null);
+
+    // Resolve the title and branch (division) of every caregiver who authored a note.
+    const noteCaregiverIds = [
+      ...new Set(
+        visit.notes
+          .filter((n) => n.source === VisitNoteSource.Caregiver && n.authorId !== null)
+          .map((n) => n.authorId as string),
+      ),
+    ];
+    const noteProfiles = await Promise.all(
+      noteCaregiverIds.map((id) => this.profiles.findByUserId(id).then((p) => [id, p] as const)),
+    );
+    const profilesById = new Map(
+      noteProfiles
+        .filter(([, p]) => p !== null)
+        .map(([id, p]) => [id, { title: p?.title ?? null, branch: p?.branch ?? null }]),
+    );
+    const noteItems = this.noteItems(visit, userById, profilesById);
 
     return {
       id: visit.id,
+      reference: visitReference(visit, ownerCountry),
       status: String(visit.status),
       statusLabel: displayStatus(String(visit.status), visit.caregiverId),
       serviceType: displayService(String(visit.type)),
       priority: displayPriority(String(visit.priority)),
+      checkIn: this.checkIn(visit),
+      location: await this.location(visit, recipient),
       actions: {
         canEdit: String(visit.status) === 'SCHEDULED',
         canReassign: String(visit.status) === 'SCHEDULED',
@@ -109,13 +147,13 @@ export class GetVisitDetailsUseCase {
       },
       overview: {
         information: this.information(visit, recipient),
-        tasks: this.tasks(visit),
-        notes: this.notes(visit, userById),
+        tasks: this.tasks(visit, recipient),
+        notes: noteItems,
       },
       recipient: this.recipientCard(recipient, visit, userById, now),
       caregiver,
       carePlan: this.carePlan(visit, recipient),
-      notes: this.notes(visit, userById),
+      notes: this.notesSection(noteItems),
       history: this.timeline(visit, userById),
       relatedVisits: this.relatedResults(related, userById, visit),
     };
@@ -143,12 +181,122 @@ export class GetVisitDetailsUseCase {
     };
   }
 
-  private tasks(visit: Visit): VisitDetailResult['overview']['tasks'] {
-    const items = visit.tasks.map((t) => ({
-      label: t.label,
-      completed: t.completed,
-      status: t.completed ? 'Completed' : 'Pending',
+  private checkIn(visit: Visit): VisitCheckInResult {
+    const arrival = visit.arrivalLocation;
+    const dayMs = visit.scheduledDate.getTime();
+    return {
+      // A verified check-in means the clock-in was accepted inside the geofence,
+      // which stamps the arrival coordinates.
+      verified: arrival !== null,
+      clockInAt: visit.clockInAt === null ? null : visit.clockInAt.toISOString(),
+      clockOutAt: visit.clockOutAt === null ? null : visit.clockOutAt.toISOString(),
+      arrivalLatitude: arrival?.latitude ?? null,
+      arrivalLongitude: arrival?.longitude ?? null,
+      scheduledStart: new Date(dayMs + visit.window.startMinute * 60_000).toISOString(),
+      scheduledEnd: new Date(dayMs + visit.window.endMinute * 60_000).toISOString(),
+    };
+  }
+
+  /**
+   * The Location and Check-in tab: the geofence verification (how far the accepted
+   * check-in and the latest ping are from the pinned address centre, against the
+   * configured radius) and the real-time operational log of the visit's pings.
+   */
+  private async location(
+    visit: Visit,
+    recipient: Awaited<ReturnType<CareRecipientRepository['findById']>>,
+  ): Promise<VisitLocationResult> {
+    const centre = recipient?.profile.location ?? null;
+    const arrival = visit.arrivalLocation;
+    const radiusMeters = this.config.getOrThrow<GeofenceConfig>('geofence').radiusMeters;
+
+    const checkInVarianceMeters =
+      centre === null || arrival === null ? null : Math.round(centre.distanceToMeters(arrival));
+
+    const pings = await this.locations.pingsForVisit(visit.id, LOCATION_LOG_LIMIT);
+    const latest = pings[0];
+    const current =
+      latest === undefined ? null : Coordinates.create(latest.latitude, latest.longitude);
+    const currentOffsetMeters =
+      centre === null || current === null ? null : Math.round(centre.distanceToMeters(current));
+
+    const logs = pings.map((ping) => ({
+      type: 'GPS_PING',
+      label: 'GPS Location Ping Verified',
+      method: pingMethod(ping.mode),
+      at: ping.recordedAt.toISOString(),
+      status: 'VERIFIED',
     }));
+    if (visit.clockInAt !== null) {
+      logs.push({
+        type: 'CHECK_IN',
+        label: 'Initial Check-in Dispatch Verified',
+        method: 'Manual app action with GPS coordinate lock',
+        at: visit.clockInAt.toISOString(),
+        status: 'VERIFIED',
+      });
+    }
+    logs.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+    return {
+      address: recipient?.profile.fullAddress ?? 'Unknown',
+      geofenceRadiusMeters: radiusMeters,
+      checkInVarianceMeters,
+      checkInWithinRange:
+        checkInVarianceMeters === null ? null : checkInVarianceMeters <= radiusMeters,
+      recipientLatitude: centre?.latitude ?? null,
+      recipientLongitude: centre?.longitude ?? null,
+      currentLatitude: current?.latitude ?? null,
+      currentLongitude: current?.longitude ?? null,
+      currentOffsetMeters,
+      lastPingAt: latest?.recordedAt.toISOString() ?? null,
+      // The check-out verification procedure; office set copy until a policy model exists.
+      verificationPlan: 'GPS Geofence + Photo Note',
+      logs,
+    };
+  }
+
+  private tasks(
+    visit: Visit,
+    recipient: Awaited<ReturnType<CareRecipientRepository['findById']>>,
+  ): VisitDetailResult['overview']['tasks'] {
+    const medicationById = new Map(
+      (recipient?.medications ?? []).map((m) => [m.id, { name: m.name, dose: m.dose }]),
+    );
+
+    const items = visit.tasks.map((task, index) => {
+      const vitals = visit.vitals
+        .filter((v) => v.visitTaskPosition === index)
+        .map((v) => ({ summary: taskVitalsSummary(v), recordedAt: v.recordedAt.toISOString() }));
+      const medications = visit.medicationAdministrations
+        .filter((m) => m.visitTaskPosition === index)
+        .map((m) => {
+          const info = medicationById.get(m.medicationId);
+          return {
+            name: info?.name ?? 'Medication',
+            dose: info?.dose ?? null,
+            outcome: String(m.outcome),
+          };
+        });
+      const status = task.completed
+        ? 'COMPLETED'
+        : task.startedAt !== null
+          ? 'IN_PROGRESS'
+          : 'PENDING';
+      return {
+        label: task.label,
+        category: String(task.category),
+        completed: task.completed,
+        status,
+        scheduledTime: task.scheduledMinute === null ? null : formatMinute(task.scheduledMinute),
+        startedAt: task.startedAt === null ? null : task.startedAt.toISOString(),
+        completedAt: task.completedAt === null ? null : task.completedAt.toISOString(),
+        durationMinutes: task.durationMinutes,
+        note: task.note,
+        vitals,
+        medications,
+      };
+    });
     const completed = items.filter((t) => t.completed).length;
     return {
       summary: `${completed} of ${items.length} completed`,
@@ -158,24 +306,49 @@ export class GetVisitDetailsUseCase {
     };
   }
 
-  private notes(
+  private noteItems(
     visit: Visit,
     userById: Map<string, { name: { firstName: string; lastName: string }; userType: UserType }>,
+    profilesById: Map<string, { title: string | null; branch: string | null }>,
   ): VisitNoteResult[] {
     return visit.notes
       .slice()
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .map((note) => {
-        const user = userById.get(note.authorId);
+        const author = resolveNoteAuthor(note, userById, profilesById);
         return {
-          authorName:
-            user === undefined ? 'Unknown' : `${user.name.firstName} ${user.name.lastName}`,
-          authorRole: user === undefined ? '' : roleLabel(user.userType),
+          id: note.id,
+          source: String(note.source),
+          authorName: author.name,
+          authorRole: author.role,
           audience: String(note.audience),
           text: note.text,
           at: note.createdAt.toISOString(),
+          acknowledged: note.acknowledgedAt !== null,
+          acknowledgedByName: note.acknowledgedByName,
+          flaggedForCoordinator: note.flaggedForCoordinator,
+          edited: note.editedAt !== null,
+          canEdit: note.source === VisitNoteSource.Coordinator,
+          replies: note.replies.map((reply) => ({
+            authorName: reply.authorName,
+            authorRole: reply.authorRole,
+            text: reply.text,
+            at: reply.createdAt.toISOString(),
+          })),
         };
       });
+  }
+
+  private notesSection(items: VisitNoteResult[]): VisitNotesResult {
+    return {
+      counts: {
+        all: items.length,
+        caregiver: items.filter((n) => n.source === 'CAREGIVER').length,
+        coordinator: items.filter((n) => n.source === 'COORDINATOR').length,
+        system: items.filter((n) => n.source === 'SYSTEM').length,
+      },
+      items,
+    };
   }
 
   private recipientCard(
@@ -288,35 +461,65 @@ export class GetVisitDetailsUseCase {
           })();
 
     const events: VisitTimelineEventResult[] = [];
-    const push = (type: string, label: string, at: Date): void => {
-      events.push({ type, label, at: at.toISOString() });
+    const push = (
+      type: string,
+      label: string,
+      at: Date,
+      status: string,
+      detail: string | null = null,
+    ): void => {
+      events.push({ type, label, detail, at: at.toISOString(), status });
     };
+    const dayMs = visit.scheduledDate.getTime();
 
     if (visit.clockInAt !== null) {
-      push('CLOCK_IN', `${caregiverName} clocked in`, visit.clockInAt);
+      push('CLOCK_IN', `${caregiverName} checked in`, visit.clockInAt, 'DONE');
     }
     for (const vitals of visit.vitals) {
-      push('VITALS', `Vitals recorded${vitalsSummary(vitals)}`, vitals.recordedAt);
+      push('VITALS', 'Vital signs recorded', vitals.recordedAt, 'DONE', taskVitalsSummary(vitals));
     }
     for (const med of visit.medicationAdministrations) {
-      push('MEDICATION', `Medication ${String(med.outcome).toLowerCase()}`, med.recordedAt);
+      push(
+        'MEDICATION',
+        `Medication ${String(med.outcome).toLowerCase().replace(/_/g, ' ')}`,
+        med.recordedAt,
+        'DONE',
+        med.note,
+      );
     }
     for (const task of visit.tasks) {
       if (task.completed && task.completedAt !== null) {
-        push('TASK', `Task completed: ${task.label}`, task.completedAt);
+        push('TASK', `${task.label} completed`, task.completedAt, 'DONE', task.note);
+      } else if (task.startedAt !== null) {
+        push('TASK_STARTED', `${task.label} started`, task.startedAt, 'IN_PROGRESS', task.note);
+      } else if (task.scheduledMinute !== null) {
+        push(
+          'TASK_UPCOMING',
+          task.label,
+          new Date(dayMs + task.scheduledMinute * 60_000),
+          'UPCOMING',
+        );
       }
     }
     for (const note of visit.notes) {
-      push('NOTE', 'Note added', note.createdAt);
+      push('NOTE', 'Note added', note.createdAt, 'DONE', note.text);
     }
     for (const brk of visit.breaks) {
-      push('BREAK_START', 'Break started', brk.startedAt);
+      push('BREAK_START', 'Break started', brk.startedAt, 'DONE');
       if (brk.endedAt !== null) {
-        push('BREAK_END', 'Break ended', brk.endedAt);
+        push('BREAK_END', 'Break ended', brk.endedAt, 'DONE');
       }
     }
     if (visit.clockOutAt !== null) {
-      push('CLOCK_OUT', `${caregiverName} clocked out`, visit.clockOutAt);
+      push('CLOCK_OUT', `${caregiverName} checked out`, visit.clockOutAt, 'DONE');
+    } else {
+      // The planned final step; shown as an upcoming entry until the caregiver clocks out.
+      push(
+        'SCHEDULED_CHECK_OUT',
+        'Scheduled check-out',
+        new Date(dayMs + visit.window.endMinute * 60_000),
+        'UPCOMING',
+      );
     }
     return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
   }
@@ -358,27 +561,77 @@ function roleLabel(type: UserType): string {
   return type === UserType.Caregiver ? 'Caregiver' : 'Family';
 }
 
+/** The display name and role for a note author (resolved for caregivers, snapshot otherwise). */
+function resolveNoteAuthor(
+  note: VisitNote,
+  userById: Map<string, { name: { firstName: string; lastName: string }; userType: UserType }>,
+  profilesById: Map<string, { title: string | null; branch: string | null }>,
+): { name: string; role: string } {
+  if (note.source === VisitNoteSource.Caregiver && note.authorId !== null) {
+    const user = userById.get(note.authorId);
+    const name = user === undefined ? 'Unknown' : `${user.name.firstName} ${user.name.lastName}`;
+    const profile = profilesById.get(note.authorId);
+    const title = profile?.title ?? (user === undefined ? 'Caregiver' : roleLabel(user.userType));
+    const role = profile?.branch ? `${title} • ${profile.branch} Division` : title;
+    return { name, role };
+  }
+  const fallbackName = note.source === VisitNoteSource.System ? 'System' : 'Coordinator';
+  return { name: note.authorName ?? fallbackName, role: note.authorRole ?? '' };
+}
+
+/** The verification method label for a location ping, by its tracking mode. */
+function pingMethod(mode: string): string {
+  switch (mode) {
+    case 'EMERGENCY':
+      return 'Emergency high frequency tracking';
+    case 'NAVIGATION':
+      return 'Automatic GPS navigation verification';
+    default:
+      return 'Automatic GPS background verification';
+  }
+}
+
+/** A readable one line summary of a vitals reading for a Care Tasks card. */
+function taskVitalsSummary(v: {
+  systolic: number | null;
+  diastolic: number | null;
+  heartRate: number | null;
+  oxygenSaturation: number | null;
+  temperatureCelsius: number | null;
+  bloodGlucose: number | null;
+}): string {
+  const parts: string[] = [];
+  if (v.systolic !== null && v.diastolic !== null) {
+    parts.push(`BP ${v.systolic}/${v.diastolic} mmHg`);
+  }
+  if (v.heartRate !== null) {
+    parts.push(`HR ${v.heartRate} bpm`);
+  }
+  if (v.oxygenSaturation !== null) {
+    parts.push(`SpO2 ${v.oxygenSaturation}%`);
+  }
+  if (v.temperatureCelsius !== null) {
+    parts.push(`Temp ${v.temperatureCelsius} C`);
+  }
+  if (v.bloodGlucose !== null) {
+    parts.push(`Glucose ${v.bloodGlucose} mg/dL`);
+  }
+  return parts.length === 0 ? 'Vitals recorded' : parts.join(', ');
+}
+
+/** VIS-<country>-<year>-<sequence>; country from the owner's market, XX when unknown. */
+function visitReference(visit: Visit, country: string | null): string {
+  const prefix = country ?? 'XX';
+  const seq = visit.sequence ?? 0;
+  return `VIS-${prefix}-${visit.scheduledDate.getUTCFullYear()}-${String(seq).padStart(4, '0')}`;
+}
+
 function titleCase(value: string): string {
   return value
     .toLowerCase()
     .split(' ')
     .map((part) => (part.length === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)))
     .join(' ');
-}
-
-function vitalsSummary(vitals: {
-  systolic: number | null;
-  diastolic: number | null;
-  heartRate: number | null;
-}): string {
-  const parts: string[] = [];
-  if (vitals.systolic !== null && vitals.diastolic !== null) {
-    parts.push(`BP ${vitals.systolic}/${vitals.diastolic}`);
-  }
-  if (vitals.heartRate !== null) {
-    parts.push(`HR ${vitals.heartRate}`);
-  }
-  return parts.length === 0 ? '' : `: ${parts.join(', ')}`;
 }
 
 /** Clock time (UTC) like 9:28 AM. */

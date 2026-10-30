@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
+import { AdminIdentityModule } from '@modules/admin-identity/admin-identity.module';
 import { CaregiverProfileModule } from '@modules/caregiver-profile/caregiver-profile.module';
 import { CareRatingsModule } from '@modules/care-ratings/care-ratings.module';
 import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.module';
@@ -8,6 +9,7 @@ import { IdentityModule } from '@modules/identity/identity.module';
 import { VisitsModule } from '@modules/visits/visits.module';
 import { ASSIGN_CANDIDATE_READ_MODEL } from './application/ports/assign-candidate-read.port';
 import { SCHEDULING_READ_MODEL } from './application/ports/scheduling-read.port';
+import { VISIT_LOCATION_READ_MODEL } from './application/ports/visit-location-read.port';
 import { SCHEDULING_SETTINGS_REPOSITORY } from './domain/scheduling-settings.repository';
 import { GetAssignCandidatesUseCase } from './application/use-cases/get-assign-candidates.use-case';
 import {
@@ -18,6 +20,13 @@ import {
 } from './application/use-cases/manage-scheduling-settings.use-case';
 import { GetSchedulingConsoleUseCase } from './application/use-cases/get-scheduling-console.use-case';
 import { GetVisitDetailsUseCase } from './application/use-cases/get-visit-details.use-case';
+import {
+  AcknowledgeVisitNoteUseCase,
+  AddCoordinatorNoteUseCase,
+  EditVisitNoteUseCase,
+  FlagVisitNoteUseCase,
+  ReplyToVisitNoteUseCase,
+} from './application/use-cases/manage-visit-notes.use-case';
 import {
   AssignVisitCaregiverUseCase,
   CancelVisitUseCase,
@@ -32,6 +41,7 @@ import {
 } from './application/use-cases/scheduling-tabs.use-case';
 import { AssignCandidateReadPrisma } from './infrastructure/persistence/assign-candidate-read.prisma';
 import { SchedulingReadPrisma } from './infrastructure/persistence/scheduling-read.prisma';
+import { VisitLocationReadPrisma } from './infrastructure/persistence/visit-location-read.prisma';
 import { SchedulingSettingsPrismaRepository } from './infrastructure/persistence/scheduling-settings-prisma.repository';
 import { AdminSchedulingController } from './presentation/admin-scheduling.controller';
 
@@ -47,6 +57,7 @@ import { AdminSchedulingController } from './presentation/admin-scheduling.contr
     VisitsModule,
     CareRecipientsModule,
     IdentityModule,
+    AdminIdentityModule,
     CaregiverProfileModule,
     CareRatingsModule,
     CertificationsModule,
@@ -68,8 +79,14 @@ import { AdminSchedulingController } from './presentation/admin-scheduling.contr
     UpdateSchedulingSettingsUseCase,
     AddHolidayUseCase,
     RemoveHolidayUseCase,
+    AddCoordinatorNoteUseCase,
+    AcknowledgeVisitNoteUseCase,
+    FlagVisitNoteUseCase,
+    EditVisitNoteUseCase,
+    ReplyToVisitNoteUseCase,
     { provide: SCHEDULING_READ_MODEL, useClass: SchedulingReadPrisma },
     { provide: ASSIGN_CANDIDATE_READ_MODEL, useClass: AssignCandidateReadPrisma },
+    { provide: VISIT_LOCATION_READ_MODEL, useClass: VisitLocationReadPrisma },
     { provide: SCHEDULING_SETTINGS_REPOSITORY, useClass: SchedulingSettingsPrismaRepository },
   ],
 })

@@ -14,6 +14,7 @@ import { VisitType } from '@modules/visits/domain/visit-type.enum';
 import { Visit } from '@modules/visits/domain/visit.entity';
 import { VISIT_REPOSITORY, VisitRepository } from '@modules/visits/domain/visit.repository';
 import { VisitTask } from '@modules/visits/domain/value-objects/visit-task.vo';
+import { VisitTaskCategory } from '@modules/visits/domain/value-objects/visit-task-category.enum';
 import { VisitWindow } from '@modules/visits/domain/value-objects/visit-window.vo';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generator.port';
@@ -47,6 +48,13 @@ function startOfUtcDay(value: Date): Date {
   return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
 }
 
+/** One planned task on a visit: its label, care category and optional planned time. */
+export interface VisitTaskInput {
+  label: string;
+  category?: VisitTaskCategory;
+  scheduledMinute?: number;
+}
+
 export interface ScheduleVisitCommand {
   careRecipientId: string;
   caregiverId: string | null;
@@ -55,7 +63,7 @@ export interface ScheduleVisitCommand {
   endMinute: number | null;
   visitType: VisitType;
   priority: VisitPriority | undefined;
-  tasks: string[];
+  tasks: VisitTaskInput[];
   specialInstructions: string[];
 }
 
@@ -104,7 +112,13 @@ export class ScheduleVisitUseCase {
     );
 
     const window = VisitWindow.create(command.startMinute, endMinute);
-    const tasks = command.tasks.map((label) => VisitTask.create(label));
+    const tasks = command.tasks.map((task) =>
+      VisitTask.create({
+        label: task.label,
+        category: task.category,
+        scheduledMinute: task.scheduledMinute,
+      }),
+    );
     const id = this.ids.generate();
 
     const visit =
@@ -260,7 +274,7 @@ export interface EditVisitCommand {
   endMinute: number | null;
   visitType: VisitType | undefined;
   priority: VisitPriority | undefined;
-  tasks: string[] | undefined;
+  tasks: VisitTaskInput[] | undefined;
   specialInstructions: string[] | undefined;
 }
 
@@ -311,7 +325,13 @@ export class EditVisitUseCase {
         tasks:
           command.tasks === undefined
             ? undefined
-            : command.tasks.map((label) => VisitTask.create(label)),
+            : command.tasks.map((task) =>
+                VisitTask.create({
+                  label: task.label,
+                  category: task.category,
+                  scheduledMinute: task.scheduledMinute,
+                }),
+              ),
         specialInstructions: command.specialInstructions,
       },
       now,

@@ -6,6 +6,7 @@ import { User } from '@modules/identity/domain/user.entity';
 import { UserRepository } from '@modules/identity/domain/user.repository';
 import { VisitStatus } from '@modules/visits/domain/visit-status.enum';
 import { VisitType } from '@modules/visits/domain/visit-type.enum';
+import { VisitTaskCategory } from '@modules/visits/domain/value-objects/visit-task-category.enum';
 import {
   buildVisit,
   InMemoryVisitRepository,
@@ -87,7 +88,13 @@ describe('ScheduleVisitUseCase', () => {
       endMinute: 600,
       visitType: VisitType.Medication,
       priority: undefined,
-      tasks: ['Give medication'],
+      tasks: [
+        {
+          label: 'Give medication',
+          category: VisitTaskCategory.MedicalSupport,
+          scheduledMinute: 600,
+        },
+      ],
       specialInstructions: ['Gate code 1234'],
     });
     const created = visits.store.get(result.id);
@@ -200,7 +207,7 @@ describe('visit lifecycle operations', () => {
       endMinute: 720,
       visitType: undefined,
       priority: VisitPriority.Critical,
-      tasks: ['New task'],
+      tasks: [{ label: 'New task' }],
       specialInstructions: ['Use side door'],
     });
     const visit = visits.store.get('v4');

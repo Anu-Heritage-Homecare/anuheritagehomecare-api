@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { VisitPriority } from '@modules/visits/domain/visit-priority.enum';
 import { VisitType } from '@modules/visits/domain/visit-type.enum';
+import { VisitTaskCategory } from '@modules/visits/domain/value-objects/visit-task-category.enum';
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -13,10 +15,31 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
 const VISIT_TYPES = Object.values(VisitType);
 const PRIORITIES = Object.values(VisitPriority);
+const TASK_CATEGORIES = Object.values(VisitTaskCategory);
+
+/** One planned checklist task: its label, care category and optional planned time. */
+export class VisitTaskInputDto {
+  @ApiProperty() @IsString() @MaxLength(200) label!: string;
+  @ApiPropertyOptional({ enum: TASK_CATEGORIES })
+  @IsOptional()
+  @IsIn(TASK_CATEGORIES)
+  category?: VisitTaskCategory;
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 1439,
+    description: 'Planned time, minutes from midnight',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1439)
+  scheduledMinute?: number;
+}
 
 /** Schedule (create) a new visit. */
 export class ScheduleVisitDto {
@@ -42,13 +65,13 @@ export class ScheduleVisitDto {
   @IsOptional()
   @IsIn(PRIORITIES)
   priority?: VisitPriority;
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({ type: [VisitTaskInputDto] })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)
-  @IsString({ each: true })
-  @MaxLength(200, { each: true })
-  tasks?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => VisitTaskInputDto)
+  tasks?: VisitTaskInputDto[];
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @IsArray()
@@ -61,6 +84,11 @@ export class ScheduleVisitDto {
 /** Assign a caregiver to a visit. */
 export class AssignVisitDto {
   @ApiProperty() @IsUUID() caregiverId!: string;
+}
+
+/** The text of a coordinator note or a reply. */
+export class VisitNoteTextDto {
+  @ApiProperty({ maxLength: 4000 }) @IsString() @MaxLength(4000) text!: string;
 }
 
 /** Reschedule a visit to a new day and time window. */
@@ -96,13 +124,13 @@ export class EditVisitDto {
   @IsOptional()
   @IsIn(PRIORITIES)
   priority?: VisitPriority;
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({ type: [VisitTaskInputDto] })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)
-  @IsString({ each: true })
-  @MaxLength(200, { each: true })
-  tasks?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => VisitTaskInputDto)
+  tasks?: VisitTaskInputDto[];
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @IsArray()

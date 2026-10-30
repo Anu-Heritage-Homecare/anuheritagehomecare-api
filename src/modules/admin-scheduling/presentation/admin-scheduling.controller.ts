@@ -21,9 +21,18 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
+import { AdminPrincipal } from '@shared/presentation/admin-principal';
+import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { GetAssignCandidatesUseCase } from '../application/use-cases/get-assign-candidates.use-case';
 import { GetSchedulingConsoleUseCase } from '../application/use-cases/get-scheduling-console.use-case';
 import { GetVisitDetailsUseCase } from '../application/use-cases/get-visit-details.use-case';
+import {
+  AcknowledgeVisitNoteUseCase,
+  AddCoordinatorNoteUseCase,
+  EditVisitNoteUseCase,
+  FlagVisitNoteUseCase,
+  ReplyToVisitNoteUseCase,
+} from '../application/use-cases/manage-visit-notes.use-case';
 import {
   AssignVisitCaregiverUseCase,
   CancelVisitUseCase,
@@ -63,12 +72,13 @@ import {
   EditVisitDto,
   RescheduleVisitDto,
   ScheduleVisitDto,
+  VisitNoteTextDto,
 } from './dto/scheduling-write.dto';
 import {
   VisitCarePlanDto,
   VisitCaregiverDto,
   VisitDetailResponseDto,
-  VisitNoteDto,
+  VisitNotesDto,
   VisitRecipientDto,
   VisitTimelineEventDto,
 } from './dto/visit-details-response.dto';
@@ -100,6 +110,11 @@ export class AdminSchedulingController {
     private readonly updateSettings: UpdateSchedulingSettingsUseCase,
     private readonly addHoliday: AddHolidayUseCase,
     private readonly removeHoliday: RemoveHolidayUseCase,
+    private readonly addCoordinatorNote: AddCoordinatorNoteUseCase,
+    private readonly acknowledgeNote: AcknowledgeVisitNoteUseCase,
+    private readonly flagNote: FlagVisitNoteUseCase,
+    private readonly editNote: EditVisitNoteUseCase,
+    private readonly replyToNote: ReplyToVisitNoteUseCase,
   ) {}
 
   @Get()
@@ -236,9 +251,73 @@ export class AdminSchedulingController {
 
   @Get('visits/:id/notes')
   @ApiOperation({ summary: 'The Visit Details Notes tab' })
-  @ApiOkResponse({ type: [VisitNoteDto] })
-  async visitNotes(@Param('id', ParseUUIDPipe) id: string): Promise<VisitNoteDto[]> {
+  @ApiOkResponse({ type: VisitNotesDto })
+  async visitNotes(@Param('id', ParseUUIDPipe) id: string): Promise<VisitNotesDto> {
     return (await this.getVisitDetails.execute(id)).notes;
+  }
+
+  @Post('visits/:id/notes')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add a coordinator note to a visit' })
+  async addVisitNote(
+    @CurrentAdmin() principal: AdminPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: VisitNoteTextDto,
+  ): Promise<{ id: string }> {
+    return this.addCoordinatorNote.execute({
+      visitId: id,
+      adminId: principal.adminUserId,
+      text: body.text,
+    });
+  }
+
+  @Post('visits/:id/notes/:noteId/acknowledge')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Acknowledge (mark reviewed) a visit note' })
+  async acknowledgeVisitNote(
+    @CurrentAdmin() principal: AdminPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('noteId', ParseUUIDPipe) noteId: string,
+  ): Promise<void> {
+    await this.acknowledgeNote.execute({ visitId: id, noteId, adminId: principal.adminUserId });
+  }
+
+  @Post('visits/:id/notes/:noteId/flag')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Flag a visit note for coordinator attention' })
+  async flagVisitNote(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('noteId', ParseUUIDPipe) noteId: string,
+  ): Promise<void> {
+    await this.flagNote.execute({ visitId: id, noteId });
+  }
+
+  @Put('visits/:id/notes/:noteId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Edit a coordinator note's text" })
+  async editVisitNote(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('noteId', ParseUUIDPipe) noteId: string,
+    @Body() body: VisitNoteTextDto,
+  ): Promise<void> {
+    await this.editNote.execute({ visitId: id, noteId, text: body.text });
+  }
+
+  @Post('visits/:id/notes/:noteId/replies')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Reply to a visit note' })
+  async replyToVisitNote(
+    @CurrentAdmin() principal: AdminPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('noteId', ParseUUIDPipe) noteId: string,
+    @Body() body: VisitNoteTextDto,
+  ): Promise<{ id: string }> {
+    return this.replyToNote.execute({
+      visitId: id,
+      noteId,
+      adminId: principal.adminUserId,
+      text: body.text,
+    });
   }
 
   @Get('visits/:id/history')
