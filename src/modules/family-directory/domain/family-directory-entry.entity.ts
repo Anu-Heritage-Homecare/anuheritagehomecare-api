@@ -7,6 +7,8 @@ interface FamilyDirectoryEntryProps {
   subjectKind: FamilyDirectorySubjectKind;
   userId: string | null;
   fullName: string;
+  accountName: string | null;
+  branch: string | null;
   phone: string | null;
   email: string | null;
   relationship: string | null;
@@ -47,6 +49,8 @@ export class FamilyDirectoryEntry extends AggregateRoot<string> {
       subjectKind: FamilyDirectorySubjectKind.Account,
       userId: requireId(params.userId, 'A user is required for an account entry'),
       fullName: cleanName(params.fullName),
+      accountName: null,
+      branch: null,
       phone: null,
       email: null,
       relationship: cleanOptional(params.relationship),
@@ -72,11 +76,45 @@ export class FamilyDirectoryEntry extends AggregateRoot<string> {
       subjectKind: FamilyDirectorySubjectKind.Contact,
       userId: null,
       fullName: cleanName(params.fullName),
+      accountName: null,
+      branch: null,
       phone: cleanOptional(params.phone),
       email: cleanOptional(params.email),
       relationship: cleanOptional(params.relationship),
       primaryRecipientId: params.primaryRecipientId ?? null,
       status: FamilyMemberStatus.PendingVerification,
+      quickNotes: null,
+      emergencyContactVerified: false,
+      createdAt: params.now,
+      updatedAt: params.now,
+    });
+  }
+
+  /**
+   * Open a billing account from the back office (the Billing Accounts screen). The
+   * account carries its own label distinct from the primary contact person, the
+   * contact's phone and an office branch. No app login is provisioned, so it is a
+   * captured contact entry, but it is active immediately (the office vouches for it).
+   */
+  public static registerBillingAccount(params: {
+    id: string;
+    accountName: string;
+    primaryContact: string;
+    phone?: string | null;
+    branch?: string | null;
+    now: Date;
+  }): FamilyDirectoryEntry {
+    return new FamilyDirectoryEntry(params.id, {
+      subjectKind: FamilyDirectorySubjectKind.Contact,
+      userId: null,
+      fullName: cleanName(params.primaryContact),
+      accountName: cleanName(params.accountName),
+      branch: cleanOptional(params.branch),
+      phone: cleanOptional(params.phone),
+      email: null,
+      relationship: null,
+      primaryRecipientId: null,
+      status: FamilyMemberStatus.Active,
       quickNotes: null,
       emergencyContactVerified: false,
       createdAt: params.now,
@@ -147,6 +185,14 @@ export class FamilyDirectoryEntry extends AggregateRoot<string> {
 
   public get fullName(): string {
     return this.props.fullName;
+  }
+
+  public get accountName(): string | null {
+    return this.props.accountName;
+  }
+
+  public get branch(): string | null {
+    return this.props.branch;
   }
 
   public get phone(): string | null {
