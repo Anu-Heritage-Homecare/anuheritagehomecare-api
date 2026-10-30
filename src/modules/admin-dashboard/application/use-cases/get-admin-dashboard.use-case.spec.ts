@@ -43,6 +43,16 @@ class InMemoryAlertRepo implements OperationalAlertRepository {
       [...this.store.values()].filter((a) => a.status === AlertStatus.Open).slice(0, limit),
     );
   }
+  listForOverview(_resolvedSince: Date, limit: number): Promise<OperationalAlert[]> {
+    return Promise.resolve([...this.store.values()].slice(0, limit));
+  }
+  listResolvedSince(_since: Date, limit: number): Promise<OperationalAlert[]> {
+    return Promise.resolve(
+      [...this.store.values()]
+        .filter((a) => a.status === AlertStatus.Resolved || a.status === AlertStatus.Dismissed)
+        .slice(0, limit),
+    );
+  }
   countOpen(): Promise<number> {
     return Promise.resolve(
       [...this.store.values()].filter((a) => a.status === AlertStatus.Open).length,
@@ -70,7 +80,9 @@ class InMemoryAlertRepo implements OperationalAlertRepository {
 
 const taskRepo: OperationalTaskRepository = {
   save: () => Promise.resolve(),
+  delete: () => Promise.resolve(),
   findById: () => Promise.resolve(null),
+  findByIds: () => Promise.resolve([]),
   list: () => Promise.resolve([]),
   countOpen: () => Promise.resolve(3),
 };

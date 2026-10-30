@@ -103,7 +103,8 @@ const pastVisit = recipientVisit({
   clockInAt: new Date('2026-07-14T09:30:00.000Z'),
   clockOutAt: new Date('2026-07-14T13:30:00.000Z'),
   notes: [
-    VisitNote.create({
+    VisitNote.createCaregiverNote({
+      id: 'note-1',
       authorId: 'cg-1',
       audience: NoteAudience.Family,
       text: 'Margaret was in good spirits this morning.',

@@ -164,7 +164,7 @@ export class RecipientActivityReadPrisma implements RecipientActivityReadModel {
     }
 
     for (const note of visitNotes) {
-      const author = caregiverNames.get(note.authorId) ?? null;
+      const author = note.authorId === null ? null : (caregiverNames.get(note.authorId) ?? null);
       events.push({
         id: `visit-note:${note.id}`,
         occurredAt: note.createdAt,

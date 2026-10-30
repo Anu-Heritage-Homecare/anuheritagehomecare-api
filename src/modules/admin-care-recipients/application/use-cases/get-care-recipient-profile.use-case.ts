@@ -269,7 +269,10 @@ export class GetCareRecipientProfileUseCase {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, NOTES_LIMIT)
       .map((note) => ({
-        authorName: usersById.get(note.authorId)?.name.fullName ?? null,
+        authorName:
+          (note.authorId === null
+            ? note.authorName
+            : (usersById.get(note.authorId)?.name.fullName ?? null)) ?? null,
         audience: String(note.audience),
         at: note.createdAt,
         text: note.text,
