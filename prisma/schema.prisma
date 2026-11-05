@@ -640,17 +640,29 @@ model RecipientInvoice {
   periodEnd             DateTime               @db.Date
   servicesLabel         String                 @db.VarChar(300)
   currency              Currency
-  // Denormalised total (the sum of the line amounts), stored so the read model can
-  // aggregate billed and outstanding figures without re-summing lines per invoice.
+  // Denormalised amount owed (the invoice total, net of discounts and including tax),
+  // stored so the read model can aggregate billed and outstanding figures without
+  // re-summing per invoice. The breakdown that produced it is kept alongside.
   amountMinor           Int
   insuranceCoveredMinor Int
+  // Invoice financial breakdown (Create Invoice wizard). Subtotal is the sum of the
+  // service lines before discounts and tax; amountMinor is the final total.
+  subtotalMinor         Int                    @default(0)
+  discountTotalMinor    Int                    @default(0)
+  taxMinor              Int                    @default(0)
+  taxRateBasisPoints    Int                    @default(0)
   status                RecipientInvoiceStatus @default(PENDING)
   issuedAt              DateTime
   dueDate               DateTime?              @db.Date
+  // When the invoice was last emailed to the client (Send Invoice, wizard step 6).
+  // Null until sent; payment status stays separate from delivery.
+  sentAt                DateTime?
   createdAt             DateTime               @default(now())
 
-  careRecipient CareRecipient          @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+  careRecipient CareRecipient                @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
   lines         RecipientInvoiceLine[]
+  adjustments   RecipientInvoiceAdjustment[]
+  notes         InvoiceNote[]
 
   @@index([careRecipientId, issuedAt])
   // The org wide Billing dashboard aggregates by market, status and date.
@@ -659,19 +671,212 @@ model RecipientInvoice {
   @@map("recipient_invoices")
 }
 
+// One internal note on an invoice (the Notes tab). Authored by an admin, classified
+// by category, body only; never holds payer facing or card data.
+model InvoiceNote {
+  id        String              @id @default(uuid()) @db.Uuid
+  invoiceId String              @db.Uuid
+  authorId  String              @db.Uuid
+  category  InvoiceNoteCategory @default(GENERAL)
+  body      String              @db.VarChar(2000)
+  createdAt DateTime            @default(now())
+
+  invoice RecipientInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  author  AdminUser        @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([invoiceId, createdAt])
+  @@map("invoice_notes")
+}
+
+enum InvoiceNoteCategory {
+  GENERAL
+  FOLLOW_UP
+  SYSTEM
+  INVOICE_AUDIT
+
+  @@map("invoice_note_category")
+}
+
+// A manual financial correction against a billing account (the admin Credits &
+// Adjustments screen): a credit, refund, write off or generic adjustment. Money is
+// an integer minor amount with its currency; the type is the free text subtype shown
+// in the Type column (for example "Account Credit", "Overpayment Credit"). Raised by
+// an admin and starting PENDING; the apply/approve transition is a later screen.
+model AccountAdjustment {
+  id               String                    @id @default(uuid()) @db.Uuid
+  sequence         Int                       @unique @default(autoincrement())
+  category         AccountAdjustmentCategory
+  type             String                    @db.VarChar(80)
+  billingAccountId String                    @db.Uuid
+  amountMinor      Int
+  currency         Currency
+  status           AccountAdjustmentStatus   @default(PENDING_APPROVAL)
+  reason           String                    @db.VarChar(500)
+  createdById      String                    @db.Uuid
+  createdAt        DateTime                  @default(now())
+  approvedById     String?                   @db.Uuid
+  approvedAt       DateTime?
+  reversedById     String?                   @db.Uuid
+  reversedAt       DateTime?
+
+  billingAccount FamilyDirectoryEntry @relation(fields: [billingAccountId], references: [id], onDelete: Restrict)
+  createdBy      AdminUser            @relation("AdjustmentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedBy     AdminUser?           @relation("AdjustmentApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+  reversedBy     AdminUser?           @relation("AdjustmentReversedBy", fields: [reversedById], references: [id], onDelete: Restrict)
+
+  @@index([category, createdAt])
+  @@map("account_adjustments")
+}
+
+enum AccountAdjustmentCategory {
+  CREDIT
+  REFUND
+  WRITE_OFF
+  ADJUSTMENT
+
+  @@map("account_adjustment_category")
+}
+
+enum AccountAdjustmentStatus {
+  PENDING_APPROVAL
+  PROCESSING
+  COMPLETED
+  REVERSED
+
+  @@map("account_adjustment_status")
+}
+
+// Organisation wide billing preferences (the admin Billing Settings screen). A singleton:
+// the unique `singleton` column guarantees one row. The tax rate is an integer in basis
+// points (750 = 7.5%) to keep money math exact.
+model BillingSettings {
+  id                         String   @id @default(uuid()) @db.Uuid
+  singleton                  Boolean  @unique @default(true)
+  defaultPaymentTermsDays    Int      @default(30)
+  invoicePrefix              String   @default("INV-") @db.VarChar(10)
+  defaultCurrency            Currency @default(NGN)
+  standardTaxRateBasisPoints Int      @default(750)
+  autoNumbering              Boolean  @default(true)
+  autoSendInvoices           Boolean  @default(true)
+  paymentReminders           Boolean  @default(true)
+  reminderDaysBefore         Int      @default(7)
+  overdueNotifications       Boolean  @default(true)
+  overdueNoticeDaysAfter     Int      @default(1)
+  autoReceipts               Boolean  @default(true)
+  emailNotifications         Boolean  @default(true)
+  smsNotifications           Boolean  @default(true)
+  inAppNotifications         Boolean  @default(true)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@map("billing_settings")
+}
+
+// One configurable payment avenue (the Payment Methods panel). Keyed by the avenue so
+// there is exactly one row per method.
+model BillingPaymentMethodSetting {
+  method      BillingPaymentMethodKind @id
+  enabled     Boolean                  @default(true)
+  description String                   @db.VarChar(200)
+  updatedAt   DateTime                 @updatedAt
+
+  @@map("billing_payment_method_settings")
+}
+
+enum BillingPaymentMethodKind {
+  BANK_TRANSFER
+  CARD
+  CASH
+  MOBILE_MONEY
+
+  @@map("billing_payment_method_kind")
+}
+
+// The catalog of billable care services an invoice line can draw from (the Create
+// Invoice wizard, step 3). Each service bills by the hour, by the session, or as a
+// fixed fee, and carries a rate per currency. Reference data maintained by the office.
+model BillableService {
+  id          String              @id @default(uuid()) @db.Uuid
+  code        String              @unique @db.VarChar(60)
+  name        String              @db.VarChar(120)
+  description String              @db.VarChar(200)
+  unit        BillableServiceUnit
+  sortOrder   Int                 @default(0)
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  prices BillableServicePrice[]
+
+  @@map("billable_services")
+}
+
+// The rate of a billable service in one currency, in integer minor units. For an
+// HOURLY service this is the hourly rate, for SESSION the per session rate, for FIXED
+// the flat fee.
+model BillableServicePrice {
+  id              String   @id @default(uuid()) @db.Uuid
+  serviceId       String   @db.Uuid
+  currency        Currency
+  unitAmountMinor Int
+
+  service BillableService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, currency])
+  @@map("billable_service_prices")
+}
+
+enum BillableServiceUnit {
+  HOURLY
+  SESSION
+  FIXED
+
+  @@map("billable_service_unit")
+}
+
 // One service line on a recipient invoice (service name and amount in minor units).
 // Drives the invoice total and the year to date service breakdown.
 model RecipientInvoiceLine {
-  id          String @id @default(uuid()) @db.Uuid
-  invoiceId   String @db.Uuid
-  serviceName String @db.VarChar(120)
+  id          String  @id @default(uuid()) @db.Uuid
+  invoiceId   String  @db.Uuid
+  serviceName String  @db.VarChar(120)
+  amountMinor Int
+  position    Int
+  // Line detail captured when an invoice is raised through the Create Invoice wizard
+  // (nullable for older lines that recorded only a name and amount). rateMinor is the
+  // per unit rate, quantity the hours/sessions/count, unitLabel the display unit.
+  rateMinor   Int?
+  quantity    Float?
+  unitLabel   String? @db.VarChar(20)
+
+  invoice RecipientInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("recipient_invoice_lines")
+}
+
+// A discount or manual adjustment applied to a whole invoice (Create Invoice wizard,
+// step 4). The amount is signed in minor units: a discount is stored negative, a manual
+// adjustment keeps its sign. The label is shown on the invoice breakdown.
+model RecipientInvoiceAdjustment {
+  id          String               @id @default(uuid()) @db.Uuid
+  invoiceId   String               @db.Uuid
+  kind        InvoiceAdjustmentKind
+  label       String               @db.VarChar(120)
   amountMinor Int
   position    Int
 
   invoice RecipientInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
-  @@map("recipient_invoice_lines")
+  @@map("recipient_invoice_adjustments")
+}
+
+enum InvoiceAdjustmentKind {
+  DISCOUNT
+  ADJUSTMENT
+
+  @@map("invoice_adjustment_kind")
 }
 
 // A payment received towards a recipient's invoices (patient or insurance). Only a
@@ -2196,6 +2401,8 @@ model FamilyDirectoryEntry {
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
 
+  adjustments AccountAdjustment[]
+
   @@index([status])
   @@map("family_directory_entries")
 }
@@ -2385,7 +2592,11 @@ model AdminUser {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
-  sessions AdminSession[]
+  sessions    AdminSession[]
+  invoiceNotes InvoiceNote[]
+  createdAdjustments  AccountAdjustment[] @relation("AdjustmentCreatedBy")
+  approvedAdjustments AccountAdjustment[] @relation("AdjustmentApprovedBy")
+  reversedAdjustments AccountAdjustment[] @relation("AdjustmentReversedBy")
 
   @@index([status])
   @@map("admin_users")

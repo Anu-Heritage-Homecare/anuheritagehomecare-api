@@ -65,7 +65,7 @@ export class ListBillingAccountsUseCase {
 function toResult(row: BillingAccountRowView): BillingAccountResult {
   return {
     id: row.id,
-    reference: `ACC-${row.sequence}`,
+    reference: `CP-${row.sequence}`,
     accountName: row.accountName,
     primaryContact: row.primaryContact,
     phone: row.phone,

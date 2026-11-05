@@ -55,7 +55,7 @@ class BillingActivityDto implements BillingActivityResult {
 }
 
 /** The full Billing dashboard response for one currency. */
-export class BillingDashboardResponseDto implements BillingDashboardResult {
+export class AdminBillingDashboardResponseDto implements BillingDashboardResult {
   @ApiProperty() currency!: string;
   @ApiProperty() generatedAt!: string;
   @ApiProperty({ type: BillingKpisDto }) kpis!: BillingKpisDto;
@@ -64,7 +64,7 @@ export class BillingDashboardResponseDto implements BillingDashboardResult {
   @ApiProperty({ type: [RecentPaymentDto] }) recentPayments!: RecentPaymentDto[];
   @ApiProperty({ type: [BillingActivityDto] }) recentActivity!: BillingActivityDto[];
 
-  static fromResult(result: BillingDashboardResult): BillingDashboardResponseDto {
+  static fromResult(result: BillingDashboardResult): AdminBillingDashboardResponseDto {
     return result;
   }
 }

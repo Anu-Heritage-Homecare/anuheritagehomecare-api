@@ -1,4 +1,10 @@
-import { BillingModel, CarePlanType, Currency, PrismaClient } from '@prisma/client';
+import {
+  BillableServiceUnit,
+  BillingModel,
+  CarePlanType,
+  Currency,
+  PrismaClient,
+} from '@prisma/client';
 
 /**
  * Idempotent development seed. Safe to run repeatedly.
@@ -114,6 +120,109 @@ async function seedCarePlans(): Promise<void> {
   }
 }
 
+// PLACEHOLDER rates only, in minor units (kobo, cents). The NGN figures mirror the
+// Create Invoice wizard mockup; the USD figures are placeholders. Replace with real,
+// business approved rates before going live.
+interface BillableServiceSeed {
+  code: string;
+  name: string;
+  description: string;
+  unit: BillableServiceUnit;
+  sortOrder: number;
+  prices: { currency: Currency; unitAmountMinor: number }[];
+}
+
+const BILLABLE_SERVICES: BillableServiceSeed[] = [
+  {
+    code: 'PERSONAL_CARE_SUPPORT',
+    name: 'Personal Care Support',
+    description: 'Hourly Care Plan Support Tasks',
+    unit: 'HOURLY',
+    sortOrder: 1,
+    prices: [
+      { currency: 'NGN', unitAmountMinor: 1_500_000 },
+      { currency: 'USD', unitAmountMinor: 3_000 },
+    ],
+  },
+  {
+    code: 'MEDICATION_MANAGEMENT',
+    name: 'Medication Management',
+    description: 'Vitals monitoring and daily dosage prep',
+    unit: 'HOURLY',
+    sortOrder: 2,
+    prices: [
+      { currency: 'NGN', unitAmountMinor: 1_200_000 },
+      { currency: 'USD', unitAmountMinor: 2_400 },
+    ],
+  },
+  {
+    code: 'PHYSIOTHERAPY_SESSIONS',
+    name: 'Physiotherapy Sessions',
+    description: 'Specialized motor and movement rehabilitation',
+    unit: 'SESSION',
+    sortOrder: 3,
+    prices: [
+      { currency: 'NGN', unitAmountMinor: 2_500_000 },
+      { currency: 'USD', unitAmountMinor: 6_000 },
+    ],
+  },
+  {
+    code: 'NUTRITIONAL_MEAL_PREP',
+    name: 'Nutritional Meal Prep',
+    description: 'Dietary plan cooking and kitchen safety supervision',
+    unit: 'HOURLY',
+    sortOrder: 4,
+    prices: [
+      { currency: 'NGN', unitAmountMinor: 800_000 },
+      { currency: 'USD', unitAmountMinor: 1_600 },
+    ],
+  },
+  {
+    code: 'ADMIN_CARE_COORDINATION',
+    name: 'Admin and Care Coordination Fee',
+    description: 'Quality compliance and caregiver routing',
+    unit: 'FIXED',
+    sortOrder: 5,
+    prices: [
+      { currency: 'NGN', unitAmountMinor: 13_000_000 },
+      { currency: 'USD', unitAmountMinor: 15_000 },
+    ],
+  },
+];
+
+async function seedBillableServices(): Promise<void> {
+  for (const service of BILLABLE_SERVICES) {
+    const saved = await prisma.billableService.upsert({
+      where: { code: service.code },
+      update: {
+        name: service.name,
+        description: service.description,
+        unit: service.unit,
+        sortOrder: service.sortOrder,
+        active: true,
+      },
+      create: {
+        code: service.code,
+        name: service.name,
+        description: service.description,
+        unit: service.unit,
+        sortOrder: service.sortOrder,
+      },
+    });
+    for (const price of service.prices) {
+      await prisma.billableServicePrice.upsert({
+        where: { serviceId_currency: { serviceId: saved.id, currency: price.currency } },
+        update: { unitAmountMinor: price.unitAmountMinor },
+        create: {
+          serviceId: saved.id,
+          currency: price.currency,
+          unitAmountMinor: price.unitAmountMinor,
+        },
+      });
+    }
+  }
+}
+
 async function main(): Promise<void> {
   await prisma.client.upsert({
     where: { email: 'ada.demo@example.com' },
@@ -127,6 +236,7 @@ async function main(): Promise<void> {
   });
 
   await seedCarePlans();
+  await seedBillableServices();
 }
 
 main()
