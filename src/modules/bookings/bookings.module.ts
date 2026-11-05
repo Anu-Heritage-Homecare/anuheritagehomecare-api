@@ -10,6 +10,7 @@ import { GetAvailabilityUseCase } from './application/use-cases/get-availability
 import { GetBookingUseCase } from './application/use-cases/get-booking.use-case';
 import { ListBookingsUseCase } from './application/use-cases/list-bookings.use-case';
 import { ListSubscriptionsUseCase } from './application/use-cases/list-subscriptions.use-case';
+import { QuoteFlexibleBookingUseCase } from './application/use-cases/quote-flexible-booking.use-case';
 import { BOOKING_REPOSITORY } from './domain/booking.repository';
 import { SUBSCRIPTION_REPOSITORY } from './domain/subscription.repository';
 import { PrismaCareRecipientAccess } from './infrastructure/access/prisma-care-recipient-access';
@@ -29,6 +30,7 @@ import { SubscriptionsController } from './presentation/subscriptions.controller
   providers: [
     GetAvailabilityUseCase,
     CreateFlexibleBookingUseCase,
+    QuoteFlexibleBookingUseCase,
     GetBookingUseCase,
     ListBookingsUseCase,
     CreateSubscriptionUseCase,

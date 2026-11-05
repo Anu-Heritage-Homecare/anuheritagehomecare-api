@@ -25,10 +25,13 @@ import { CreateFlexibleBookingUseCase } from '../application/use-cases/create-fl
 import { GetAvailabilityUseCase } from '../application/use-cases/get-availability.use-case';
 import { GetBookingUseCase } from '../application/use-cases/get-booking.use-case';
 import { ListBookingsUseCase } from '../application/use-cases/list-bookings.use-case';
+import { QuoteFlexibleBookingUseCase } from '../application/use-cases/quote-flexible-booking.use-case';
 import { AvailabilityQueryDto } from './dto/availability-query.dto';
 import { AvailabilityResponseDto } from './dto/availability-response.dto';
+import { BookingQuoteResponseDto } from './dto/booking-quote-response.dto';
 import { BookingResponseDto } from './dto/booking-response.dto';
 import { CreateBookingRequestDto } from './dto/create-booking-request.dto';
+import { QuoteQueryDto } from './dto/quote-query.dto';
 
 /**
  * HTTP entry point for Flexible (hourly) bookings. Every route is JWT protected
@@ -43,6 +46,7 @@ export class BookingsController {
   constructor(
     private readonly getAvailability: GetAvailabilityUseCase,
     private readonly createBooking: CreateFlexibleBookingUseCase,
+    private readonly quoteBooking: QuoteFlexibleBookingUseCase,
     private readonly getBooking: GetBookingUseCase,
     private readonly listBookings: ListBookingsUseCase,
   ) {}
@@ -53,6 +57,20 @@ export class BookingsController {
   availability(@Query() query: AvailabilityQueryDto): AvailabilityResponseDto {
     const result = this.getAvailability.execute({ date: query.date });
     return AvailabilityResponseDto.fromResult(result);
+  }
+
+  @Get('quote')
+  @ApiOperation({ summary: 'Price a Flexible booking for the booking summary (not persisted)' })
+  @ApiOkResponse({ type: BookingQuoteResponseDto })
+  async quote(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Query() query: QuoteQueryDto,
+  ): Promise<BookingQuoteResponseDto> {
+    const result = await this.quoteBooking.execute({
+      currency: currencyForCountryCode(principal.country),
+      hours: query.hours,
+    });
+    return BookingQuoteResponseDto.fromResult(result);
   }
 
   @Post()
