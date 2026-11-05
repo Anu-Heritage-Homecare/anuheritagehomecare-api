@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { EMAIL_SENDER } from './application/ports/email-sender.port';
 import { OTP_GENERATOR } from './application/ports/otp-generator.port';
 import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
 import { TOKEN_SERVICE } from './application/ports/token-service.port';
@@ -45,7 +44,6 @@ import { USER_REPOSITORY } from './domain/user.repository';
 import { VERIFICATION_CODE_REPOSITORY } from './domain/verification-code.repository';
 import { SECRET_CIPHER } from './application/ports/secret-cipher.port';
 import { TWO_FACTOR_AUTHENTICATOR } from './application/ports/two-factor-authenticator.port';
-import { NodemailerEmailSender } from './infrastructure/email/nodemailer-email-sender';
 import { DeviceSessionPrismaRepository } from './infrastructure/persistence/device-session-prisma.repository';
 import { LoginEventPrismaRepository } from './infrastructure/persistence/login-event-prisma.repository';
 import { TwoFactorRecoveryCodePrismaRepository } from './infrastructure/persistence/two-factor-recovery-code-prisma.repository';
@@ -109,7 +107,6 @@ import { AuthController } from './presentation/auth.controller';
     },
     { provide: PASSWORD_HASHER, useClass: BcryptPasswordHasher },
     { provide: TOKEN_SERVICE, useClass: JwtTokenService },
-    { provide: EMAIL_SENDER, useClass: NodemailerEmailSender },
     { provide: OTP_GENERATOR, useClass: CryptoOtpGenerator },
     { provide: TWO_FACTOR_AUTHENTICATOR, useClass: TotpAuthenticator },
     { provide: SECRET_CIPHER, useClass: AesGcmSecretCipher },

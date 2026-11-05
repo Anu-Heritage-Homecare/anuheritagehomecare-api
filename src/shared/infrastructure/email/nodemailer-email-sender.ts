@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig, MailConfig } from '@config/configuration';
 import * as nodemailer from 'nodemailer';
-import { EmailMessage, EmailSender } from '../../application/ports/email-sender.port';
+import { EmailMessage, EmailSender } from '@shared/application/ports/email-sender.port';
 
 /**
  * SMTP implementation of the EmailSender port using nodemailer.

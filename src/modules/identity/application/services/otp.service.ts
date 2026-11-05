@@ -10,7 +10,7 @@ import {
   VERIFICATION_CODE_REPOSITORY,
   VerificationCodeRepository,
 } from '../../domain/verification-code.repository';
-import { EMAIL_SENDER, EmailSender } from '../ports/email-sender.port';
+import { EMAIL_SENDER, EmailSender } from '@shared/application/ports/email-sender.port';
 import { OTP_GENERATOR, OtpGenerator } from '../ports/otp-generator.port';
 import { PASSWORD_HASHER, PasswordHasher } from '../ports/password-hasher.port';
 

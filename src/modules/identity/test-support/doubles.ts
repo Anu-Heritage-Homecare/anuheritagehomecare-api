@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { Clock } from '@shared/application/ports/clock.port';
 import { IdGenerator } from '@shared/application/ports/id-generator.port';
 import { UnauthorizedDomainException } from '@shared/domain/domain-exception';
-import { EmailMessage, EmailSender } from '../application/ports/email-sender.port';
+import { EmailMessage, EmailSender } from '@shared/application/ports/email-sender.port';
 import { OtpGenerator } from '../application/ports/otp-generator.port';
 import { PasswordHasher } from '../application/ports/password-hasher.port';
 import { SecretCipher } from '../application/ports/secret-cipher.port';
