@@ -24,7 +24,7 @@ import { GetRecipientVisitsUseCase } from '../application/use-cases/get-recipien
 import { ReviseCareScheduleUseCase } from '../application/use-cases/revise-care-schedule.use-case';
 import {
   CareOverviewResponseDto,
-  CarePlanResponseDto,
+  RecipientCarePlanResponseDto,
   RecipientHealthResponseDto,
 } from './dto/care-section-response.dto';
 import { ReviseScheduleRequestDto } from './dto/revise-schedule-request.dto';
@@ -82,27 +82,27 @@ export class FamilyCareController {
 
   @Get('care-recipients/:id/care-plan')
   @ApiOperation({ summary: "A recipient's care plan (goals, services, schedule, caregivers)" })
-  @ApiOkResponse({ type: CarePlanResponseDto })
+  @ApiOkResponse({ type: RecipientCarePlanResponseDto })
   async carePlan(
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<CarePlanResponseDto> {
+  ): Promise<RecipientCarePlanResponseDto> {
     const result = await this.getCarePlan.execute({
       callerUserId: principal.userId,
       careRecipientId: id,
     });
-    return CarePlanResponseDto.fromResult(result);
+    return RecipientCarePlanResponseDto.fromResult(result);
   }
 
   @Put('care-recipients/:id/schedule')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Modify the care schedule of an active recipient' })
-  @ApiOkResponse({ type: CarePlanResponseDto })
+  @ApiOkResponse({ type: RecipientCarePlanResponseDto })
   async modifySchedule(
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: ReviseScheduleRequestDto,
-  ): Promise<CarePlanResponseDto> {
+  ): Promise<RecipientCarePlanResponseDto> {
     await this.reviseSchedule.execute({
       callerUserId: principal.userId,
       careRecipientId: id,
@@ -117,7 +117,7 @@ export class FamilyCareController {
       callerUserId: principal.userId,
       careRecipientId: id,
     });
-    return CarePlanResponseDto.fromResult(result);
+    return RecipientCarePlanResponseDto.fromResult(result);
   }
 
   @Get('care-recipients/:id/visits')

@@ -39,7 +39,7 @@ import { SaveVisitPhotosRequestDto } from './dto/save-visit-photos-request.dto';
 import { SetTaskCompletionRequestDto } from './dto/set-task-completion-request.dto';
 import {
   MedicationAdministrationResponseDto,
-  PhotoUploadTicketResponseDto,
+  VisitPhotoUploadTicketResponseDto,
   VisitNotesResponseDto,
   VisitObservationsResponseDto,
   VisitPhotosResponseDto,
@@ -159,17 +159,17 @@ export class CaregiverVisitCareController {
   @Post(':id/photos/upload-ticket')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Issue a signed ticket to upload a visit photo to the store' })
-  @ApiCreatedResponse({ type: PhotoUploadTicketResponseDto })
+  @ApiCreatedResponse({ type: VisitPhotoUploadTicketResponseDto })
   async photoUploadTicket(
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<PhotoUploadTicketResponseDto> {
+  ): Promise<VisitPhotoUploadTicketResponseDto> {
     this.assertCaregiver(principal);
     const ticket = await this.createPhotoUploadTicket.execute({
       caregiverId: principal.userId,
       visitId: id,
     });
-    return PhotoUploadTicketResponseDto.fromTicket(ticket);
+    return VisitPhotoUploadTicketResponseDto.fromTicket(ticket);
   }
 
   @Put(':id/photos')

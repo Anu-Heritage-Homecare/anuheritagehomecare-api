@@ -25,14 +25,14 @@ class RevisionDto {
   @ApiProperty({ nullable: true }) authorName!: string | null;
 }
 
-export class CarePlanResponseDto {
+export class AdminCarePlanResponseDto {
   @ApiProperty({ type: [GoalDto] }) goals!: GoalDto[];
   @ApiProperty({ type: [ScheduleBlockDto] }) schedule!: ScheduleBlockDto[];
   @ApiProperty({ type: InstructionsDto }) instructions!: InstructionsDto;
   @ApiProperty({ type: [RevisionDto] }) revisions!: RevisionDto[];
 
-  static fromResult(result: CarePlanResult): CarePlanResponseDto {
-    const dto = new CarePlanResponseDto();
+  static fromResult(result: CarePlanResult): AdminCarePlanResponseDto {
+    const dto = new AdminCarePlanResponseDto();
     dto.goals = result.goals.map((g) => ({ ...g }));
     dto.schedule = result.schedule.map((b) => ({ ...b }));
     dto.instructions = {

@@ -61,7 +61,7 @@ class TimelineDto {
   @ApiProperty() totalPages!: number;
 }
 
-export class RecipientHealthResponseDto {
+export class AdminRecipientHealthResponseDto {
   @ApiProperty({ type: PrimaryConditionsDto }) primaryConditions!: PrimaryConditionsDto;
   @ApiProperty({ type: LastVitalsDto, nullable: true }) lastVitals!: LastVitalsDto | null;
   @ApiProperty({ type: NextAppointmentDto, nullable: true })
@@ -69,8 +69,8 @@ export class RecipientHealthResponseDto {
   @ApiProperty({ type: VitalsTrendDto }) vitalsTrend!: VitalsTrendDto;
   @ApiProperty({ type: TimelineDto }) timeline!: TimelineDto;
 
-  static fromResult(result: RecipientHealthResult): RecipientHealthResponseDto {
-    const dto = new RecipientHealthResponseDto();
+  static fromResult(result: RecipientHealthResult): AdminRecipientHealthResponseDto {
+    const dto = new AdminRecipientHealthResponseDto();
     dto.primaryConditions = {
       ...result.primaryConditions,
       others: [...result.primaryConditions.others],

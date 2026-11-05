@@ -70,7 +70,7 @@ import { SetMedicationWarningsUseCase } from '../application/use-cases/set-medic
 import { UploadDocumentUseCase } from '../application/use-cases/upload-document.use-case';
 import { SetPrimaryCaregiverUseCase } from '../application/use-cases/set-primary-caregiver.use-case';
 import { UpdateMedicationUseCase } from '../application/use-cases/update-medication.use-case';
-import { CarePlanResponseDto } from './dto/care-plan-response.dto';
+import { AdminCarePlanResponseDto } from './dto/care-plan-response.dto';
 import {
   DiscontinueMedicationRequestDto,
   MedicationRequestDto,
@@ -107,7 +107,7 @@ import { SetDocumentStatusRequestDto, UploadDocumentRequestDto } from './dto/doc
 import { RecipientDocumentsQueryDto } from './dto/recipient-documents-query.dto';
 import { RecipientDocumentsResponseDto } from './dto/recipient-documents-response.dto';
 import { HealthTimelineTab, RecipientHealthQueryDto } from './dto/recipient-health-query.dto';
-import { RecipientHealthResponseDto } from './dto/recipient-health-response.dto';
+import { AdminRecipientHealthResponseDto } from './dto/recipient-health-response.dto';
 import { RecipientMedicationsResponseDto } from './dto/recipient-medications-response.dto';
 import { RecipientVisitsQueryDto } from './dto/recipient-visits-query.dto';
 import { RecipientVisitsResponseDto } from './dto/recipient-visits-response.dto';
@@ -252,11 +252,11 @@ export class AdminCareRecipientsController {
   @ApiOperation({
     summary: 'The health tab: conditions, last vitals, next appointment, trend and timeline',
   })
-  @ApiOkResponse({ type: RecipientHealthResponseDto })
+  @ApiOkResponse({ type: AdminRecipientHealthResponseDto })
   async getHealth(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: RecipientHealthQueryDto,
-  ): Promise<RecipientHealthResponseDto> {
+  ): Promise<AdminRecipientHealthResponseDto> {
     const result = await this.health.execute({
       recipientId: id,
       categories: categoriesForTab(query.tab ?? 'ALL'),
@@ -264,7 +264,7 @@ export class AdminCareRecipientsController {
       page: query.page ?? 1,
       pageSize: query.pageSize ?? 8,
     });
-    return RecipientHealthResponseDto.fromResult(result);
+    return AdminRecipientHealthResponseDto.fromResult(result);
   }
 
   @Get(':id/caregivers')
@@ -788,10 +788,10 @@ export class AdminCareRecipientsController {
 
   @Get(':id/care-plan')
   @ApiOperation({ summary: 'The care plan: goals, daily schedule, instructions and revisions' })
-  @ApiOkResponse({ type: CarePlanResponseDto })
-  async getCarePlan(@Param('id', ParseUUIDPipe) id: string): Promise<CarePlanResponseDto> {
+  @ApiOkResponse({ type: AdminCarePlanResponseDto })
+  async getCarePlan(@Param('id', ParseUUIDPipe) id: string): Promise<AdminCarePlanResponseDto> {
     const result = await this.carePlan.execute(id);
-    return CarePlanResponseDto.fromResult(result);
+    return AdminCarePlanResponseDto.fromResult(result);
   }
 
   @Put(':id/care-plan/goals')

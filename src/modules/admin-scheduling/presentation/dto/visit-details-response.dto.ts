@@ -214,7 +214,7 @@ class LocationDto implements VisitLocationResult {
 }
 
 /** The full Visit Details response (all tabs). */
-export class VisitDetailResponseDto implements VisitDetailResult {
+export class AdminVisitDetailResponseDto implements VisitDetailResult {
   @ApiProperty() id!: string;
   @ApiProperty() reference!: string;
   @ApiProperty() status!: string;
@@ -232,7 +232,7 @@ export class VisitDetailResponseDto implements VisitDetailResult {
   @ApiProperty({ type: [VisitTimelineEventDto] }) history!: VisitTimelineEventDto[];
   @ApiProperty({ type: RelatedVisitsDto }) relatedVisits!: RelatedVisitsDto;
 
-  static fromResult(result: VisitDetailResult): VisitDetailResponseDto {
+  static fromResult(result: VisitDetailResult): AdminVisitDetailResponseDto {
     return result;
   }
 }

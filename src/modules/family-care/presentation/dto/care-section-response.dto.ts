@@ -74,7 +74,7 @@ export class RecipientHealthResponseDto {
 }
 
 /** The recipient's care plan. */
-export class CarePlanResponseDto {
+export class RecipientCarePlanResponseDto {
   @ApiProperty({ nullable: true, example: 'Standard Care' })
   planName!: string | null;
 
@@ -95,7 +95,7 @@ export class CarePlanResponseDto {
   @ApiProperty({ nullable: true })
   careInstructions!: string | null;
 
-  static fromResult(result: CarePlanResult): CarePlanResponseDto {
-    return Object.assign(new CarePlanResponseDto(), result);
+  static fromResult(result: CarePlanResult): RecipientCarePlanResponseDto {
+    return Object.assign(new RecipientCarePlanResponseDto(), result);
   }
 }

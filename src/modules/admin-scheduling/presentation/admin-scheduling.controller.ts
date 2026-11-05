@@ -77,7 +77,7 @@ import {
 import {
   VisitCarePlanDto,
   VisitCaregiverDto,
-  VisitDetailResponseDto,
+  AdminVisitDetailResponseDto,
   VisitNotesDto,
   VisitRecipientDto,
   VisitTimelineEventDto,
@@ -222,10 +222,10 @@ export class AdminSchedulingController {
 
   @Get('visits/:id')
   @ApiOperation({ summary: 'The full Visit Details (all tabs)' })
-  @ApiOkResponse({ type: VisitDetailResponseDto })
-  async detail(@Param('id', ParseUUIDPipe) id: string): Promise<VisitDetailResponseDto> {
+  @ApiOkResponse({ type: AdminVisitDetailResponseDto })
+  async detail(@Param('id', ParseUUIDPipe) id: string): Promise<AdminVisitDetailResponseDto> {
     const result = await this.getVisitDetails.execute(id);
-    return VisitDetailResponseDto.fromResult(result);
+    return AdminVisitDetailResponseDto.fromResult(result);
   }
 
   @Get('visits/:id/recipient')
