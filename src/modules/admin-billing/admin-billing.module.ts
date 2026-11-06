@@ -18,6 +18,11 @@ import { CreateAccountAdjustmentUseCase } from './application/use-cases/create-a
 import { CreateBillingAccountUseCase } from './application/use-cases/create-billing-account.use-case';
 import { SendBillingReminderUseCase } from './application/use-cases/send-billing-reminder.use-case';
 import { SetAccountPreferencesUseCase } from './application/use-cases/set-account-preferences.use-case';
+import { ListAccountDocumentsUseCase } from './application/use-cases/list-account-documents.use-case';
+import { CreateAccountDocumentTicketUseCase } from './application/use-cases/create-account-document-ticket.use-case';
+import { RegisterAccountDocumentUseCase } from './application/use-cases/register-account-document.use-case';
+import { ACCOUNT_DOCUMENT_REPOSITORY } from './domain/account-document.repository';
+import { AccountDocumentPrismaRepository } from './infrastructure/persistence/account-document-prisma.repository';
 import { GetBillingAccountActivityUseCase } from './application/use-cases/get-billing-account-activity.use-case';
 import { GetBillingAccountUseCase } from './application/use-cases/get-billing-account.use-case';
 import { GetBillingDashboardUseCase } from './application/use-cases/get-billing-dashboard.use-case';
@@ -90,6 +95,9 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     CreateBillingAccountUseCase,
     SendBillingReminderUseCase,
     SetAccountPreferencesUseCase,
+    ListAccountDocumentsUseCase,
+    CreateAccountDocumentTicketUseCase,
+    RegisterAccountDocumentUseCase,
     ListAccountAdjustmentsUseCase,
     CreateAccountAdjustmentUseCase,
     ApproveAccountAdjustmentUseCase,
@@ -118,6 +126,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     { provide: BILLABLE_SERVICES_READ_MODEL, useClass: BillableServicesReadPrisma },
     { provide: INVOICE_WRITE_REPOSITORY, useClass: InvoiceWritePrismaRepository },
     { provide: INVOICE_SEND_REPOSITORY, useClass: InvoiceSendPrismaRepository },
+    { provide: ACCOUNT_DOCUMENT_REPOSITORY, useClass: AccountDocumentPrismaRepository },
   ],
 })
 export class AdminBillingModule {}

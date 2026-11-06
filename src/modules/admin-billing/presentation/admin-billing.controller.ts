@@ -108,9 +108,17 @@ import {
   CreateBillingAccountRequestDto,
 } from './dto/create-billing-account.dto';
 import { SetAccountPreferencesRequestDto } from './dto/set-account-preferences.dto';
+import {
+  AccountDocumentUploadTicketResponseDto,
+  AccountDocumentsResponseDto,
+  RegisterAccountDocumentRequestDto,
+} from './dto/account-documents.dto';
 import { buildInvoicePdf } from '../infrastructure/pdf/invoice-pdf';
 import { buildReceiptPdf } from '../infrastructure/pdf/receipt-pdf';
 import { paymentsToCsv } from '../infrastructure/export/payments-csv';
+import { CreateAccountDocumentTicketUseCase } from '../application/use-cases/create-account-document-ticket.use-case';
+import { RegisterAccountDocumentUseCase } from '../application/use-cases/register-account-document.use-case';
+import { ListAccountDocumentsUseCase } from '../application/use-cases/list-account-documents.use-case';
 
 /**
  * Admin Billing control panel. The financial overview dashboard and the Billing
@@ -141,6 +149,9 @@ export class AdminBillingController {
     private readonly createAccount: CreateBillingAccountUseCase,
     private readonly setPreferences: SetAccountPreferencesUseCase,
     private readonly sendReminder: SendBillingReminderUseCase,
+    private readonly listDocuments: ListAccountDocumentsUseCase,
+    private readonly createDocumentTicket: CreateAccountDocumentTicketUseCase,
+    private readonly registerDocument: RegisterAccountDocumentUseCase,
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
@@ -539,6 +550,44 @@ export class AdminBillingController {
   ): Promise<BillingAccountActivityResponseDto> {
     const result = await this.getActivity.execute(id);
     return BillingAccountActivityResponseDto.fromResult(result);
+  }
+
+  @Get('accounts/:id/documents')
+  @ApiOperation({ summary: 'Files attached to an account (the Documents tab), newest first' })
+  @ApiOkResponse({ type: AccountDocumentsResponseDto })
+  async accountDocuments(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<AccountDocumentsResponseDto> {
+    const result = await this.listDocuments.execute(id);
+    return AccountDocumentsResponseDto.fromResult(result);
+  }
+
+  @Post('accounts/:id/documents/upload-ticket')
+  @ApiOperation({ summary: 'Issue a signed ticket to upload a document straight to storage' })
+  @ApiCreatedResponse({ type: AccountDocumentUploadTicketResponseDto })
+  async accountDocumentUploadTicket(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<AccountDocumentUploadTicketResponseDto> {
+    const ticket = await this.createDocumentTicket.execute({ accountId: id });
+    return AccountDocumentUploadTicketResponseDto.fromTicket(ticket);
+  }
+
+  @Post('accounts/:id/documents')
+  @ApiOperation({ summary: 'Register a document after it has been uploaded to storage' })
+  @ApiCreatedResponse({ schema: { properties: { id: { type: 'string', format: 'uuid' } } } })
+  async registerAccountDocument(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() admin: AdminPrincipal,
+    @Body() body: RegisterAccountDocumentRequestDto,
+  ): Promise<{ id: string }> {
+    return this.registerDocument.execute({
+      accountId: id,
+      title: body.title,
+      fileName: body.fileName,
+      storageKey: body.storageKey,
+      sizeBytes: body.sizeBytes,
+      adminId: admin.adminUserId,
+    });
   }
 
   @Get('adjustments')

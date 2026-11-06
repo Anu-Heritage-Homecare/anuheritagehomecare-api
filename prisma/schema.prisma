@@ -2406,9 +2406,30 @@ model FamilyDirectoryEntry {
 
   adjustments   AccountAdjustment[]
   billingEvents BillingAccountEvent[]
+  documents     AccountDocument[]
 
   @@index([status])
   @@map("family_directory_entries")
+}
+
+// A file attached to a billing account (the account Documents tab): an ID
+// verification, a signed agreement, and so on. The blob lives in object storage;
+// only the opaque storageKey, the display title, the original file name and the
+// size are kept here. The admin who uploaded it is recorded for the audit.
+model AccountDocument {
+  id                     String   @id @default(uuid()) @db.Uuid
+  familyDirectoryEntryId String   @db.Uuid
+  title                  String   @db.VarChar(200)
+  fileName               String   @db.VarChar(300)
+  storageKey             String   @db.VarChar(500)
+  sizeBytes              Int
+  uploadedByAdminId      String?  @db.Uuid
+  uploadedAt             DateTime @default(now())
+
+  entry FamilyDirectoryEntry @relation(fields: [familyDirectoryEntryId], references: [id], onDelete: Cascade)
+
+  @@index([familyDirectoryEntryId, uploadedAt])
+  @@map("account_documents")
 }
 
 enum FamilyDirectorySubjectKind {
