@@ -117,6 +117,8 @@ import {
 import { buildInvoicePdf } from '../infrastructure/pdf/invoice-pdf';
 import { buildReceiptPdf } from '../infrastructure/pdf/receipt-pdf';
 import { paymentsToCsv } from '../infrastructure/export/payments-csv';
+import { buildFinancialReportPdf } from '../infrastructure/export/financial-report-pdf';
+import { buildFinancialReportXlsx } from '../infrastructure/export/financial-report-xlsx';
 import { CreateAccountDocumentTicketUseCase } from '../application/use-cases/create-account-document-ticket.use-case';
 import { RegisterAccountDocumentUseCase } from '../application/use-cases/register-account-document.use-case';
 import { ListAccountDocumentsUseCase } from '../application/use-cases/list-account-documents.use-case';
@@ -232,6 +234,46 @@ export class AdminBillingController {
       comparison: query.comparison ?? 'PREVIOUS_PERIOD',
     });
     return FinancialReportResponseDto.fromResult(result);
+  }
+
+  @Get('reports/financial/export/pdf')
+  @ApiOperation({ summary: 'Export the Financial Report as a PDF (the Export PDF action)' })
+  @ApiProduces('application/pdf')
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  async exportFinancialReportPdf(@Query() query: FinancialReportQueryDto): Promise<StreamableFile> {
+    const result = await this.getFinancialReport.execute(this.reportCommand(query));
+    const { filename, pdf } = buildFinancialReportPdf(result);
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${filename}"`,
+    });
+  }
+
+  @Get('reports/financial/export/xlsx')
+  @ApiOperation({
+    summary: 'Export the Financial Report as an Excel workbook (the Export Excel action)',
+  })
+  @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  async exportFinancialReportXlsx(
+    @Query() query: FinancialReportQueryDto,
+  ): Promise<StreamableFile> {
+    const result = await this.getFinancialReport.execute(this.reportCommand(query));
+    const { filename, xlsx } = buildFinancialReportXlsx(result);
+    return new StreamableFile(xlsx, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      disposition: `attachment; filename="${filename}"`,
+    });
+  }
+
+  private reportCommand(query: FinancialReportQueryDto) {
+    return {
+      currency: query.currency ?? Currency.NigerianNaira,
+      from: query.from === undefined ? null : new Date(query.from),
+      to: query.to === undefined ? null : new Date(query.to),
+      branch: query.branch ?? null,
+      comparison: query.comparison ?? ('PREVIOUS_PERIOD' as const),
+    };
   }
 
   @Get('settings')
