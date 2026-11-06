@@ -23,6 +23,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Currency } from '@shared/domain/currency.enum';
+import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
@@ -108,6 +109,8 @@ import {
 } from './dto/create-billing-account.dto';
 import { SetAccountPreferencesRequestDto } from './dto/set-account-preferences.dto';
 import { buildInvoicePdf } from '../infrastructure/pdf/invoice-pdf';
+import { buildReceiptPdf } from '../infrastructure/pdf/receipt-pdf';
+import { paymentsToCsv } from '../infrastructure/export/payments-csv';
 
 /**
  * Admin Billing control panel. The financial overview dashboard and the Billing
@@ -489,6 +492,41 @@ export class AdminBillingController {
   ): Promise<BillingAccountPaymentsResponseDto> {
     const result = await this.listPayments.execute(id);
     return BillingAccountPaymentsResponseDto.fromResult(result);
+  }
+
+  @Get('accounts/:id/payments/export')
+  @ApiOperation({ summary: 'Export the account payment history as CSV (the Export CSV action)' })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  async exportAccountPayments(@Param('id', ParseUUIDPipe) id: string): Promise<StreamableFile> {
+    const result = await this.listPayments.execute(id);
+    return new StreamableFile(paymentsToCsv(result), {
+      type: 'text/csv',
+      disposition: `attachment; filename="payments-${id}.csv"`,
+    });
+  }
+
+  @Get('accounts/:id/payments/:paymentId/receipt')
+  @ApiOperation({ summary: 'Download a payment receipt as a PDF (the Receipt action)' })
+  @ApiProduces('application/pdf')
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  async paymentReceipt(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('paymentId', ParseUUIDPipe) paymentId: string,
+  ): Promise<StreamableFile> {
+    const [account, payments] = await Promise.all([
+      this.getAccount.execute(id),
+      this.listPayments.execute(id),
+    ]);
+    const payment = payments.payments.find((row) => row.id === paymentId);
+    if (payment === undefined) {
+      throw new NotFoundDomainException('Payment not found');
+    }
+    const { filename, pdf } = buildReceiptPdf({ accountName: account.accountName, payment });
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${filename}"`,
+    });
   }
 
   @Get('accounts/:id/activity')
