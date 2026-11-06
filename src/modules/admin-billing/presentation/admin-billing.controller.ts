@@ -119,6 +119,14 @@ import { paymentsToCsv } from '../infrastructure/export/payments-csv';
 import { CreateAccountDocumentTicketUseCase } from '../application/use-cases/create-account-document-ticket.use-case';
 import { RegisterAccountDocumentUseCase } from '../application/use-cases/register-account-document.use-case';
 import { ListAccountDocumentsUseCase } from '../application/use-cases/list-account-documents.use-case';
+import { CreateInvoiceAttachmentTicketUseCase } from '../application/use-cases/create-invoice-attachment-ticket.use-case';
+import { RegisterInvoiceAttachmentUseCase } from '../application/use-cases/register-invoice-attachment.use-case';
+import { ListInvoiceAttachmentsUseCase } from '../application/use-cases/list-invoice-attachments.use-case';
+import {
+  InvoiceAttachmentUploadTicketResponseDto,
+  InvoiceAttachmentsResponseDto,
+  RegisterInvoiceAttachmentRequestDto,
+} from './dto/invoice-attachments.dto';
 
 /**
  * Admin Billing control panel. The financial overview dashboard and the Billing
@@ -152,6 +160,9 @@ export class AdminBillingController {
     private readonly listDocuments: ListAccountDocumentsUseCase,
     private readonly createDocumentTicket: CreateAccountDocumentTicketUseCase,
     private readonly registerDocument: RegisterAccountDocumentUseCase,
+    private readonly listInvoiceAttachments: ListInvoiceAttachmentsUseCase,
+    private readonly createInvoiceAttachmentTicket: CreateInvoiceAttachmentTicketUseCase,
+    private readonly registerInvoiceAttachment: RegisterInvoiceAttachmentUseCase,
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
@@ -439,6 +450,44 @@ export class AdminBillingController {
       authorId: admin.adminUserId,
       category: body.category,
       body: body.body,
+    });
+  }
+
+  @Get('invoices/:id/attachments')
+  @ApiOperation({ summary: 'Files attached to an invoice (the Attachments tab), newest first' })
+  @ApiOkResponse({ type: InvoiceAttachmentsResponseDto })
+  async invoiceAttachments(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<InvoiceAttachmentsResponseDto> {
+    const result = await this.listInvoiceAttachments.execute(id);
+    return InvoiceAttachmentsResponseDto.fromResult(result);
+  }
+
+  @Post('invoices/:id/attachments/upload-ticket')
+  @ApiOperation({ summary: 'Issue a signed ticket to upload an attachment straight to storage' })
+  @ApiCreatedResponse({ type: InvoiceAttachmentUploadTicketResponseDto })
+  async invoiceAttachmentUploadTicket(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<InvoiceAttachmentUploadTicketResponseDto> {
+    const ticket = await this.createInvoiceAttachmentTicket.execute({ invoiceId: id });
+    return InvoiceAttachmentUploadTicketResponseDto.fromTicket(ticket);
+  }
+
+  @Post('invoices/:id/attachments')
+  @ApiOperation({ summary: 'Register an attachment after it has been uploaded to storage' })
+  @ApiCreatedResponse({ schema: { properties: { id: { type: 'string', format: 'uuid' } } } })
+  async addInvoiceAttachment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() admin: AdminPrincipal,
+    @Body() body: RegisterInvoiceAttachmentRequestDto,
+  ): Promise<{ id: string }> {
+    return this.registerInvoiceAttachment.execute({
+      invoiceId: id,
+      title: body.title,
+      fileName: body.fileName,
+      storageKey: body.storageKey,
+      sizeBytes: body.sizeBytes,
+      adminId: admin.adminUserId,
     });
   }
 

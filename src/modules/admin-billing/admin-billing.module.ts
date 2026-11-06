@@ -23,6 +23,11 @@ import { CreateAccountDocumentTicketUseCase } from './application/use-cases/crea
 import { RegisterAccountDocumentUseCase } from './application/use-cases/register-account-document.use-case';
 import { ACCOUNT_DOCUMENT_REPOSITORY } from './domain/account-document.repository';
 import { AccountDocumentPrismaRepository } from './infrastructure/persistence/account-document-prisma.repository';
+import { ListInvoiceAttachmentsUseCase } from './application/use-cases/list-invoice-attachments.use-case';
+import { CreateInvoiceAttachmentTicketUseCase } from './application/use-cases/create-invoice-attachment-ticket.use-case';
+import { RegisterInvoiceAttachmentUseCase } from './application/use-cases/register-invoice-attachment.use-case';
+import { INVOICE_ATTACHMENT_REPOSITORY } from './domain/invoice-attachment.repository';
+import { InvoiceAttachmentPrismaRepository } from './infrastructure/persistence/invoice-attachment-prisma.repository';
 import { GetBillingAccountActivityUseCase } from './application/use-cases/get-billing-account-activity.use-case';
 import { GetBillingAccountUseCase } from './application/use-cases/get-billing-account.use-case';
 import { GetBillingDashboardUseCase } from './application/use-cases/get-billing-dashboard.use-case';
@@ -98,6 +103,9 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     ListAccountDocumentsUseCase,
     CreateAccountDocumentTicketUseCase,
     RegisterAccountDocumentUseCase,
+    ListInvoiceAttachmentsUseCase,
+    CreateInvoiceAttachmentTicketUseCase,
+    RegisterInvoiceAttachmentUseCase,
     ListAccountAdjustmentsUseCase,
     CreateAccountAdjustmentUseCase,
     ApproveAccountAdjustmentUseCase,
@@ -127,6 +135,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     { provide: INVOICE_WRITE_REPOSITORY, useClass: InvoiceWritePrismaRepository },
     { provide: INVOICE_SEND_REPOSITORY, useClass: InvoiceSendPrismaRepository },
     { provide: ACCOUNT_DOCUMENT_REPOSITORY, useClass: AccountDocumentPrismaRepository },
+    { provide: INVOICE_ATTACHMENT_REPOSITORY, useClass: InvoiceAttachmentPrismaRepository },
   ],
 })
 export class AdminBillingModule {}

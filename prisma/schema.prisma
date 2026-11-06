@@ -663,12 +663,32 @@ model RecipientInvoice {
   lines         RecipientInvoiceLine[]
   adjustments   RecipientInvoiceAdjustment[]
   notes         InvoiceNote[]
+  attachments   InvoiceAttachment[]
 
   @@index([careRecipientId, issuedAt])
   // The org wide Billing dashboard aggregates by market, status and date.
   @@index([currency, status, issuedAt])
   @@index([currency, status, dueDate])
   @@map("recipient_invoices")
+}
+
+// A file attached to an invoice (the invoice Attachments tab): a supporting
+// document, a signed copy, and so on. The blob lives in object storage; only the
+// opaque storageKey, display title, original file name and size are kept here.
+model InvoiceAttachment {
+  id                String   @id @default(uuid()) @db.Uuid
+  invoiceId         String   @db.Uuid
+  title             String   @db.VarChar(200)
+  fileName          String   @db.VarChar(300)
+  storageKey        String   @db.VarChar(500)
+  sizeBytes         Int
+  uploadedByAdminId String?  @db.Uuid
+  uploadedAt        DateTime @default(now())
+
+  invoice RecipientInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId, uploadedAt])
+  @@map("invoice_attachments")
 }
 
 // One internal note on an invoice (the Notes tab). Authored by an admin, classified

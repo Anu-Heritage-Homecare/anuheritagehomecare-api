@@ -1,6 +1,6 @@
 import { InvoiceListStatus } from '../ports/billing-invoices-read.port';
 
-/** One line item on the invoice. Quantity, unit and rate are not stored yet. */
+/** One line item on the invoice; quantity, unit and rate are null on older invoices. */
 export interface BillingInvoiceLineResult {
   serviceName: string;
   quantity: number | null;
