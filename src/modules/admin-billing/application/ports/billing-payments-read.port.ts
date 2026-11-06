@@ -51,9 +51,42 @@ export interface PaymentListView {
   methods: string[];
 }
 
+/** One event on a payment's history timeline (Payment Details drawer). */
+export interface PaymentEventRowView {
+  type: 'INITIATED' | 'CONFIRMED' | 'RECEIPT_GENERATED' | 'REFUNDED';
+  at: Date;
+  actorType: 'SYSTEM' | 'ADMIN';
+  actorAdminId: string | null;
+  actorLabel: string | null;
+  detail: string | null;
+}
+
+/** The Payment Details drawer: one recorded payment, its linked invoice and history. */
+export interface PaymentDetailView {
+  id: string;
+  sequence: number;
+  receivedAt: Date;
+  amountMinor: number;
+  currency: string;
+  methodLabel: string | null;
+  referenceNumber: string | null;
+  bankName: string | null;
+  notes: string | null;
+  refundedAt: Date | null;
+  /** The settled invoice, null when the payment is unlinked. */
+  invoiceSequence: number | null;
+  invoiceIssuedAt: Date | null;
+  invoiceAmountMinor: number | null;
+  invoiceStatus: string | null;
+  accountName: string | null;
+  events: PaymentEventRowView[];
+}
+
 /** Read model for the org wide Payments list across every account. */
 export interface BillingPaymentsReadModel {
   list(filter: PaymentListFilter): Promise<PaymentListView>;
+  /** One recorded payment's full detail, or null when the id is unknown. */
+  detail(paymentId: string): Promise<PaymentDetailView | null>;
 }
 
 export const BILLING_PAYMENTS_READ_MODEL = Symbol('BILLING_PAYMENTS_READ_MODEL');

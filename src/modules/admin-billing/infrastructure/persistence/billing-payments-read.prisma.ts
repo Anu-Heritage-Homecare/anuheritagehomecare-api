@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import {
   BillingPaymentsReadModel,
+  PaymentDetailView,
   PaymentListCounts,
   PaymentListFilter,
   PaymentListRowView,
@@ -170,6 +171,98 @@ export class BillingPaymentsReadPrisma implements BillingPaymentsReadModel {
       counts,
       methods,
     };
+  }
+
+  async detail(paymentId: string): Promise<PaymentDetailView | null> {
+    const payment = await this.prisma.recipientInvoicePayment.findUnique({
+      where: { id: paymentId },
+      select: {
+        id: true,
+        sequence: true,
+        invoiceId: true,
+        amountMinor: true,
+        currency: true,
+        methodLabel: true,
+        receivedAt: true,
+        referenceNumber: true,
+        bankName: true,
+        notes: true,
+        refundedAt: true,
+        careRecipientId: true,
+        careRecipient: { select: { ownerId: true } },
+        events: {
+          orderBy: { at: 'desc' },
+          select: {
+            type: true,
+            at: true,
+            actorType: true,
+            actorAdminId: true,
+            actorLabel: true,
+            detail: true,
+          },
+        },
+      },
+    });
+    if (payment === null) {
+      return null;
+    }
+
+    const invoice =
+      payment.invoiceId === null
+        ? null
+        : await this.prisma.recipientInvoice.findUnique({
+            where: { id: payment.invoiceId },
+            select: { sequence: true, issuedAt: true, amountMinor: true, status: true },
+          });
+
+    const account = await this.resolveAccount(
+      payment.careRecipient.ownerId,
+      payment.careRecipientId,
+    );
+
+    return {
+      id: payment.id,
+      sequence: payment.sequence,
+      receivedAt: payment.receivedAt,
+      amountMinor: payment.amountMinor,
+      currency: payment.currency,
+      methodLabel: payment.methodLabel,
+      referenceNumber: payment.referenceNumber,
+      bankName: payment.bankName,
+      notes: payment.notes,
+      refundedAt: payment.refundedAt,
+      invoiceSequence: invoice?.sequence ?? null,
+      invoiceIssuedAt: invoice?.issuedAt ?? null,
+      invoiceAmountMinor: invoice?.amountMinor ?? null,
+      invoiceStatus: invoice?.status ?? null,
+      accountName: account === null ? null : (account.accountName ?? account.fullName),
+      events: payment.events,
+    };
+  }
+
+  /** The billing account (owned entry or a single linked contact) for a payment. */
+  private async resolveAccount(
+    ownerId: string | null,
+    recipientId: string | null,
+  ): Promise<Entry | null> {
+    const entries = await this.prisma.familyDirectoryEntry.findMany({
+      where:
+        ownerId === null
+          ? { primaryRecipientId: recipientId }
+          : { OR: [{ userId: ownerId }, { primaryRecipientId: recipientId }] },
+      select: {
+        id: true,
+        userId: true,
+        primaryRecipientId: true,
+        fullName: true,
+        accountName: true,
+      },
+    });
+    return (
+      entries.find((e) => e.userId === ownerId) ??
+      entries.find((e) => e.primaryRecipientId === recipientId) ??
+      null
+    );
   }
 }
 

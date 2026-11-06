@@ -82,6 +82,7 @@ import { BillingInvoicesQueryDto } from './dto/billing-invoices-query.dto';
 import { BillingInvoicesResponseDto } from './dto/billing-invoices-response.dto';
 import { BillingPaymentsQueryDto } from './dto/billing-payments-query.dto';
 import { BillingPaymentsResponseDto } from './dto/billing-payments-response.dto';
+import { PaymentDetailResponseDto } from './dto/payment-detail-response.dto';
 import { BillingDashboardQueryDto } from './dto/billing-dashboard-query.dto';
 import { AdminBillingDashboardResponseDto } from './dto/billing-dashboard-response.dto';
 import { FinancialReportQueryDto } from './dto/financial-report-query.dto';
@@ -138,6 +139,7 @@ import { SendInvoiceReminderUseCase } from '../application/use-cases/send-invoic
 import { DeleteInvoiceAttachmentUseCase } from '../application/use-cases/delete-invoice-attachment.use-case';
 import { DeleteAccountDocumentUseCase } from '../application/use-cases/delete-account-document.use-case';
 import { RefundInvoicePaymentUseCase } from '../application/use-cases/refund-invoice-payment.use-case';
+import { GetPaymentDetailUseCase } from '../application/use-cases/get-payment-detail.use-case';
 import { RefundPaymentRequestDto } from './dto/refund-payment.dto';
 import {
   RecordInvoicePaymentRequestDto,
@@ -192,6 +194,7 @@ export class AdminBillingController {
     private readonly deleteAttachment: DeleteInvoiceAttachmentUseCase,
     private readonly deleteDocument: DeleteAccountDocumentUseCase,
     private readonly refundPayment_: RefundInvoicePaymentUseCase,
+    private readonly getPaymentDetail: GetPaymentDetailUseCase,
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
@@ -488,6 +491,15 @@ export class AdminBillingController {
     return BillingPaymentsResponseDto.fromResult(result);
   }
 
+  @Get('payments/:id')
+  @ApiOperation({
+    summary: 'One recorded payment (the Payment Details drawer): card, invoice, history, notes',
+  })
+  @ApiOkResponse({ type: PaymentDetailResponseDto })
+  async paymentDetail(@Param('id', ParseUUIDPipe) id: string): Promise<PaymentDetailResponseDto> {
+    return PaymentDetailResponseDto.fromResult(await this.getPaymentDetail.execute(id));
+  }
+
   @Post('payments/:id/refund')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Refund a recorded payment and reopen its invoice (the Refund action)' })
@@ -554,6 +566,7 @@ export class AdminBillingController {
   @ApiCreatedResponse({ type: RecordInvoicePaymentResponseDto })
   async recordInvoicePayment(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() admin: AdminPrincipal,
     @Body() body: RecordInvoicePaymentRequestDto,
   ): Promise<RecordInvoicePaymentResponseDto> {
     return this.recordPayment.execute({
@@ -564,6 +577,7 @@ export class AdminBillingController {
       referenceNumber: body.referenceNumber ?? null,
       bankName: body.bankName ?? null,
       notes: body.notes ?? null,
+      adminId: admin.adminUserId,
     });
   }
 

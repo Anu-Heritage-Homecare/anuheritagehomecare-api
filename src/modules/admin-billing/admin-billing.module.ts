@@ -37,6 +37,9 @@ import { ApproveInvoiceUseCase } from './application/use-cases/approve-invoice.u
 import { SendInvoiceReminderUseCase } from './application/use-cases/send-invoice-reminder.use-case';
 import { INVOICE_EVENT_RECORDER } from './domain/invoice-event.recorder';
 import { InvoiceEventPrismaRecorder } from './infrastructure/persistence/invoice-event-prisma.recorder';
+import { PAYMENT_EVENT_RECORDER } from './domain/payment-event.recorder';
+import { PaymentEventPrismaRecorder } from './infrastructure/persistence/payment-event-prisma.recorder';
+import { GetPaymentDetailUseCase } from './application/use-cases/get-payment-detail.use-case';
 import { DeleteInvoiceAttachmentUseCase } from './application/use-cases/delete-invoice-attachment.use-case';
 import { DeleteAccountDocumentUseCase } from './application/use-cases/delete-account-document.use-case';
 import { RefundInvoicePaymentUseCase } from './application/use-cases/refund-invoice-payment.use-case';
@@ -128,6 +131,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     DeleteInvoiceAttachmentUseCase,
     DeleteAccountDocumentUseCase,
     RefundInvoicePaymentUseCase,
+    GetPaymentDetailUseCase,
     ListAccountAdjustmentsUseCase,
     CreateAccountAdjustmentUseCase,
     ApproveAccountAdjustmentUseCase,
@@ -161,6 +165,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     { provide: INVOICE_ATTACHMENT_REPOSITORY, useClass: InvoiceAttachmentPrismaRepository },
     { provide: INVOICE_PAYMENT_WRITE_REPOSITORY, useClass: InvoicePaymentWritePrismaRepository },
     { provide: INVOICE_EVENT_RECORDER, useClass: InvoiceEventPrismaRecorder },
+    { provide: PAYMENT_EVENT_RECORDER, useClass: PaymentEventPrismaRecorder },
     { provide: ADMIN_DIRECTORY, useClass: PrismaAdminDirectory },
   ],
 })

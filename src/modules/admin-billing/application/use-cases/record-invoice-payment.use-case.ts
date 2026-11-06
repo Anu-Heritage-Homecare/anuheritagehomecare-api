@@ -6,6 +6,7 @@ import {
   INVOICE_PAYMENT_WRITE_REPOSITORY,
   InvoicePaymentWriteRepository,
 } from '../../domain/invoice-payment-write.repository';
+import { PAYMENT_EVENT_RECORDER, PaymentEventRecorder } from '../../domain/payment-event.recorder';
 
 export interface RecordInvoicePaymentCommand {
   invoiceId: string;
@@ -17,6 +18,8 @@ export interface RecordInvoicePaymentCommand {
   referenceNumber: string | null;
   bankName: string | null;
   notes: string | null;
+  /** The admin recording the payment, attributed on the history timeline. */
+  adminId: string;
 }
 
 export interface RecordInvoicePaymentResult {
@@ -35,6 +38,7 @@ export class RecordInvoicePaymentUseCase {
   constructor(
     @Inject(INVOICE_PAYMENT_WRITE_REPOSITORY)
     private readonly payments: InvoicePaymentWriteRepository,
+    @Inject(PAYMENT_EVENT_RECORDER) private readonly events: PaymentEventRecorder,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
   ) {}
@@ -53,6 +57,8 @@ export class RecordInvoicePaymentUseCase {
     }
 
     const id = this.ids.generate();
+    const now = this.clock.now();
+    const receivedAt = command.receivedAt ?? now;
     await this.payments.record({
       id,
       invoiceId: command.invoiceId,
@@ -60,11 +66,37 @@ export class RecordInvoicePaymentUseCase {
       amountMinor: command.amountMinor,
       currency: context.currency,
       methodLabel: command.methodLabel,
-      receivedAt: command.receivedAt ?? this.clock.now(),
+      receivedAt,
       referenceNumber: command.referenceNumber,
       bankName: command.bankName,
       notes: command.notes,
     });
+
+    // The offline lifecycle: received via the method, confirmed by the office, receipt
+    // generated. These compose the Payment Details history timeline.
+    await this.events.record([
+      {
+        paymentId: id,
+        type: 'INITIATED',
+        at: receivedAt,
+        actorType: 'SYSTEM',
+        actorLabel: command.methodLabel,
+      },
+      {
+        paymentId: id,
+        type: 'CONFIRMED',
+        at: now,
+        actorType: 'ADMIN',
+        actorAdminId: command.adminId,
+      },
+      {
+        paymentId: id,
+        type: 'RECEIPT_GENERATED',
+        at: now,
+        actorType: 'SYSTEM',
+        actorLabel: 'System',
+      },
+    ]);
 
     const invoicePaid = context.paidMinor + command.amountMinor >= context.patientDueMinor;
     if (invoicePaid) {

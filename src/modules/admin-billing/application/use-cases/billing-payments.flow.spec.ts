@@ -36,6 +36,7 @@ describe('ListBillingPaymentsUseCase', () => {
         captured = filter;
         return Promise.resolve(view);
       },
+      detail: () => Promise.resolve(null),
     };
 
     const result = await new ListBillingPaymentsUseCase(reads).execute({
@@ -81,6 +82,7 @@ describe('ListBillingPaymentsUseCase', () => {
           counts: { all: 1, pending: 0, completed: 1, failed: 0, refunded: 0 },
           methods: [],
         }),
+      detail: () => Promise.resolve(null),
     };
     const result = await new ListBillingPaymentsUseCase(reads).execute({
       status: null,

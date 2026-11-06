@@ -5,6 +5,7 @@ import {
   INVOICE_PAYMENT_WRITE_REPOSITORY,
   InvoicePaymentWriteRepository,
 } from '../../domain/invoice-payment-write.repository';
+import { PAYMENT_EVENT_RECORDER, PaymentEventRecorder } from '../../domain/payment-event.recorder';
 
 export interface RefundInvoicePaymentCommand {
   paymentId: string;
@@ -25,6 +26,7 @@ export class RefundInvoicePaymentUseCase {
   constructor(
     @Inject(INVOICE_PAYMENT_WRITE_REPOSITORY)
     private readonly payments: InvoicePaymentWriteRepository,
+    @Inject(PAYMENT_EVENT_RECORDER) private readonly events: PaymentEventRecorder,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -36,11 +38,22 @@ export class RefundInvoicePaymentUseCase {
     if (payment.alreadyRefunded) {
       throw new ValidationException('This payment has already been refunded');
     }
+    const now = this.clock.now();
     await this.payments.refund({
       paymentId: command.paymentId,
       reason: command.reason,
       adminId: command.adminId,
-      now: this.clock.now(),
+      now,
     });
+    await this.events.record([
+      {
+        paymentId: command.paymentId,
+        type: 'REFUNDED',
+        at: now,
+        actorType: 'ADMIN',
+        actorAdminId: command.adminId,
+        detail: command.reason,
+      },
+    ]);
   }
 }

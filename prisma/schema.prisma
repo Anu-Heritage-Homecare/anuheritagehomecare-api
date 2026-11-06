@@ -973,10 +973,48 @@ model RecipientInvoicePayment {
   createdAt       DateTime @default(now())
 
   careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
+  events        PaymentEvent[]
 
   @@index([careRecipientId, receivedAt])
   @@index([currency, receivedAt])
   @@map("recipient_invoice_payments")
+}
+
+/// The lifecycle audit log of a recorded payment (the Payment Details history timeline).
+model PaymentEvent {
+  id           String            @id @default(uuid()) @db.Uuid
+  paymentId    String            @db.Uuid
+  type         PaymentEventType
+  // The moment the event occurred: for INITIATED this is when the payment was received,
+  // for the rest it is when the office recorded or reversed the payment.
+  at           DateTime
+  actorType    PaymentEventActor
+  // The admin who performed an ADMIN event, resolved to a name on read.
+  actorAdminId String?           @db.Uuid
+  // A display label for a SYSTEM actor (e.g. the method, or "System").
+  actorLabel   String?           @db.VarChar(160)
+  detail       String?           @db.VarChar(500)
+
+  payment RecipientInvoicePayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, at])
+  @@map("payment_events")
+}
+
+enum PaymentEventType {
+  INITIATED
+  CONFIRMED
+  RECEIPT_GENERATED
+  REFUNDED
+
+  @@map("payment_event_type")
+}
+
+enum PaymentEventActor {
+  SYSTEM
+  ADMIN
+
+  @@map("payment_event_actor")
 }
 
 // The office set billing and insurance profile for a recipient (one per recipient).
