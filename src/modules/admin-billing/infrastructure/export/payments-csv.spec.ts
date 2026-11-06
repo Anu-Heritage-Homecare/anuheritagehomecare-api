@@ -14,6 +14,9 @@ function result(): BillingAccountPaymentsResult {
         method: 'Bank Transfer',
         receivedAt: '2026-08-12T09:00:00.000Z',
         status: 'COMPLETED',
+        referenceNumber: null,
+        bankName: null,
+        notes: null,
       },
       {
         id: 'p2',
@@ -24,6 +27,9 @@ function result(): BillingAccountPaymentsResult {
         method: 'Card (Mastercard)',
         receivedAt: '2026-07-14T09:00:00.000Z',
         status: 'COMPLETED',
+        referenceNumber: null,
+        bankName: null,
+        notes: null,
       },
     ],
   };

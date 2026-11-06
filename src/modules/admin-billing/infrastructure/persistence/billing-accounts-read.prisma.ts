@@ -381,6 +381,9 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         currency: true,
         methodLabel: true,
         receivedAt: true,
+        referenceNumber: true,
+        bankName: true,
+        notes: true,
       },
     });
 
@@ -407,6 +410,9 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         currency: payment.currency,
         methodLabel: payment.methodLabel,
         receivedAt: payment.receivedAt,
+        referenceNumber: payment.referenceNumber,
+        bankName: payment.bankName,
+        notes: payment.notes,
       };
     });
   }

@@ -15,6 +15,11 @@ class BillingAccountPaymentRowDto implements BillingAccountPaymentRowResult {
   @ApiProperty({ nullable: true, type: String }) method!: string | null;
   @ApiProperty() receivedAt!: string;
   @ApiProperty({ enum: ['COMPLETED'] }) status!: PaymentDisplayStatus;
+  @ApiProperty({ nullable: true, type: String, example: 'TXN-1092309' })
+  referenceNumber!: string | null;
+  @ApiProperty({ nullable: true, type: String, example: 'First Bank' })
+  bankName!: string | null;
+  @ApiProperty({ nullable: true, type: String }) notes!: string | null;
 }
 
 /** The Payments tab of a billing account. */

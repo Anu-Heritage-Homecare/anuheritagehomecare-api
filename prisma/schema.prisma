@@ -960,6 +960,11 @@ model RecipientInvoicePayment {
   currency        Currency
   methodLabel     String?  @db.VarChar(120)
   receivedAt      DateTime
+  // Offline reconciliation details captured on the Record Payment drawer: the external
+  // bank/transaction reference, the paying bank, and free text notes. All optional.
+  referenceNumber String?  @db.VarChar(120)
+  bankName        String?  @db.VarChar(120)
+  notes           String?  @db.VarChar(2000)
   // Set when the office reverses this payment (the Refund action). A refunded payment
   // shows as REFUNDED on the Payments list and reopens its invoice.
   refundedAt        DateTime?

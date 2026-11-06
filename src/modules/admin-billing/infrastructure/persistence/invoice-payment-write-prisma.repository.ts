@@ -98,6 +98,9 @@ export class InvoicePaymentWritePrismaRepository implements InvoicePaymentWriteR
         currency: TO_PRISMA_CURRENCY[payment.currency],
         methodLabel: payment.methodLabel,
         receivedAt: payment.receivedAt,
+        referenceNumber: payment.referenceNumber,
+        bankName: payment.bankName,
+        notes: payment.notes,
       },
     });
   }

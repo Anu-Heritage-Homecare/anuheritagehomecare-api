@@ -19,6 +19,10 @@ export interface NewInvoicePayment {
   currency: Currency;
   methodLabel: string | null;
   receivedAt: Date;
+  /** Offline reconciliation details from the Record Payment drawer. */
+  referenceNumber: string | null;
+  bankName: string | null;
+  notes: string | null;
 }
 
 /** What an online payment for an invoice charges, and who it bills. */

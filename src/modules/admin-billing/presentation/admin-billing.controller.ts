@@ -561,6 +561,9 @@ export class AdminBillingController {
       amountMinor: body.amountMinor,
       methodLabel: body.methodLabel ?? null,
       receivedAt: body.receivedAt ? new Date(body.receivedAt) : null,
+      referenceNumber: body.referenceNumber ?? null,
+      bankName: body.bankName ?? null,
+      notes: body.notes ?? null,
     });
   }
 

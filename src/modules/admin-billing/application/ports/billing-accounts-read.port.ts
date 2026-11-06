@@ -155,6 +155,9 @@ export interface BillingAccountPaymentRowView {
   currency: string;
   methodLabel: string | null;
   receivedAt: Date;
+  referenceNumber: string | null;
+  bankName: string | null;
+  notes: string | null;
 }
 
 /** One care recipient billed under an account (the Care Recipients tab). */

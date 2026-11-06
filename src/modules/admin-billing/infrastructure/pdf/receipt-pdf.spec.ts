@@ -13,6 +13,9 @@ describe('buildReceiptPdf', () => {
         method: 'Bank Transfer',
         receivedAt: '2026-08-12T09:00:00.000Z',
         status: 'COMPLETED',
+        referenceNumber: 'TXN-1092309',
+        bankName: 'First Bank',
+        notes: 'Paid in full',
       },
     });
 
@@ -29,5 +32,30 @@ describe('buildReceiptPdf', () => {
     expect(text.slice(declared, declared + 4)).toBe('xref');
     expect(text).toContain('PAYMENT RECEIPT');
     expect(text).toContain('NGN 250,000.00');
+    expect(text).toContain('TXN-1092309');
+    expect(text).toContain('First Bank');
+    expect(text).toContain('Paid in full');
+  });
+
+  it('omits the reconciliation lines when they were not captured', () => {
+    const { pdf } = buildReceiptPdf({
+      accountName: 'Adeyemi Family Account',
+      payment: {
+        id: 'p1',
+        reference: 'TXN-84729103',
+        invoiceNumber: null,
+        amountMinor: 25_000_000,
+        currency: 'NGN',
+        method: null,
+        receivedAt: '2026-08-12T09:00:00.000Z',
+        status: 'COMPLETED',
+        referenceNumber: null,
+        bankName: null,
+        notes: null,
+      },
+    });
+    const text = pdf.toString('latin1');
+    expect(text).toContain('Amount paid');
+    expect(text).not.toContain('Bank');
   });
 });

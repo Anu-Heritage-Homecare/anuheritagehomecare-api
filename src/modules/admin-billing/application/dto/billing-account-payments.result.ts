@@ -12,6 +12,10 @@ export interface BillingAccountPaymentRowResult {
   method: string | null;
   receivedAt: string;
   status: PaymentDisplayStatus;
+  /** Offline reconciliation details captured on the Record Payment drawer. */
+  referenceNumber: string | null;
+  bankName: string | null;
+  notes: string | null;
 }
 
 export interface BillingAccountPaymentsResult {

@@ -51,6 +51,9 @@ describe('RecordInvoicePaymentUseCase', () => {
       amountMinor: 60_000_000,
       methodLabel: 'Bank Transfer',
       receivedAt: null,
+      referenceNumber: null,
+      bankName: null,
+      notes: null,
     });
     expect(result).toEqual({ id: 'pay-1', invoicePaid: true });
     expect(r.recorded[0]).toMatchObject({ amountMinor: 60_000_000, methodLabel: 'Bank Transfer' });
@@ -64,6 +67,9 @@ describe('RecordInvoicePaymentUseCase', () => {
       amountMinor: 30_000_000,
       methodLabel: null,
       receivedAt: null,
+      referenceNumber: null,
+      bankName: null,
+      notes: null,
     });
     expect(result.invoicePaid).toBe(false);
     expect(r.paid).toEqual([]);
@@ -76,6 +82,9 @@ describe('RecordInvoicePaymentUseCase', () => {
         amountMinor: 0,
         methodLabel: null,
         receivedAt: null,
+        referenceNumber: null,
+        bankName: null,
+        notes: null,
       }),
     ).rejects.toBeInstanceOf(ValidationException);
   });
@@ -87,6 +96,9 @@ describe('RecordInvoicePaymentUseCase', () => {
         amountMinor: 1,
         methodLabel: null,
         receivedAt: null,
+        referenceNumber: null,
+        bankName: null,
+        notes: null,
       }),
     ).rejects.toBeInstanceOf(ValidationException);
   });
@@ -98,6 +110,9 @@ describe('RecordInvoicePaymentUseCase', () => {
         amountMinor: 1,
         methodLabel: null,
         receivedAt: null,
+        referenceNumber: null,
+        bankName: null,
+        notes: null,
       }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });

@@ -13,6 +13,10 @@ export interface RecordInvoicePaymentCommand {
   methodLabel: string | null;
   /** When the payment was received; defaults to now. */
   receivedAt: Date | null;
+  /** Offline reconciliation details from the Record Payment drawer. */
+  referenceNumber: string | null;
+  bankName: string | null;
+  notes: string | null;
 }
 
 export interface RecordInvoicePaymentResult {
@@ -57,6 +61,9 @@ export class RecordInvoicePaymentUseCase {
       currency: context.currency,
       methodLabel: command.methodLabel,
       receivedAt: command.receivedAt ?? this.clock.now(),
+      referenceNumber: command.referenceNumber,
+      bankName: command.bankName,
+      notes: command.notes,
     });
 
     const invoicePaid = context.paidMinor + command.amountMinor >= context.patientDueMinor;

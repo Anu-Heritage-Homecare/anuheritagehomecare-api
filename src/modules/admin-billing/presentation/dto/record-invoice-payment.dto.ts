@@ -21,6 +21,27 @@ export class RecordInvoicePaymentRequestDto {
   @IsOptional()
   @IsDateString()
   receivedAt?: string;
+
+  @ApiPropertyOptional({
+    example: 'TXN-1092309',
+    description: 'External bank or transaction reference',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  referenceNumber?: string;
+
+  @ApiPropertyOptional({ example: 'First Bank', description: 'The paying bank' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  bankName?: string;
+
+  @ApiPropertyOptional({ description: 'Free text notes for reconciliation' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
 }
 
 /** The created payment and the resulting invoice settlement. */

@@ -31,6 +31,9 @@ export class ListBillingAccountPaymentsUseCase {
         method: payment.methodLabel,
         receivedAt: payment.receivedAt.toISOString(),
         status: 'COMPLETED',
+        referenceNumber: payment.referenceNumber,
+        bankName: payment.bankName,
+        notes: payment.notes,
       })),
       total: payments.length,
     };

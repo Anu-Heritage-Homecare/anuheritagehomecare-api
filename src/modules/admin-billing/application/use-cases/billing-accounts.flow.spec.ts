@@ -356,6 +356,9 @@ describe('ListBillingAccountPaymentsUseCase', () => {
       currency: 'NGN',
       methodLabel: 'Bank Transfer',
       receivedAt: new Date('2026-08-12T00:00:00.000Z'),
+      referenceNumber: null,
+      bankName: null,
+      notes: null,
       ...overrides,
     };
   }

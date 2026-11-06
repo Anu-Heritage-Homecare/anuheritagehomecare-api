@@ -36,8 +36,23 @@ export function buildReceiptPdf(input: {
   field(686, 'Invoice', payment.invoiceNumber ?? '-');
   field(668, 'Status', payment.status);
 
-  line(LEFT, 630, 'Amount paid', 10, 'bold');
-  line(VALUE, 628, money(payment.amountMinor, payment.currency), 18, 'bold');
+  // Offline reconciliation details, shown only when captured.
+  let y = 650;
+  if (payment.referenceNumber !== null) {
+    field(y, 'Reference', payment.referenceNumber);
+    y -= 18;
+  }
+  if (payment.bankName !== null) {
+    field(y, 'Bank', payment.bankName);
+    y -= 18;
+  }
+  if (payment.notes !== null) {
+    field(y, 'Notes', payment.notes);
+    y -= 18;
+  }
+
+  line(LEFT, y - 12, 'Amount paid', 10, 'bold');
+  line(VALUE, y - 14, money(payment.amountMinor, payment.currency), 18, 'bold');
 
   return { filename: `${payment.reference}.pdf`, pdf: buildPdf(runs) };
 }
