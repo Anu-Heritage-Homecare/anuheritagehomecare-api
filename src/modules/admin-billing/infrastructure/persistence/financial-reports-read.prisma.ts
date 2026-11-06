@@ -53,7 +53,7 @@ export class FinancialReportsReadPrisma implements FinancialReportsReadModel {
         select: { amountMinor: true, insuranceCoveredMinor: true, issuedAt: true, status: true },
       }),
       this.prisma.recipientInvoicePayment.findMany({
-        where: { currency: filter.currency, ...recipientWhere },
+        where: { currency: filter.currency, refundedAt: null, ...recipientWhere },
         select: { amountMinor: true, methodLabel: true, receivedAt: true },
       }),
       this.prisma.accountAdjustment.findMany({

@@ -29,6 +29,8 @@ function repo(
       paid.push(invoiceId);
       return Promise.resolve();
     },
+    loadRecordedPayment: () => Promise.resolve(null),
+    refund: () => Promise.resolve(),
   };
 }
 

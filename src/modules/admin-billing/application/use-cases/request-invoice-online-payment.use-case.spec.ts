@@ -19,6 +19,8 @@ function invoiceRepo(payable: InvoicePayable | null): InvoicePaymentWriteReposit
     loadPayable: () => Promise.resolve(payable),
     record: () => Promise.resolve(),
     markPaid: () => Promise.resolve(),
+    loadRecordedPayment: () => Promise.resolve(null),
+    refund: () => Promise.resolve(),
   };
 }
 

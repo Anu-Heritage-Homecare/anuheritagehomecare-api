@@ -31,6 +31,12 @@ export interface InvoicePayable {
   alreadyPaid: boolean;
 }
 
+/** A recorded payment being considered for a refund. */
+export interface RefundablePayment {
+  invoiceId: string | null;
+  alreadyRefunded: boolean;
+}
+
 /** Persistence port for recording a payment against an invoice from the back office. */
 export interface InvoicePaymentWriteRepository {
   /** The context to price and settle a payment, or null when the invoice is unknown. */
@@ -40,6 +46,15 @@ export interface InvoicePaymentWriteRepository {
   record(payment: NewInvoicePayment): Promise<void>;
   /** Mark the invoice fully paid. */
   markPaid(invoiceId: string): Promise<void>;
+  /** The recorded payment to refund, or null when the id is unknown. */
+  loadRecordedPayment(paymentId: string): Promise<RefundablePayment | null>;
+  /** Stamp a payment refunded and reopen its invoice. */
+  refund(params: {
+    paymentId: string;
+    reason: string | null;
+    adminId: string;
+    now: Date;
+  }): Promise<void>;
 }
 
 export const INVOICE_PAYMENT_WRITE_REPOSITORY = Symbol('INVOICE_PAYMENT_WRITE_REPOSITORY');

@@ -22,11 +22,11 @@ export interface PaymentListFilter {
 /** One row of the org wide Payments table. */
 export interface PaymentListRowView {
   id: string;
-  sequence: number;
+  /** Human friendly reference (PAY-<year>-<n>), stable per payment. */
+  reference: string;
   receivedAt: Date;
-  /** The invoice the payment settled, null when unlinked. */
-  invoiceSequence: number | null;
-  invoiceIssuedAt: Date | null;
+  /** The invoice the payment settled (INV-<year>-<n>), null when unlinked. */
+  invoiceNumber: string | null;
   billingAccountId: string | null;
   billingAccountName: string | null;
   amountMinor: number;

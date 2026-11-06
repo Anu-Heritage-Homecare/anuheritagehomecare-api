@@ -64,11 +64,8 @@ export class ListBillingPaymentsUseCase {
 function toResult(row: PaymentListRowView): BillingPaymentRowResult {
   return {
     id: row.id,
-    reference: `TXN-${String(row.sequence).padStart(4, '0')}`,
-    invoiceNumber:
-      row.invoiceSequence === null || row.invoiceIssuedAt === null
-        ? null
-        : `INV-${row.invoiceIssuedAt.getUTCFullYear()}-${String(row.invoiceSequence).padStart(3, '0')}`,
+    reference: row.reference,
+    invoiceNumber: row.invoiceNumber,
     billingAccountId: row.billingAccountId,
     billingAccountName: row.billingAccountName,
     amountMinor: row.amountMinor,

@@ -91,7 +91,7 @@ export class InvoicePayableService implements PayableService {
       return null;
     }
     const paid = await this.prisma.recipientInvoicePayment.aggregate({
-      where: { invoiceId },
+      where: { invoiceId, refundedAt: null },
       _sum: { amountMinor: true },
     });
     const patientDue = Math.max(0, invoice.amountMinor - invoice.insuranceCoveredMinor);

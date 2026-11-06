@@ -38,7 +38,7 @@ export class InvoicePaymentWritePrismaRepository implements InvoicePaymentWriteR
       return null;
     }
     const paid = await this.prisma.recipientInvoicePayment.aggregate({
-      where: { invoiceId },
+      where: { invoiceId, refundedAt: null },
       _sum: { amountMinor: true },
     });
     return {
@@ -71,7 +71,7 @@ export class InvoicePaymentWritePrismaRepository implements InvoicePaymentWriteR
         select: { id: true, email: true },
       }),
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { invoiceId },
+        where: { invoiceId, refundedAt: null },
         _sum: { amountMinor: true },
       }),
     ]);
@@ -107,5 +107,43 @@ export class InvoicePaymentWritePrismaRepository implements InvoicePaymentWriteR
       where: { id: invoiceId },
       data: { status: 'PAID' },
     });
+  }
+
+  async loadRecordedPayment(
+    paymentId: string,
+  ): Promise<{ invoiceId: string | null; alreadyRefunded: boolean } | null> {
+    const payment = await this.prisma.recipientInvoicePayment.findUnique({
+      where: { id: paymentId },
+      select: { invoiceId: true, refundedAt: true },
+    });
+    if (payment === null) {
+      return null;
+    }
+    return { invoiceId: payment.invoiceId, alreadyRefunded: payment.refundedAt !== null };
+  }
+
+  async refund(params: {
+    paymentId: string;
+    reason: string | null;
+    adminId: string;
+    now: Date;
+  }): Promise<void> {
+    const payment = await this.prisma.recipientInvoicePayment.update({
+      where: { id: params.paymentId },
+      data: {
+        refundedAt: params.now,
+        refundReason: params.reason,
+        refundedByAdminId: params.adminId,
+      },
+      select: { invoiceId: true },
+    });
+    // Reopen the invoice the refund unsettles; its display status recomputes from the
+    // remaining (non refunded) payments.
+    if (payment.invoiceId !== null) {
+      await this.prisma.recipientInvoice.update({
+        where: { id: payment.invoiceId },
+        data: { status: 'PENDING' },
+      });
+    }
   }
 }

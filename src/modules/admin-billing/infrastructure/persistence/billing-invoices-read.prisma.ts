@@ -62,7 +62,7 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
       invoiceIds.length === 0
         ? []
         : await this.prisma.recipientInvoicePayment.findMany({
-            where: { invoiceId: { in: invoiceIds } },
+            where: { invoiceId: { in: invoiceIds }, refundedAt: null },
             select: { invoiceId: true, amountMinor: true },
           });
 
@@ -165,7 +165,7 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
 
     const [payments, account] = await Promise.all([
       this.prisma.recipientInvoicePayment.findMany({
-        where: { invoiceId: id },
+        where: { invoiceId: id, refundedAt: null },
         select: { amountMinor: true },
       }),
       this.resolveAccount(invoice.careRecipient.ownerId, invoice.careRecipientId),

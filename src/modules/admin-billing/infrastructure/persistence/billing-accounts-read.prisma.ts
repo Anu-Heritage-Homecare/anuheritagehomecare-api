@@ -150,7 +150,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
               },
             }),
             this.prisma.recipientInvoicePayment.findMany({
-              where: { careRecipientId: { in: recipientIds } },
+              where: { careRecipientId: { in: recipientIds }, refundedAt: null },
               select: { amountMinor: true, methodLabel: true, currency: true, receivedAt: true },
             }),
           ]);
@@ -743,7 +743,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
       recipientIds.length === 0
         ? Promise.resolve([])
         : this.prisma.recipientInvoicePayment.findMany({
-            where: { careRecipientId: { in: recipientIds } },
+            where: { careRecipientId: { in: recipientIds }, refundedAt: null },
             select: { careRecipientId: true, receivedAt: true, currency: true },
           }),
     ]);

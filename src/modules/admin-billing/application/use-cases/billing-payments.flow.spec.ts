@@ -9,10 +9,9 @@ import { ListBillingPaymentsUseCase } from './list-billing-payments.use-case';
 function row(overrides: Partial<PaymentListRowView> = {}): PaymentListRowView {
   return {
     id: 'p1',
-    sequence: 812,
+    reference: 'PAY-2026-0812',
     receivedAt: new Date('2026-07-28T00:00:00.000Z'),
-    invoiceSequence: 451,
-    invoiceIssuedAt: new Date('2026-07-01T09:00:00.000Z'),
+    invoiceNumber: 'INV-2026-451',
     billingAccountId: 'a1',
     billingAccountName: 'Adeyemi Family Account',
     amountMinor: 45_000_000,
@@ -59,7 +58,7 @@ describe('ListBillingPaymentsUseCase', () => {
     expect(result.tabs.completed).toBe(478);
     expect(result.methods).toEqual(['Bank Transfer', 'Card Payment']);
     expect(result.payments[0]).toMatchObject({
-      reference: 'TXN-0812',
+      reference: 'PAY-2026-0812',
       invoiceNumber: 'INV-2026-451',
       billingAccountName: 'Adeyemi Family Account',
       method: 'Bank Transfer',
@@ -73,8 +72,7 @@ describe('ListBillingPaymentsUseCase', () => {
         Promise.resolve({
           rows: [
             row({
-              invoiceSequence: null,
-              invoiceIssuedAt: null,
+              invoiceNumber: null,
               billingAccountId: null,
               billingAccountName: null,
             }),

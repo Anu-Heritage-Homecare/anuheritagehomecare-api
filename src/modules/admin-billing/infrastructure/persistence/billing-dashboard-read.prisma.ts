@@ -58,16 +58,16 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
       recentReminders,
     ] = await Promise.all([
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { currency },
+        where: { currency, refundedAt: null },
         _sum: { amountMinor: true },
       }),
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { currency, receivedAt: { gte: monthStart } },
+        where: { currency, refundedAt: null, receivedAt: { gte: monthStart } },
         _sum: { amountMinor: true },
         _count: true,
       }),
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { currency, receivedAt: { gte: lastMonthStart, lt: monthStart } },
+        where: { currency, refundedAt: null, receivedAt: { gte: lastMonthStart, lt: monthStart } },
         _sum: { amountMinor: true },
       }),
       this.prisma.recipientInvoice.aggregate({ where: { currency }, _sum: invoiceSum }),
@@ -102,7 +102,7 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
         _sum: invoiceSum,
       }),
       this.prisma.recipientInvoicePayment.findMany({
-        where: { currency, receivedAt: { gte: seriesStart } },
+        where: { currency, refundedAt: null, receivedAt: { gte: seriesStart } },
         select: { amountMinor: true, receivedAt: true },
       }),
       this.prisma.recipientInvoicePayment.findMany({

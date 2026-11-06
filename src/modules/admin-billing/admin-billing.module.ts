@@ -39,6 +39,7 @@ import { INVOICE_EVENT_RECORDER } from './domain/invoice-event.recorder';
 import { InvoiceEventPrismaRecorder } from './infrastructure/persistence/invoice-event-prisma.recorder';
 import { DeleteInvoiceAttachmentUseCase } from './application/use-cases/delete-invoice-attachment.use-case';
 import { DeleteAccountDocumentUseCase } from './application/use-cases/delete-account-document.use-case';
+import { RefundInvoicePaymentUseCase } from './application/use-cases/refund-invoice-payment.use-case';
 import { ADMIN_DIRECTORY } from './application/ports/admin-directory.port';
 import { PrismaAdminDirectory } from './infrastructure/persistence/prisma-admin-directory';
 import { GetBillingAccountActivityUseCase } from './application/use-cases/get-billing-account-activity.use-case';
@@ -125,6 +126,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     SendInvoiceReminderUseCase,
     DeleteInvoiceAttachmentUseCase,
     DeleteAccountDocumentUseCase,
+    RefundInvoicePaymentUseCase,
     ListAccountAdjustmentsUseCase,
     CreateAccountAdjustmentUseCase,
     ApproveAccountAdjustmentUseCase,

@@ -129,6 +129,8 @@ import { ApproveInvoiceUseCase } from '../application/use-cases/approve-invoice.
 import { SendInvoiceReminderUseCase } from '../application/use-cases/send-invoice-reminder.use-case';
 import { DeleteInvoiceAttachmentUseCase } from '../application/use-cases/delete-invoice-attachment.use-case';
 import { DeleteAccountDocumentUseCase } from '../application/use-cases/delete-account-document.use-case';
+import { RefundInvoicePaymentUseCase } from '../application/use-cases/refund-invoice-payment.use-case';
+import { RefundPaymentRequestDto } from './dto/refund-payment.dto';
 import {
   RecordInvoicePaymentRequestDto,
   RecordInvoicePaymentResponseDto,
@@ -181,6 +183,7 @@ export class AdminBillingController {
     private readonly remindInvoice: SendInvoiceReminderUseCase,
     private readonly deleteAttachment: DeleteInvoiceAttachmentUseCase,
     private readonly deleteDocument: DeleteAccountDocumentUseCase,
+    private readonly refundPayment_: RefundInvoicePaymentUseCase,
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
@@ -415,6 +418,22 @@ export class AdminBillingController {
       pageSize: query.pageSize ?? null,
     });
     return BillingPaymentsResponseDto.fromResult(result);
+  }
+
+  @Post('payments/:id/refund')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Refund a recorded payment and reopen its invoice (the Refund action)' })
+  @ApiNoContentResponse()
+  async refundPayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() admin: AdminPrincipal,
+    @Body() body: RefundPaymentRequestDto,
+  ): Promise<void> {
+    await this.refundPayment_.execute({
+      paymentId: id,
+      reason: body.reason ?? null,
+      adminId: admin.adminUserId,
+    });
   }
 
   @Get('invoices/:id')

@@ -960,6 +960,11 @@ model RecipientInvoicePayment {
   currency        Currency
   methodLabel     String?  @db.VarChar(120)
   receivedAt      DateTime
+  // Set when the office reverses this payment (the Refund action). A refunded payment
+  // shows as REFUNDED on the Payments list and reopens its invoice.
+  refundedAt        DateTime?
+  refundReason      String?   @db.VarChar(500)
+  refundedByAdminId String?   @db.Uuid
   createdAt       DateTime @default(now())
 
   careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
