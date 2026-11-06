@@ -114,7 +114,7 @@ export interface InvoicePaymentRowView {
 }
 
 /** The evidenced invoice lifecycle events (the History tab). */
-export type InvoiceHistoryEventType = 'INVOICE_CREATED' | 'PAYMENT_RECORDED';
+export type InvoiceHistoryEventType = 'INVOICE_CREATED' | 'INVOICE_SENT' | 'PAYMENT_RECORDED';
 
 /** One entry in the invoice lifecycle timeline. */
 export interface InvoiceHistoryEventView {

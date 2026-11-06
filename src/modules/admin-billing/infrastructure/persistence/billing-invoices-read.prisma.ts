@@ -300,7 +300,7 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
   async history(id: string): Promise<InvoiceHistoryEventView[] | null> {
     const invoice = await this.prisma.recipientInvoice.findUnique({
       where: { id },
-      select: { createdAt: true },
+      select: { createdAt: true, sentAt: true },
     });
     if (invoice === null) {
       return null;
@@ -310,8 +310,8 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
       select: { amountMinor: true, methodLabel: true, receivedAt: true },
     });
 
-    // Only the created and payment events are evidenced; approval, send, view and reminder
-    // events need an invoice audit log, and the actor (performedBy) is not captured yet.
+    // Created, sent (from sentAt) and payment events are evidenced; approval, view and
+    // reminder events need an invoice audit log, and the actor is not captured yet.
     const events: InvoiceHistoryEventView[] = [
       {
         type: 'INVOICE_CREATED',
@@ -320,6 +320,17 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
         methodLabel: null,
         performedBy: null,
       },
+      ...(invoice.sentAt === null
+        ? []
+        : [
+            {
+              type: 'INVOICE_SENT' as const,
+              at: invoice.sentAt,
+              amountMinor: null,
+              methodLabel: null,
+              performedBy: null,
+            },
+          ]),
       ...payments.map((payment): InvoiceHistoryEventView => ({
         type: 'PAYMENT_RECORDED',
         at: payment.receivedAt,

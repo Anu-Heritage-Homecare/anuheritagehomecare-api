@@ -9,6 +9,7 @@ import {
 
 const EVENT_TITLES: Record<InvoiceHistoryEventType, string> = {
   INVOICE_CREATED: 'Invoice Created',
+  INVOICE_SENT: 'Invoice Sent to Client',
   PAYMENT_RECORDED: 'Payment Recorded',
 };
 
