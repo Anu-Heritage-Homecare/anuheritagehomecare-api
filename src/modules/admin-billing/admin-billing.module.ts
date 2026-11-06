@@ -33,6 +33,10 @@ import { RecordInvoicePaymentUseCase } from './application/use-cases/record-invo
 import { RequestInvoiceOnlinePaymentUseCase } from './application/use-cases/request-invoice-online-payment.use-case';
 import { INVOICE_PAYMENT_WRITE_REPOSITORY } from './domain/invoice-payment-write.repository';
 import { InvoicePaymentWritePrismaRepository } from './infrastructure/persistence/invoice-payment-write-prisma.repository';
+import { ApproveInvoiceUseCase } from './application/use-cases/approve-invoice.use-case';
+import { SendInvoiceReminderUseCase } from './application/use-cases/send-invoice-reminder.use-case';
+import { INVOICE_EVENT_RECORDER } from './domain/invoice-event.recorder';
+import { InvoiceEventPrismaRecorder } from './infrastructure/persistence/invoice-event-prisma.recorder';
 import { GetBillingAccountActivityUseCase } from './application/use-cases/get-billing-account-activity.use-case';
 import { GetBillingAccountUseCase } from './application/use-cases/get-billing-account.use-case';
 import { GetBillingDashboardUseCase } from './application/use-cases/get-billing-dashboard.use-case';
@@ -113,6 +117,8 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     RegisterInvoiceAttachmentUseCase,
     RecordInvoicePaymentUseCase,
     RequestInvoiceOnlinePaymentUseCase,
+    ApproveInvoiceUseCase,
+    SendInvoiceReminderUseCase,
     ListAccountAdjustmentsUseCase,
     CreateAccountAdjustmentUseCase,
     ApproveAccountAdjustmentUseCase,
@@ -144,6 +150,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     { provide: ACCOUNT_DOCUMENT_REPOSITORY, useClass: AccountDocumentPrismaRepository },
     { provide: INVOICE_ATTACHMENT_REPOSITORY, useClass: InvoiceAttachmentPrismaRepository },
     { provide: INVOICE_PAYMENT_WRITE_REPOSITORY, useClass: InvoicePaymentWritePrismaRepository },
+    { provide: INVOICE_EVENT_RECORDER, useClass: InvoiceEventPrismaRecorder },
   ],
 })
 export class AdminBillingModule {}

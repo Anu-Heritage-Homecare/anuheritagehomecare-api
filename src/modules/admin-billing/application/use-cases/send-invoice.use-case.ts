@@ -8,9 +8,12 @@ import {
   INVOICE_SEND_REPOSITORY,
   InvoiceSendRepository,
 } from '../../domain/invoice-send.repository';
+import { INVOICE_EVENT_RECORDER, InvoiceEventRecorder } from '../../domain/invoice-event.recorder';
 
 export interface SendInvoiceCommand {
   invoiceId: string;
+  /** The admin sending the invoice, recorded on the lifecycle audit log. */
+  adminId: string;
 }
 
 /** Email a raised invoice to the billing client and stamp its delivery (wizard step 6). */
@@ -19,6 +22,7 @@ export class SendInvoiceUseCase {
   constructor(
     @Inject(INVOICE_SEND_REPOSITORY) private readonly invoices: InvoiceSendRepository,
     @Inject(EMAIL_SENDER) private readonly email: EmailSender,
+    @Inject(INVOICE_EVENT_RECORDER) private readonly events: InvoiceEventRecorder,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -47,6 +51,13 @@ export class SendInvoiceUseCase {
 
     const sentAt = this.clock.now();
     await this.invoices.markSent(target.invoiceId, sentAt);
+    await this.events.record({
+      invoiceId: target.invoiceId,
+      type: 'SENT',
+      detail: 'Notification email dispatched with a direct payment link',
+      actorType: 'ADMIN',
+      actorAdminId: command.adminId,
+    });
 
     return {
       invoiceNumber,

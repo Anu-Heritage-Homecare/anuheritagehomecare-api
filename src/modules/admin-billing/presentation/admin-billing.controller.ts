@@ -124,6 +124,8 @@ import { RegisterInvoiceAttachmentUseCase } from '../application/use-cases/regis
 import { ListInvoiceAttachmentsUseCase } from '../application/use-cases/list-invoice-attachments.use-case';
 import { RecordInvoicePaymentUseCase } from '../application/use-cases/record-invoice-payment.use-case';
 import { RequestInvoiceOnlinePaymentUseCase } from '../application/use-cases/request-invoice-online-payment.use-case';
+import { ApproveInvoiceUseCase } from '../application/use-cases/approve-invoice.use-case';
+import { SendInvoiceReminderUseCase } from '../application/use-cases/send-invoice-reminder.use-case';
 import {
   RecordInvoicePaymentRequestDto,
   RecordInvoicePaymentResponseDto,
@@ -172,6 +174,8 @@ export class AdminBillingController {
     private readonly registerInvoiceAttachment: RegisterInvoiceAttachmentUseCase,
     private readonly recordPayment: RecordInvoicePaymentUseCase,
     private readonly requestOnlinePayment: RequestInvoiceOnlinePaymentUseCase,
+    private readonly approveInvoice_: ApproveInvoiceUseCase,
+    private readonly remindInvoice: SendInvoiceReminderUseCase,
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
@@ -315,6 +319,7 @@ export class AdminBillingController {
   @ApiOperation({ summary: 'Raise an invoice from the Create Invoice wizard (step 5)' })
   @ApiCreatedResponse({ type: InvoiceCreatedResponseDto })
   async createInvoiceFromWizard(
+    @CurrentAdmin() admin: AdminPrincipal,
     @Body() body: CreateInvoiceRequestDto,
   ): Promise<InvoiceCreatedResponseDto> {
     const result = await this.createInvoice.execute({
@@ -327,6 +332,7 @@ export class AdminBillingController {
       lines: body.lines,
       discounts: body.discounts ?? [],
       adjustments: body.adjustments ?? [],
+      adminId: admin.adminUserId,
     });
     return InvoiceCreatedResponseDto.fromResult(result);
   }
@@ -337,9 +343,32 @@ export class AdminBillingController {
   @ApiOkResponse({ type: InvoiceSentResponseDto })
   async sendInvoiceToClient(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() admin: AdminPrincipal,
   ): Promise<InvoiceSentResponseDto> {
-    const result = await this.sendInvoice.execute({ invoiceId: id });
+    const result = await this.sendInvoice.execute({ invoiceId: id, adminId: admin.adminUserId });
     return InvoiceSentResponseDto.fromResult(result);
+  }
+
+  @Post('invoices/:id/approve')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Record that an invoice was approved for disbursement' })
+  @ApiNoContentResponse()
+  async approveInvoice(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() admin: AdminPrincipal,
+  ): Promise<void> {
+    await this.approveInvoice_.execute({ invoiceId: id, adminId: admin.adminUserId });
+  }
+
+  @Post('invoices/:id/reminders')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Record that a payment reminder was sent for an invoice' })
+  @ApiNoContentResponse()
+  async sendInvoiceReminder(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() admin: AdminPrincipal,
+  ): Promise<void> {
+    await this.remindInvoice.execute({ invoiceId: id, adminId: admin.adminUserId });
   }
 
   @Get('invoices')

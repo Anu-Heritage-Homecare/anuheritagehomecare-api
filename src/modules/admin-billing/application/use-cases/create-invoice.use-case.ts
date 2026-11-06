@@ -15,6 +15,7 @@ import {
   NewInvoiceAdjustmentRow,
   NewInvoiceLine,
 } from '../../domain/invoice-write.repository';
+import { INVOICE_EVENT_RECORDER, InvoiceEventRecorder } from '../../domain/invoice-event.recorder';
 import { ComputeInvoiceTotalsCommand } from './compute-invoice-totals.use-case';
 import { InvoiceCreatedResult } from '../dto/invoice-created.result';
 import { basisPointsToPercent } from '../dto/billing-settings.result';
@@ -36,6 +37,8 @@ export interface CreateInvoiceCommand extends ComputeInvoiceTotalsCommand {
   periodEnd: Date;
   paymentTermsDays: number | null;
   insuranceCoveredMinor: number;
+  /** The admin raising the invoice, recorded on the lifecycle audit log. */
+  adminId: string;
 }
 
 /** Raise a recipient invoice from the Create Invoice wizard: the authoritative write. */
@@ -46,6 +49,7 @@ export class CreateInvoiceUseCase {
     @Inject(BILLABLE_SERVICES_READ_MODEL)
     private readonly catalog: BillableServicesCatalogReadModel,
     @Inject(BILLING_SETTINGS_REPOSITORY) private readonly settings: BillingSettingsRepository,
+    @Inject(INVOICE_EVENT_RECORDER) private readonly events: InvoiceEventRecorder,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -140,6 +144,14 @@ export class CreateInvoiceUseCase {
       dueDate,
       lines,
       adjustments,
+    });
+
+    await this.events.record({
+      invoiceId: id,
+      type: 'CREATED',
+      detail: 'Draft compiled from the scheduled care for the period',
+      actorType: 'ADMIN',
+      actorAdminId: command.adminId,
     });
 
     return {

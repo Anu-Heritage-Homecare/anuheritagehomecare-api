@@ -4,6 +4,7 @@ import {
   BillingInvoiceDetailView,
   BillingInvoiceServicesView,
   BillingInvoicesReadModel,
+  InvoiceHistoryEventType,
   InvoiceHistoryEventView,
   InvoicePaymentRowView,
   InvoiceListCounts,
@@ -305,42 +306,74 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
     if (invoice === null) {
       return null;
     }
-    const payments = await this.prisma.recipientInvoicePayment.findMany({
-      where: { invoiceId: id },
-      select: { amountMinor: true, methodLabel: true, receivedAt: true },
-    });
+    const [payments, logged] = await Promise.all([
+      this.prisma.recipientInvoicePayment.findMany({
+        where: { invoiceId: id },
+        select: { amountMinor: true, methodLabel: true, receivedAt: true },
+      }),
+      this.prisma.invoiceEvent.findMany({
+        where: { invoiceId: id },
+        select: {
+          type: true,
+          detail: true,
+          actorType: true,
+          actorAdminId: true,
+          actorLabel: true,
+          createdAt: true,
+        },
+      }),
+    ]);
 
-    // Created, sent (from sentAt) and payment events are evidenced; approval, view and
-    // reminder events need an invoice audit log, and the actor is not captured yet.
-    const events: InvoiceHistoryEventView[] = [
-      {
-        type: 'INVOICE_CREATED',
-        at: invoice.createdAt,
-        amountMinor: null,
-        methodLabel: null,
-        performedBy: null,
-      },
-      ...(invoice.sentAt === null
-        ? []
-        : [
-            {
-              type: 'INVOICE_SENT' as const,
-              at: invoice.sentAt,
-              amountMinor: null,
-              methodLabel: null,
-              performedBy: null,
-            },
-          ]),
-      ...payments.map((payment): InvoiceHistoryEventView => ({
+    const adminNames = await this.resolveAdminNames(logged.map((event) => event.actorAdminId));
+    const events: InvoiceHistoryEventView[] = logged.map((event) => ({
+      type: LOGGED_EVENT_TYPE[event.type],
+      at: event.createdAt,
+      amountMinor: null,
+      methodLabel: null,
+      detail: event.detail,
+      performedBy:
+        event.actorType === 'ADMIN'
+          ? event.actorAdminId === null
+            ? null
+            : (adminNames.get(event.actorAdminId) ?? null)
+          : event.actorLabel,
+    }));
+
+    // Fall back to deriving created and sent for invoices with no logged event of that
+    // type (raised or sent before the audit log existed), so the milestone still shows.
+    const hasLogged = new Set(events.map((event) => event.type));
+    if (!hasLogged.has('INVOICE_CREATED')) {
+      events.push(blankEvent('INVOICE_CREATED', invoice.createdAt));
+    }
+    if (invoice.sentAt !== null && !hasLogged.has('INVOICE_SENT')) {
+      events.push(blankEvent('INVOICE_SENT', invoice.sentAt));
+    }
+    for (const payment of payments) {
+      events.push({
         type: 'PAYMENT_RECORDED',
         at: payment.receivedAt,
         amountMinor: payment.amountMinor,
         methodLabel: payment.methodLabel,
+        detail: null,
         performedBy: null,
-      })),
-    ];
+      });
+    }
+
     events.sort((a, b) => b.at.getTime() - a.at.getTime());
     return events;
+  }
+
+  /** Resolve admin ids to display names in one query. */
+  private async resolveAdminNames(ids: (string | null)[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids.filter((id): id is string => id !== null))];
+    if (unique.length === 0) {
+      return new Map();
+    }
+    const admins = await this.prisma.adminUser.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    return new Map(admins.map((a) => [a.id, `${a.firstName} ${a.lastName}`.trim()]));
   }
 
   /** Resolve an invoice's billing account from its recipient (owned, or a linked contact). */
@@ -354,6 +387,23 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
     });
     return entry;
   }
+}
+
+/** Map a logged invoice event type to its history timeline type. */
+const LOGGED_EVENT_TYPE: Record<
+  'CREATED' | 'APPROVED' | 'SENT' | 'VIEWED' | 'REMINDER_SENT',
+  InvoiceHistoryEventType
+> = {
+  CREATED: 'INVOICE_CREATED',
+  APPROVED: 'INVOICE_APPROVED',
+  SENT: 'INVOICE_SENT',
+  VIEWED: 'INVOICE_VIEWED',
+  REMINDER_SENT: 'INVOICE_REMINDER_SENT',
+};
+
+/** A derived milestone with no captured actor or detail. */
+function blankEvent(type: InvoiceHistoryEventType, at: Date): InvoiceHistoryEventView {
+  return { type, at, amountMinor: null, methodLabel: null, detail: null, performedBy: null };
 }
 
 /** PAID, else partially paid, else overdue past its due date, else awaiting payment. */

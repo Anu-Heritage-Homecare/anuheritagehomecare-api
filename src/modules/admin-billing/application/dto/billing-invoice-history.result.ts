@@ -7,6 +7,7 @@ export interface InvoiceHistoryEventResult {
   at: string;
   amountMinor: number | null;
   methodLabel: string | null;
+  detail: string | null;
   performedBy: string | null;
 }
 

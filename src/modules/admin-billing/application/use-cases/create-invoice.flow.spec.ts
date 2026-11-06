@@ -71,13 +71,20 @@ function command(over: Partial<CreateInvoiceCommand> = {}): CreateInvoiceCommand
     ],
     discounts: [{ label: 'Loyalty Discount', kind: 'PERCENT', value: 5 }],
     adjustments: [],
+    adminId: 'admin-1',
     ...over,
   };
 }
 
 describe('CreateInvoiceUseCase', () => {
   function build(repo: FakeWriteRepo): CreateInvoiceUseCase {
-    return new CreateInvoiceUseCase(repo, catalog(CATALOG), settingsRepo(null), clock);
+    return new CreateInvoiceUseCase(
+      repo,
+      catalog(CATALOG),
+      settingsRepo(null),
+      { record: () => Promise.resolve() },
+      clock,
+    );
   }
 
   it('snapshots lines, computes totals, derives dates and returns the invoice number', async () => {

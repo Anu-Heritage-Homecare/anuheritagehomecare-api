@@ -9,7 +9,10 @@ import {
 
 const EVENT_TITLES: Record<InvoiceHistoryEventType, string> = {
   INVOICE_CREATED: 'Invoice Created',
+  INVOICE_APPROVED: 'Invoice Approved',
   INVOICE_SENT: 'Invoice Sent to Client',
+  INVOICE_VIEWED: 'Invoice Viewed by Client',
+  INVOICE_REMINDER_SENT: 'Reminder Sent',
   PAYMENT_RECORDED: 'Payment Recorded',
 };
 
@@ -32,6 +35,7 @@ export class GetBillingInvoiceHistoryUseCase {
         at: event.at.toISOString(),
         amountMinor: event.amountMinor,
         methodLabel: event.methodLabel,
+        detail: event.detail,
         performedBy: event.performedBy,
       })),
       total: events.length,

@@ -321,13 +321,22 @@ describe('ListBillingInvoicePaymentsUseCase', () => {
 });
 
 describe('GetBillingInvoiceHistoryUseCase', () => {
-  it('maps lifecycle events to titles with performedBy null', async () => {
+  it('maps lifecycle events to titles, carrying the detail and actor', async () => {
     const events: InvoiceHistoryEventView[] = [
+      {
+        type: 'INVOICE_APPROVED',
+        at: new Date('2026-07-15T10:00:00.000Z'),
+        amountMinor: null,
+        methodLabel: null,
+        detail: 'Approved for direct disbursement',
+        performedBy: 'Tunde O.',
+      },
       {
         type: 'PAYMENT_RECORDED',
         at: new Date('2026-07-14T16:45:00.000Z'),
         amountMinor: 60_000_000,
         methodLabel: 'Card (Mastercard)',
+        detail: null,
         performedBy: null,
       },
       {
@@ -335,6 +344,7 @@ describe('GetBillingInvoiceHistoryUseCase', () => {
         at: new Date('2026-07-01T09:00:00.000Z'),
         amountMinor: null,
         methodLabel: null,
+        detail: null,
         performedBy: null,
       },
     ];
@@ -347,14 +357,19 @@ describe('GetBillingInvoiceHistoryUseCase', () => {
     };
     const result = await new GetBillingInvoiceHistoryUseCase(reads).execute('inv1');
 
-    expect(result.total).toBe(2);
+    expect(result.total).toBe(3);
     expect(result.events[0]).toMatchObject({
+      type: 'INVOICE_APPROVED',
+      title: 'Invoice Approved',
+      detail: 'Approved for direct disbursement',
+      performedBy: 'Tunde O.',
+    });
+    expect(result.events[1]).toMatchObject({
       type: 'PAYMENT_RECORDED',
       title: 'Payment Recorded',
       methodLabel: 'Card (Mastercard)',
-      performedBy: null,
     });
-    expect(result.events[1]).toMatchObject({ title: 'Invoice Created', amountMinor: null });
+    expect(result.events[2]).toMatchObject({ title: 'Invoice Created', amountMinor: null });
   });
 
   it('throws when the invoice is missing', async () => {

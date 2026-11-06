@@ -44,7 +44,12 @@ describe('SendInvoiceUseCase', () => {
   it('emails the client, stamps delivery and returns a masked confirmation', async () => {
     const repo = new FakeRepo(TARGET);
     const email = new FakeEmail();
-    const result = await new SendInvoiceUseCase(repo, email, clock).execute({ invoiceId: 'inv1' });
+    const result = await new SendInvoiceUseCase(
+      repo,
+      email,
+      { record: () => Promise.resolve() },
+      clock,
+    ).execute({ invoiceId: 'inv1', adminId: 'admin-1' });
 
     expect(result.invoiceNumber).toBe('INV-2026-458');
     expect(result.sentTo).toBe('t****@example.com');
@@ -62,9 +67,12 @@ describe('SendInvoiceUseCase', () => {
 
   it('throws when the invoice does not exist', async () => {
     await expect(
-      new SendInvoiceUseCase(new FakeRepo(null), new FakeEmail(), clock).execute({
-        invoiceId: 'missing',
-      }),
+      new SendInvoiceUseCase(
+        new FakeRepo(null),
+        new FakeEmail(),
+        { record: () => Promise.resolve() },
+        clock,
+      ).execute({ invoiceId: 'missing', adminId: 'admin-1' }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 
@@ -72,7 +80,10 @@ describe('SendInvoiceUseCase', () => {
     const repo = new FakeRepo({ ...TARGET, clientEmail: null });
     const email = new FakeEmail();
     await expect(
-      new SendInvoiceUseCase(repo, email, clock).execute({ invoiceId: 'inv1' }),
+      new SendInvoiceUseCase(repo, email, { record: () => Promise.resolve() }, clock).execute({
+        invoiceId: 'inv1',
+        adminId: 'admin-1',
+      }),
     ).rejects.toBeInstanceOf(ValidationException);
     expect(email.sent).toBeNull();
     expect(repo.marked).toBeNull();

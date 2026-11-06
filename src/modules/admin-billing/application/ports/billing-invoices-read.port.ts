@@ -114,7 +114,13 @@ export interface InvoicePaymentRowView {
 }
 
 /** The evidenced invoice lifecycle events (the History tab). */
-export type InvoiceHistoryEventType = 'INVOICE_CREATED' | 'INVOICE_SENT' | 'PAYMENT_RECORDED';
+export type InvoiceHistoryEventType =
+  | 'INVOICE_CREATED'
+  | 'INVOICE_APPROVED'
+  | 'INVOICE_SENT'
+  | 'INVOICE_VIEWED'
+  | 'INVOICE_REMINDER_SENT'
+  | 'PAYMENT_RECORDED';
 
 /** One entry in the invoice lifecycle timeline. */
 export interface InvoiceHistoryEventView {
@@ -123,7 +129,9 @@ export interface InvoiceHistoryEventView {
   /** PAYMENT_RECORDED: amount paid and the method. */
   amountMinor: number | null;
   methodLabel: string | null;
-  /** Who performed it; null until an actor is captured on these records. */
+  /** A short description for the logged lifecycle events. */
+  detail: string | null;
+  /** Who performed it (resolved name), null for the derived events without an actor. */
   performedBy: string | null;
 }
 

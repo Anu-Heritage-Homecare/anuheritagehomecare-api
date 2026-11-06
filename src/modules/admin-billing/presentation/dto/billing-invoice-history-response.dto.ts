@@ -6,12 +6,22 @@ import {
 import { InvoiceHistoryEventType } from '../../application/ports/billing-invoices-read.port';
 
 class InvoiceHistoryEventDto implements InvoiceHistoryEventResult {
-  @ApiProperty({ enum: ['INVOICE_CREATED', 'PAYMENT_RECORDED'] })
+  @ApiProperty({
+    enum: [
+      'INVOICE_CREATED',
+      'INVOICE_APPROVED',
+      'INVOICE_SENT',
+      'INVOICE_VIEWED',
+      'INVOICE_REMINDER_SENT',
+      'PAYMENT_RECORDED',
+    ],
+  })
   type!: InvoiceHistoryEventType;
   @ApiProperty() title!: string;
   @ApiProperty() at!: string;
   @ApiProperty({ nullable: true, type: Number }) amountMinor!: number | null;
   @ApiProperty({ nullable: true, type: String }) methodLabel!: string | null;
+  @ApiProperty({ nullable: true, type: String }) detail!: string | null;
   @ApiProperty({ nullable: true, type: String }) performedBy!: string | null;
 }
 

@@ -664,12 +664,51 @@ model RecipientInvoice {
   adjustments   RecipientInvoiceAdjustment[]
   notes         InvoiceNote[]
   attachments   InvoiceAttachment[]
+  events        InvoiceEvent[]
 
   @@index([careRecipientId, issuedAt])
   // The org wide Billing dashboard aggregates by market, status and date.
   @@index([currency, status, issuedAt])
   @@index([currency, status, dueDate])
   @@map("recipient_invoices")
+}
+
+// One entry in an invoice's lifecycle audit log (the invoice History tab): the
+// invoice was created, approved, sent, viewed by the client, or a reminder was
+// sent. The actor is the admin who did it (actorAdminId, name resolved on read),
+// or a label for a system or client actor.
+model InvoiceEvent {
+  id           String             @id @default(uuid()) @db.Uuid
+  invoiceId    String             @db.Uuid
+  type         InvoiceEventType
+  detail       String?            @db.VarChar(500)
+  actorType    InvoiceEventActor
+  actorAdminId String?            @db.Uuid
+  actorLabel   String?            @db.VarChar(160)
+  createdAt    DateTime           @default(now())
+
+  invoice RecipientInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId, createdAt])
+  @@map("invoice_events")
+}
+
+enum InvoiceEventType {
+  CREATED
+  APPROVED
+  SENT
+  VIEWED
+  REMINDER_SENT
+
+  @@map("invoice_event_type")
+}
+
+enum InvoiceEventActor {
+  ADMIN
+  SYSTEM
+  CLIENT
+
+  @@map("invoice_event_actor")
 }
 
 // A file attached to an invoice (the invoice Attachments tab): a supporting
