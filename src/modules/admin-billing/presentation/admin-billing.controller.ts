@@ -10,6 +10,7 @@ import {
   Post,
   Put,
   Query,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -18,6 +19,7 @@ import {
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProduces,
   ApiTags,
 } from '@nestjs/swagger';
 import { Currency } from '@shared/domain/currency.enum';
@@ -105,6 +107,7 @@ import {
   CreateBillingAccountRequestDto,
 } from './dto/create-billing-account.dto';
 import { SetAccountPreferencesRequestDto } from './dto/set-account-preferences.dto';
+import { buildInvoicePdf } from '../infrastructure/pdf/invoice-pdf';
 
 /**
  * Admin Billing control panel. The financial overview dashboard and the Billing
@@ -354,6 +357,19 @@ export class AdminBillingController {
   async invoice(@Param('id', ParseUUIDPipe) id: string): Promise<BillingInvoiceDetailResponseDto> {
     const result = await this.getInvoice.execute(id);
     return BillingInvoiceDetailResponseDto.fromResult(result);
+  }
+
+  @Get('invoices/:id/download')
+  @ApiOperation({ summary: 'Download the invoice as a PDF (the Download action)' })
+  @ApiProduces('application/pdf')
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  async downloadInvoice(@Param('id', ParseUUIDPipe) id: string): Promise<StreamableFile> {
+    const result = await this.getInvoice.execute(id);
+    const { filename, pdf } = buildInvoicePdf(result);
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${filename}"`,
+    });
   }
 
   @Get('invoices/:id/services')
