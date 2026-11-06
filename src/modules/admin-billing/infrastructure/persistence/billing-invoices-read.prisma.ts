@@ -146,7 +146,16 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
         status: true,
         careRecipientId: true,
         careRecipient: { select: { name: true, photoKey: true, ownerId: true } },
-        lines: { orderBy: { position: 'asc' }, select: { serviceName: true, amountMinor: true } },
+        lines: {
+          orderBy: { position: 'asc' },
+          select: {
+            serviceName: true,
+            amountMinor: true,
+            quantity: true,
+            rateMinor: true,
+            unitLabel: true,
+          },
+        },
       },
     });
     if (invoice === null) {
@@ -180,13 +189,12 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
       totalAmountMinor: invoice.amountMinor,
       insuranceCoveredMinor: invoice.insuranceCoveredMinor,
       amountPaidMinor,
-      // quantity/unit/rate are not stored on a line; only the service name and amount are.
       lineItems: invoice.lines.map((line) => ({
         serviceName: line.serviceName,
         amountMinor: line.amountMinor,
-        quantity: null,
-        unit: null,
-        rateMinor: null,
+        quantity: line.quantity,
+        unit: line.unitLabel,
+        rateMinor: line.rateMinor,
       })),
     };
   }
@@ -198,13 +206,22 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
         periodStart: true,
         periodEnd: true,
         currency: true,
-        lines: { orderBy: { position: 'asc' }, select: { serviceName: true, amountMinor: true } },
+        lines: {
+          orderBy: { position: 'asc' },
+          select: {
+            serviceName: true,
+            amountMinor: true,
+            quantity: true,
+            rateMinor: true,
+            unitLabel: true,
+          },
+        },
       },
     });
     if (invoice === null) {
       return null;
     }
-    // category, hours/units, rate and assigned caregiver are not stored on a line.
+    // Category and the per line assigned caregiver are not stored on a line yet.
     return {
       currency: invoice.currency,
       servicePeriodStart: invoice.periodStart,
@@ -212,9 +229,9 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
       services: invoice.lines.map((line) => ({
         serviceName: line.serviceName,
         category: null,
-        hoursUnits: null,
-        unit: null,
-        rateMinor: null,
+        hoursUnits: line.quantity,
+        unit: line.unitLabel,
+        rateMinor: line.rateMinor,
         amountMinor: line.amountMinor,
         assignedCaregiver: null,
       })),
