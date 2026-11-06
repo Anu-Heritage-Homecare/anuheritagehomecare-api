@@ -47,6 +47,7 @@ function reads(over: Partial<InvoiceWizardReadModel> = {}): InvoiceWizardReadMod
   return {
     accountPreview: () => Promise.resolve(view()),
     recipientServicePreview: () => Promise.resolve(recipientView()),
+    renderedCare: () => Promise.resolve({ visits: [] }),
     ...over,
   };
 }

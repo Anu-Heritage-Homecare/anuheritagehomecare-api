@@ -50,6 +50,7 @@ import { GetFinancialReportUseCase } from './application/use-cases/get-financial
 import { GetInvoiceAccountPreviewUseCase } from './application/use-cases/get-invoice-account-preview.use-case';
 import { GetRecipientServicePreviewUseCase } from './application/use-cases/get-recipient-service-preview.use-case';
 import { ListBillableServicesUseCase } from './application/use-cases/list-billable-services.use-case';
+import { GetRenderedServicesUseCase } from './application/use-cases/get-rendered-services.use-case';
 import { ComputeInvoiceTotalsUseCase } from './application/use-cases/compute-invoice-totals.use-case';
 import { CreateInvoiceUseCase } from './application/use-cases/create-invoice.use-case';
 import { SendInvoiceUseCase } from './application/use-cases/send-invoice.use-case';
@@ -138,6 +139,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     GetInvoiceAccountPreviewUseCase,
     GetRecipientServicePreviewUseCase,
     ListBillableServicesUseCase,
+    GetRenderedServicesUseCase,
     ComputeInvoiceTotalsUseCase,
     CreateInvoiceUseCase,
     SendInvoiceUseCase,

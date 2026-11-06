@@ -40,10 +40,14 @@ import { GetBillingAccountActivityUseCase } from '../application/use-cases/get-b
 import { GetBillingAccountUseCase } from '../application/use-cases/get-billing-account.use-case';
 import { GetBillingDashboardUseCase } from '../application/use-cases/get-billing-dashboard.use-case';
 import { GetBillingSettingsUseCase } from '../application/use-cases/get-billing-settings.use-case';
-import { GetFinancialReportUseCase } from '../application/use-cases/get-financial-report.use-case';
+import {
+  GetFinancialReportUseCase,
+  GetFinancialReportCommand,
+} from '../application/use-cases/get-financial-report.use-case';
 import { GetInvoiceAccountPreviewUseCase } from '../application/use-cases/get-invoice-account-preview.use-case';
 import { GetRecipientServicePreviewUseCase } from '../application/use-cases/get-recipient-service-preview.use-case';
 import { ListBillableServicesUseCase } from '../application/use-cases/list-billable-services.use-case';
+import { GetRenderedServicesUseCase } from '../application/use-cases/get-rendered-services.use-case';
 import { ComputeInvoiceTotalsUseCase } from '../application/use-cases/compute-invoice-totals.use-case';
 import { CreateInvoiceUseCase } from '../application/use-cases/create-invoice.use-case';
 import { SendInvoiceUseCase } from '../application/use-cases/send-invoice.use-case';
@@ -91,6 +95,8 @@ import { UpdatePaymentMethodRequestDto } from './dto/update-payment-method.dto';
 import { InvoiceAccountPreviewResponseDto } from './dto/invoice-account-preview-response.dto';
 import { RecipientServicePreviewResponseDto } from './dto/recipient-service-preview-response.dto';
 import { BillableServicesResponseDto } from './dto/billable-services-response.dto';
+import { RenderedServicesQueryDto } from './dto/rendered-services-query.dto';
+import { RenderedServicesResponseDto } from './dto/rendered-services-response.dto';
 import { ComputeInvoiceTotalsRequestDto } from './dto/compute-invoice-totals.dto';
 import { InvoiceTotalsResponseDto } from './dto/invoice-totals-response.dto';
 import { CreateInvoiceRequestDto } from './dto/create-invoice.dto';
@@ -197,6 +203,7 @@ export class AdminBillingController {
     private readonly getInvoiceAccountPreview: GetInvoiceAccountPreviewUseCase,
     private readonly getRecipientServicePreview: GetRecipientServicePreviewUseCase,
     private readonly listBillableServices: ListBillableServicesUseCase,
+    private readonly getRenderedServices: GetRenderedServicesUseCase,
     private readonly computeInvoiceTotals: ComputeInvoiceTotalsUseCase,
     private readonly createInvoice: CreateInvoiceUseCase,
     private readonly sendInvoice: SendInvoiceUseCase,
@@ -266,7 +273,7 @@ export class AdminBillingController {
     });
   }
 
-  private reportCommand(query: FinancialReportQueryDto) {
+  private reportCommand(query: FinancialReportQueryDto): GetFinancialReportCommand {
     return {
       currency: query.currency ?? Currency.NigerianNaira,
       from: query.from === undefined ? null : new Date(query.from),
@@ -345,6 +352,25 @@ export class AdminBillingController {
       query.currency ?? Currency.NigerianNaira,
     );
     return BillableServicesResponseDto.fromResult(result);
+  }
+
+  @Get('invoice-wizard/recipients/:id/billable-services')
+  @ApiOperation({
+    summary:
+      'Billable services for a recipient and period, quantities pre filled from care logs (wizard step 3)',
+  })
+  @ApiOkResponse({ type: RenderedServicesResponseDto })
+  async recipientBillableServices(
+    @Param('id') id: string,
+    @Query() query: RenderedServicesQueryDto,
+  ): Promise<RenderedServicesResponseDto> {
+    const result = await this.getRenderedServices.execute({
+      recipientId: id,
+      currency: query.currency ?? Currency.NigerianNaira,
+      from: new Date(query.from),
+      to: new Date(query.to),
+    });
+    return RenderedServicesResponseDto.fromResult(result);
   }
 
   @Post('invoice-wizard/compute-totals')

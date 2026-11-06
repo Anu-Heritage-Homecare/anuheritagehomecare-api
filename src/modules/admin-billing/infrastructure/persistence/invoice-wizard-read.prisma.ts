@@ -4,6 +4,7 @@ import {
   InvoiceAccountPreviewView,
   InvoiceWizardReadModel,
   RecipientServicePreviewView,
+  RenderedCareView,
 } from '../../application/ports/invoice-wizard-read.port';
 
 /**
@@ -155,6 +156,47 @@ export class InvoiceWizardReadPrisma implements InvoiceWizardReadModel {
           : `${caregiverUser.firstName} ${caregiverUser.lastName}`.trim(),
       assignedCaregiverTitle: caregiverProfile?.title ?? null,
       careNeeds: recipient.careNeeds,
+    };
+  }
+
+  async renderedCare(recipientId: string, from: Date, to: Date): Promise<RenderedCareView | null> {
+    const recipient = await this.prisma.careRecipient.findUnique({
+      where: { id: recipientId },
+      select: { id: true },
+    });
+    if (recipient === null) {
+      return null;
+    }
+
+    const visits = await this.prisma.visit.findMany({
+      where: {
+        careRecipientId: recipientId,
+        status: 'COMPLETED',
+        scheduledDate: { gte: from, lte: to },
+      },
+      select: {
+        visitType: true,
+        clockInAt: true,
+        clockOutAt: true,
+        startMinute: true,
+        endMinute: true,
+        breaks: { select: { startedAt: true, endedAt: true } },
+      },
+    });
+
+    return {
+      visits: visits.map((visit) => ({
+        visitType: visit.visitType,
+        clockInAt: visit.clockInAt,
+        clockOutAt: visit.clockOutAt,
+        startMinute: visit.startMinute,
+        endMinute: visit.endMinute,
+        breakMinutes: visit.breaks.reduce(
+          (sum, b) =>
+            sum + (b.endedAt === null ? 0 : (b.endedAt.getTime() - b.startedAt.getTime()) / 60_000),
+          0,
+        ),
+      })),
     };
   }
 
