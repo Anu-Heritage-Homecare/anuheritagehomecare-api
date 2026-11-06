@@ -122,6 +122,13 @@ import { ListAccountDocumentsUseCase } from '../application/use-cases/list-accou
 import { CreateInvoiceAttachmentTicketUseCase } from '../application/use-cases/create-invoice-attachment-ticket.use-case';
 import { RegisterInvoiceAttachmentUseCase } from '../application/use-cases/register-invoice-attachment.use-case';
 import { ListInvoiceAttachmentsUseCase } from '../application/use-cases/list-invoice-attachments.use-case';
+import { RecordInvoicePaymentUseCase } from '../application/use-cases/record-invoice-payment.use-case';
+import { RequestInvoiceOnlinePaymentUseCase } from '../application/use-cases/request-invoice-online-payment.use-case';
+import {
+  RecordInvoicePaymentRequestDto,
+  RecordInvoicePaymentResponseDto,
+} from './dto/record-invoice-payment.dto';
+import { InvoicePaymentRequestResponseDto } from './dto/invoice-payment-request.dto';
 import {
   InvoiceAttachmentUploadTicketResponseDto,
   InvoiceAttachmentsResponseDto,
@@ -163,6 +170,8 @@ export class AdminBillingController {
     private readonly listInvoiceAttachments: ListInvoiceAttachmentsUseCase,
     private readonly createInvoiceAttachmentTicket: CreateInvoiceAttachmentTicketUseCase,
     private readonly registerInvoiceAttachment: RegisterInvoiceAttachmentUseCase,
+    private readonly recordPayment: RecordInvoicePaymentUseCase,
+    private readonly requestOnlinePayment: RequestInvoiceOnlinePaymentUseCase,
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
@@ -415,6 +424,33 @@ export class AdminBillingController {
   ): Promise<BillingInvoicePaymentsResponseDto> {
     const result = await this.listInvoicePayments.execute(id);
     return BillingInvoicePaymentsResponseDto.fromResult(result);
+  }
+
+  @Post('invoices/:id/payments')
+  @ApiOperation({
+    summary: 'Record an offline payment against an invoice (the Record Payment action)',
+  })
+  @ApiCreatedResponse({ type: RecordInvoicePaymentResponseDto })
+  async recordInvoicePayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: RecordInvoicePaymentRequestDto,
+  ): Promise<RecordInvoicePaymentResponseDto> {
+    return this.recordPayment.execute({
+      invoiceId: id,
+      amountMinor: body.amountMinor,
+      methodLabel: body.methodLabel ?? null,
+      receivedAt: body.receivedAt ? new Date(body.receivedAt) : null,
+    });
+  }
+
+  @Post('invoices/:id/payment-request')
+  @ApiOperation({ summary: 'Request an online payment for an invoice (returns a hosted link)' })
+  @ApiCreatedResponse({ type: InvoicePaymentRequestResponseDto })
+  async requestInvoiceOnlinePayment(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<InvoicePaymentRequestResponseDto> {
+    const result = await this.requestOnlinePayment.execute({ invoiceId: id });
+    return InvoicePaymentRequestResponseDto.fromResult(result);
   }
 
   @Get('invoices/:id/history')

@@ -19,6 +19,8 @@ import { CompositePaymentGateway } from './infrastructure/gateway/composite-paym
 import { PaystackPaymentGateway } from './infrastructure/gateway/paystack-payment-gateway';
 import { StripePaymentGateway } from './infrastructure/gateway/stripe-payment-gateway';
 import { BookingsPayableService } from './infrastructure/payable/bookings-payable-service';
+import { CompositePayableService } from './infrastructure/payable/composite-payable-service';
+import { InvoicePayableService } from './infrastructure/payable/invoice-payable-service';
 import { PaymentMethodPrismaRepository } from './infrastructure/persistence/payment-method-prisma.repository';
 import { PaymentPrismaRepository } from './infrastructure/persistence/payment-prisma.repository';
 import { PaymentWebhooksController } from './presentation/payment-webhooks.controller';
@@ -46,13 +48,16 @@ import { PaymentsController } from './presentation/payments.controller';
     StripePaymentGateway,
     PaystackPaymentGateway,
     { provide: PAYMENT_GATEWAY, useClass: CompositePaymentGateway },
-    { provide: PAYABLE_SERVICE, useClass: BookingsPayableService },
+    BookingsPayableService,
+    InvoicePayableService,
+    { provide: PAYABLE_SERVICE, useClass: CompositePayableService },
     { provide: PAYMENT_REPOSITORY, useClass: PaymentPrismaRepository },
     { provide: PAYMENT_METHOD_REPOSITORY, useClass: PaymentMethodPrismaRepository },
   ],
   exports: [
     PAYMENT_REPOSITORY,
     PAYMENT_METHOD_REPOSITORY,
+    PAYMENT_GATEWAY,
     InitiatePaymentUseCase,
     ChangeProviderSubscriptionPlanUseCase,
   ],

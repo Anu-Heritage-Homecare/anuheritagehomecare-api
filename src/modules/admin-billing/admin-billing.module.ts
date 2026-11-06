@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { FamilyDirectoryModule } from '@modules/family-directory/family-directory.module';
+import { PaymentsModule } from '@modules/payments/payments.module';
 import { ACCOUNT_ADJUSTMENTS_READ_MODEL } from './application/ports/account-adjustments-read.port';
 import { FINANCIAL_REPORTS_READ_MODEL } from './application/ports/financial-reports-read.port';
 import { INVOICE_WIZARD_READ_MODEL } from './application/ports/invoice-wizard-read.port';
@@ -28,6 +29,10 @@ import { CreateInvoiceAttachmentTicketUseCase } from './application/use-cases/cr
 import { RegisterInvoiceAttachmentUseCase } from './application/use-cases/register-invoice-attachment.use-case';
 import { INVOICE_ATTACHMENT_REPOSITORY } from './domain/invoice-attachment.repository';
 import { InvoiceAttachmentPrismaRepository } from './infrastructure/persistence/invoice-attachment-prisma.repository';
+import { RecordInvoicePaymentUseCase } from './application/use-cases/record-invoice-payment.use-case';
+import { RequestInvoiceOnlinePaymentUseCase } from './application/use-cases/request-invoice-online-payment.use-case';
+import { INVOICE_PAYMENT_WRITE_REPOSITORY } from './domain/invoice-payment-write.repository';
+import { InvoicePaymentWritePrismaRepository } from './infrastructure/persistence/invoice-payment-write-prisma.repository';
 import { GetBillingAccountActivityUseCase } from './application/use-cases/get-billing-account-activity.use-case';
 import { GetBillingAccountUseCase } from './application/use-cases/get-billing-account.use-case';
 import { GetBillingDashboardUseCase } from './application/use-cases/get-billing-dashboard.use-case';
@@ -79,7 +84,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
  * Accounts directory over the family directory. Separate admin auth at the controller.
  */
 @Module({
-  imports: [PassportModule, FamilyDirectoryModule],
+  imports: [PassportModule, FamilyDirectoryModule, PaymentsModule],
   controllers: [AdminBillingController],
   providers: [
     GetBillingDashboardUseCase,
@@ -106,6 +111,8 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     ListInvoiceAttachmentsUseCase,
     CreateInvoiceAttachmentTicketUseCase,
     RegisterInvoiceAttachmentUseCase,
+    RecordInvoicePaymentUseCase,
+    RequestInvoiceOnlinePaymentUseCase,
     ListAccountAdjustmentsUseCase,
     CreateAccountAdjustmentUseCase,
     ApproveAccountAdjustmentUseCase,
@@ -136,6 +143,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     { provide: INVOICE_SEND_REPOSITORY, useClass: InvoiceSendPrismaRepository },
     { provide: ACCOUNT_DOCUMENT_REPOSITORY, useClass: AccountDocumentPrismaRepository },
     { provide: INVOICE_ATTACHMENT_REPOSITORY, useClass: InvoiceAttachmentPrismaRepository },
+    { provide: INVOICE_PAYMENT_WRITE_REPOSITORY, useClass: InvoicePaymentWritePrismaRepository },
   ],
 })
 export class AdminBillingModule {}
