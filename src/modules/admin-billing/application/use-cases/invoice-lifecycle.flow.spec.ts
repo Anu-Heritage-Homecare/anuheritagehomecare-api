@@ -8,6 +8,8 @@ function invoices(present: boolean): InvoiceAttachmentRepository {
   return {
     add: () => Promise.resolve(),
     listByInvoice: () => Promise.resolve([]),
+    findById: () => Promise.resolve(null),
+    remove: () => Promise.resolve(),
     invoiceExists: () => Promise.resolve(present),
   };
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -126,6 +127,8 @@ import { RecordInvoicePaymentUseCase } from '../application/use-cases/record-inv
 import { RequestInvoiceOnlinePaymentUseCase } from '../application/use-cases/request-invoice-online-payment.use-case';
 import { ApproveInvoiceUseCase } from '../application/use-cases/approve-invoice.use-case';
 import { SendInvoiceReminderUseCase } from '../application/use-cases/send-invoice-reminder.use-case';
+import { DeleteInvoiceAttachmentUseCase } from '../application/use-cases/delete-invoice-attachment.use-case';
+import { DeleteAccountDocumentUseCase } from '../application/use-cases/delete-account-document.use-case';
 import {
   RecordInvoicePaymentRequestDto,
   RecordInvoicePaymentResponseDto,
@@ -176,6 +179,8 @@ export class AdminBillingController {
     private readonly requestOnlinePayment: RequestInvoiceOnlinePaymentUseCase,
     private readonly approveInvoice_: ApproveInvoiceUseCase,
     private readonly remindInvoice: SendInvoiceReminderUseCase,
+    private readonly deleteAttachment: DeleteInvoiceAttachmentUseCase,
+    private readonly deleteDocument: DeleteAccountDocumentUseCase,
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
@@ -556,6 +561,17 @@ export class AdminBillingController {
     });
   }
 
+  @Delete('invoices/:id/attachments/:attachmentId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete an invoice attachment (the Delete action)' })
+  @ApiNoContentResponse()
+  async deleteInvoiceAttachment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
+  ): Promise<void> {
+    await this.deleteAttachment.execute({ invoiceId: id, attachmentId });
+  }
+
   @Get('accounts')
   @ApiOperation({
     summary: 'The Billing Accounts list for a tab, with per tab counts, branches and paging',
@@ -702,6 +718,17 @@ export class AdminBillingController {
       sizeBytes: body.sizeBytes,
       adminId: admin.adminUserId,
     });
+  }
+
+  @Delete('accounts/:id/documents/:documentId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete an account document (the Delete action)' })
+  @ApiNoContentResponse()
+  async deleteAccountDocument(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+  ): Promise<void> {
+    await this.deleteDocument.execute({ accountId: id, documentId });
   }
 
   @Get('adjustments')

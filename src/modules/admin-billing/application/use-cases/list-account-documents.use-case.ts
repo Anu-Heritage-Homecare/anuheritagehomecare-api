@@ -6,6 +6,7 @@ import {
 import { DOCUMENT_STORAGE, DocumentStorage } from '@shared/application/ports/document-storage.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { AccountDocumentsResult } from '../dto/account-documents.result';
+import { ADMIN_DIRECTORY, AdminDirectory } from '../ports/admin-directory.port';
 import {
   ACCOUNT_DOCUMENT_REPOSITORY,
   AccountDocumentRepository,
@@ -19,6 +20,7 @@ export class ListAccountDocumentsUseCase {
     private readonly entries: FamilyDirectoryEntryRepository,
     @Inject(ACCOUNT_DOCUMENT_REPOSITORY) private readonly documents: AccountDocumentRepository,
     @Inject(DOCUMENT_STORAGE) private readonly storage: DocumentStorage,
+    @Inject(ADMIN_DIRECTORY) private readonly admins: AdminDirectory,
   ) {}
 
   async execute(accountId: string): Promise<AccountDocumentsResult> {
@@ -26,6 +28,7 @@ export class ListAccountDocumentsUseCase {
       throw new NotFoundDomainException('Billing account not found');
     }
     const documents = await this.documents.listByAccount(accountId);
+    const names = await this.admins.names(documents.map((d) => d.uploadedByAdminId));
     return {
       documents: documents.map((document) => ({
         id: document.id,
@@ -33,6 +36,10 @@ export class ListAccountDocumentsUseCase {
         fileName: document.fileName,
         sizeBytes: document.sizeBytes,
         uploadedAt: document.uploadedAt.toISOString(),
+        uploadedBy:
+          document.uploadedByAdminId === null
+            ? null
+            : (names.get(document.uploadedByAdminId) ?? null),
         downloadUrl: this.storage.urlFor(document.storageKey),
       })),
       total: documents.length,

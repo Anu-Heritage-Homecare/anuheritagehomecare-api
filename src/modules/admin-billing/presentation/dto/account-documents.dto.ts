@@ -62,6 +62,7 @@ class AccountDocumentDto implements AccountDocumentResult {
   @ApiProperty() fileName!: string;
   @ApiProperty() sizeBytes!: number;
   @ApiProperty() uploadedAt!: string;
+  @ApiProperty({ nullable: true, type: String }) uploadedBy!: string | null;
   @ApiProperty({ description: 'Signed URL to view or download; empty if storage is off' })
   downloadUrl!: string;
 }

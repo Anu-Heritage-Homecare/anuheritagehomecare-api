@@ -42,6 +42,15 @@ export class InvoiceAttachmentPrismaRepository implements InvoiceAttachmentRepos
     return rows.map((row) => this.toDomain(row));
   }
 
+  async findById(id: string): Promise<InvoiceAttachment | null> {
+    const row = await this.prisma.invoiceAttachment.findUnique({ where: { id } });
+    return row === null ? null : this.toDomain(row);
+  }
+
+  async remove(id: string): Promise<void> {
+    await this.prisma.invoiceAttachment.delete({ where: { id } });
+  }
+
   async invoiceExists(invoiceId: string): Promise<boolean> {
     const invoice = await this.prisma.recipientInvoice.findUnique({
       where: { id: invoiceId },

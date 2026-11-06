@@ -5,6 +5,7 @@ import { InvoiceAttachmentRepository } from '../../domain/invoice-attachment.rep
 import { CreateInvoiceAttachmentTicketUseCase } from './create-invoice-attachment-ticket.use-case';
 import { ListInvoiceAttachmentsUseCase } from './list-invoice-attachments.use-case';
 import { RegisterInvoiceAttachmentUseCase } from './register-invoice-attachment.use-case';
+import { DeleteInvoiceAttachmentUseCase } from './delete-invoice-attachment.use-case';
 
 const NOW = new Date('2026-11-06T10:00:00.000Z');
 const clock = { now: () => NOW };
@@ -23,9 +24,19 @@ function store(
       return Promise.resolve();
     },
     listByInvoice: (invoiceId) => Promise.resolve(items.filter((a) => a.invoiceId === invoiceId)),
+    findById: (id) => Promise.resolve(items.find((a) => a.id === id) ?? null),
+    remove: (id) => {
+      const index = items.findIndex((a) => a.id === id);
+      if (index >= 0) {
+        items.splice(index, 1);
+      }
+      return Promise.resolve();
+    },
     invoiceExists: () => Promise.resolve(present),
   };
 }
+
+const admins = { names: () => Promise.resolve(new Map([['admin-3', 'Sarah Jenkins']])) };
 
 const storage: DocumentStorage = {
   createUploadTicket: ({ reference }) => ({
@@ -101,22 +112,63 @@ describe('ListInvoiceAttachmentsUseCase', () => {
       fileName: 'agreement.pdf',
       storageKey: 'invoices/inv-1/att-1',
       sizeBytes: 180_244,
+      uploadedByAdminId: 'admin-3',
       now: NOW,
     });
     const result = await new ListInvoiceAttachmentsUseCase(
       store(true, [attachment]),
       storage,
+      admins,
     ).execute('inv-1');
     expect(result.total).toBe(1);
     expect(result.attachments[0]).toMatchObject({
       title: 'Signed Agreement',
+      uploadedBy: 'Sarah Jenkins',
       downloadUrl: 'https://cdn/invoices/inv-1/att-1',
     });
   });
 
   it('throws when the invoice is missing', async () => {
     await expect(
-      new ListInvoiceAttachmentsUseCase(store(false), storage).execute('inv-1'),
+      new ListInvoiceAttachmentsUseCase(store(false), storage, admins).execute('inv-1'),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+  });
+});
+
+describe('DeleteInvoiceAttachmentUseCase', () => {
+  it('removes an attachment scoped to its invoice', async () => {
+    const attachment = InvoiceAttachment.register({
+      id: 'att-1',
+      invoiceId: 'inv-1',
+      title: 'Signed Agreement',
+      fileName: 'agreement.pdf',
+      storageKey: 'invoices/inv-1/att-1',
+      sizeBytes: 100,
+      now: NOW,
+    });
+    const repo = store(true, [attachment]);
+    await new DeleteInvoiceAttachmentUseCase(repo).execute({
+      invoiceId: 'inv-1',
+      attachmentId: 'att-1',
+    });
+    expect(repo.items).toHaveLength(0);
+  });
+
+  it('throws when the attachment is on a different invoice', async () => {
+    const attachment = InvoiceAttachment.register({
+      id: 'att-1',
+      invoiceId: 'inv-1',
+      title: 'Signed Agreement',
+      fileName: 'agreement.pdf',
+      storageKey: 'invoices/inv-1/att-1',
+      sizeBytes: 100,
+      now: NOW,
+    });
+    await expect(
+      new DeleteInvoiceAttachmentUseCase(store(true, [attachment])).execute({
+        invoiceId: 'other',
+        attachmentId: 'att-1',
+      }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 });

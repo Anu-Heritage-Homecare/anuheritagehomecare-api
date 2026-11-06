@@ -42,6 +42,15 @@ export class AccountDocumentPrismaRepository implements AccountDocumentRepositor
     return rows.map((row) => this.toDomain(row));
   }
 
+  async findById(id: string): Promise<AccountDocument | null> {
+    const row = await this.prisma.accountDocument.findUnique({ where: { id } });
+    return row === null ? null : this.toDomain(row);
+  }
+
+  async remove(id: string): Promise<void> {
+    await this.prisma.accountDocument.delete({ where: { id } });
+  }
+
   private toDomain(row: Row): AccountDocument {
     return AccountDocument.rehydrate(row.id, {
       familyDirectoryEntryId: row.familyDirectoryEntryId,

@@ -7,6 +7,7 @@ import { AccountDocumentRepository } from '../../domain/account-document.reposit
 import { CreateAccountDocumentTicketUseCase } from './create-account-document-ticket.use-case';
 import { ListAccountDocumentsUseCase } from './list-account-documents.use-case';
 import { RegisterAccountDocumentUseCase } from './register-account-document.use-case';
+import { DeleteAccountDocumentUseCase } from './delete-account-document.use-case';
 
 const NOW = new Date('2026-11-06T10:00:00.000Z');
 const clock = { now: () => NOW };
@@ -41,8 +42,18 @@ function documentStore(initial: AccountDocument[] = []): AccountDocumentReposito
     },
     listByAccount: (accountId) =>
       Promise.resolve(items.filter((d) => d.familyDirectoryEntryId === accountId)),
+    findById: (id) => Promise.resolve(items.find((d) => d.id === id) ?? null),
+    remove: (id) => {
+      const index = items.findIndex((d) => d.id === id);
+      if (index >= 0) {
+        items.splice(index, 1);
+      }
+      return Promise.resolve();
+    },
   };
 }
+
+const admins = { names: () => Promise.resolve(new Map([['admin-3', 'Sarah Jenkins']])) };
 
 const storage: DocumentStorage = {
   createUploadTicket: ({ reference }) => ({
@@ -125,23 +136,66 @@ describe('ListAccountDocumentsUseCase', () => {
       fileName: 'id.pdf',
       storageKey: 'acc-1/doc-1',
       sizeBytes: 4_404_019,
+      uploadedByAdminId: 'admin-3',
       now: NOW,
     });
     const result = await new ListAccountDocumentsUseCase(
       entries(true),
       documentStore([doc]),
       storage,
+      admins,
     ).execute('acc-1');
     expect(result.total).toBe(1);
     expect(result.documents[0]).toMatchObject({
       title: 'ID Verification',
+      uploadedBy: 'Sarah Jenkins',
       downloadUrl: 'https://cdn/acc-1/doc-1',
     });
   });
 
   it('throws when the account is missing', async () => {
     await expect(
-      new ListAccountDocumentsUseCase(entries(false), documentStore(), storage).execute('acc-1'),
+      new ListAccountDocumentsUseCase(entries(false), documentStore(), storage, admins).execute(
+        'acc-1',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+  });
+});
+
+describe('DeleteAccountDocumentUseCase', () => {
+  it('removes a document scoped to its account', async () => {
+    const doc = AccountDocument.register({
+      id: 'doc-1',
+      familyDirectoryEntryId: 'acc-1',
+      title: 'ID Verification',
+      fileName: 'id.pdf',
+      storageKey: 'acc-1/doc-1',
+      sizeBytes: 100,
+      now: NOW,
+    });
+    const store = documentStore([doc]);
+    await new DeleteAccountDocumentUseCase(store).execute({
+      accountId: 'acc-1',
+      documentId: 'doc-1',
+    });
+    expect(store.items).toHaveLength(0);
+  });
+
+  it('throws when the document is on a different account', async () => {
+    const doc = AccountDocument.register({
+      id: 'doc-1',
+      familyDirectoryEntryId: 'acc-1',
+      title: 'ID Verification',
+      fileName: 'id.pdf',
+      storageKey: 'acc-1/doc-1',
+      sizeBytes: 100,
+      now: NOW,
+    });
+    await expect(
+      new DeleteAccountDocumentUseCase(documentStore([doc])).execute({
+        accountId: 'other',
+        documentId: 'doc-1',
+      }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 });
