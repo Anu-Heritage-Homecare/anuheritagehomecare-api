@@ -30,6 +30,10 @@ export class GetBillingInvoiceServicesUseCase {
         unit: service.unit,
         rateMinor: service.rateMinor,
         amountMinor: service.amountMinor,
+        serviceDateStart:
+          service.serviceDateStart === null ? null : service.serviceDateStart.toISOString(),
+        serviceDateEnd:
+          service.serviceDateEnd === null ? null : service.serviceDateEnd.toISOString(),
         assignedCaregiver: service.assignedCaregiver,
       })),
       distinctCount: distinct.size,

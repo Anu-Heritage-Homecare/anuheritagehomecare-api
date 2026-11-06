@@ -6,6 +6,9 @@ export interface BillingInvoiceServiceResult {
   unit: string | null;
   rateMinor: number | null;
   amountMinor: number;
+  /** The dates this line's service was rendered, ISO 8601 (null for older lines). */
+  serviceDateStart: string | null;
+  serviceDateEnd: string | null;
   assignedCaregiver: string | null;
 }
 

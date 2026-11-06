@@ -11,6 +11,8 @@ class BillingInvoiceServiceDto implements BillingInvoiceServiceResult {
   @ApiProperty({ nullable: true, type: String }) unit!: string | null;
   @ApiProperty({ nullable: true, type: Number }) rateMinor!: number | null;
   @ApiProperty() amountMinor!: number;
+  @ApiProperty({ nullable: true, type: String }) serviceDateStart!: string | null;
+  @ApiProperty({ nullable: true, type: String }) serviceDateEnd!: string | null;
   @ApiProperty({ nullable: true, type: String }) assignedCaregiver!: string | null;
 }
 

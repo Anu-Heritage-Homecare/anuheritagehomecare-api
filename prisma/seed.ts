@@ -127,6 +127,7 @@ interface BillableServiceSeed {
   code: string;
   name: string;
   description: string;
+  category: string;
   unit: BillableServiceUnit;
   sortOrder: number;
   prices: { currency: Currency; unitAmountMinor: number }[];
@@ -137,6 +138,7 @@ const BILLABLE_SERVICES: BillableServiceSeed[] = [
     code: 'PERSONAL_CARE_SUPPORT',
     name: 'Personal Care Support',
     description: 'Hourly Care Plan Support Tasks',
+    category: 'Care & Support',
     unit: 'HOURLY',
     sortOrder: 1,
     prices: [
@@ -148,6 +150,7 @@ const BILLABLE_SERVICES: BillableServiceSeed[] = [
     code: 'MEDICATION_MANAGEMENT',
     name: 'Medication Management',
     description: 'Vitals monitoring and daily dosage prep',
+    category: 'Nursing',
     unit: 'HOURLY',
     sortOrder: 2,
     prices: [
@@ -159,6 +162,7 @@ const BILLABLE_SERVICES: BillableServiceSeed[] = [
     code: 'PHYSIOTHERAPY_SESSIONS',
     name: 'Physiotherapy Sessions',
     description: 'Specialized motor and movement rehabilitation',
+    category: 'Rehabilitation',
     unit: 'SESSION',
     sortOrder: 3,
     prices: [
@@ -170,6 +174,7 @@ const BILLABLE_SERVICES: BillableServiceSeed[] = [
     code: 'NUTRITIONAL_MEAL_PREP',
     name: 'Nutritional Meal Prep',
     description: 'Dietary plan cooking and kitchen safety supervision',
+    category: 'Care & Support',
     unit: 'HOURLY',
     sortOrder: 4,
     prices: [
@@ -181,6 +186,7 @@ const BILLABLE_SERVICES: BillableServiceSeed[] = [
     code: 'ADMIN_CARE_COORDINATION',
     name: 'Admin and Care Coordination Fee',
     description: 'Quality compliance and caregiver routing',
+    category: 'Administration',
     unit: 'FIXED',
     sortOrder: 5,
     prices: [
@@ -197,6 +203,7 @@ async function seedBillableServices(): Promise<void> {
       update: {
         name: service.name,
         description: service.description,
+        category: service.category,
         unit: service.unit,
         sortOrder: service.sortOrder,
         active: true,
@@ -205,6 +212,7 @@ async function seedBillableServices(): Promise<void> {
         code: service.code,
         name: service.name,
         description: service.description,
+        category: service.category,
         unit: service.unit,
         sortOrder: service.sortOrder,
       },

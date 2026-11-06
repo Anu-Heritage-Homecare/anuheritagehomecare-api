@@ -7,6 +7,12 @@ export interface NewInvoiceLine {
   rateMinor: number;
   quantity: number;
   unitLabel: string;
+  /** Snapshotted service category (from the catalog). */
+  category: string | null;
+  /** The dates this line's service was rendered, and who delivered it. */
+  serviceDateStart: Date | null;
+  serviceDateEnd: Date | null;
+  caregiverId: string | null;
 }
 
 export interface NewInvoiceAdjustmentRow {

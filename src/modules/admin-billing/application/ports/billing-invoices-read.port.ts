@@ -90,6 +90,8 @@ export interface BillingInvoiceServiceView {
   unit: string | null;
   rateMinor: number | null;
   amountMinor: number;
+  serviceDateStart: Date | null;
+  serviceDateEnd: Date | null;
   assignedCaregiver: string | null;
 }
 

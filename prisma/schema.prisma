@@ -820,6 +820,8 @@ model BillableService {
   code        String              @unique @db.VarChar(60)
   name        String              @db.VarChar(120)
   description String              @db.VarChar(200)
+  // The service grouping shown on the invoice Services tab (e.g. "Nursing").
+  category    String?             @db.VarChar(80)
   unit        BillableServiceUnit
   sortOrder   Int                 @default(0)
   active      Boolean             @default(true)
@@ -868,6 +870,13 @@ model RecipientInvoiceLine {
   rateMinor   Int?
   quantity    Float?
   unitLabel   String? @db.VarChar(20)
+  // Snapshotted service category (from the catalog), the dates this line's service was
+  // rendered, and the caregiver who delivered it. All optional. The caregiver references
+  // a User across contexts (no database foreign key); the name is resolved on read.
+  category         String?   @db.VarChar(80)
+  serviceDateStart DateTime? @db.Date
+  serviceDateEnd   DateTime? @db.Date
+  caregiverId      String?   @db.Uuid
 
   invoice RecipientInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 

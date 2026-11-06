@@ -6,6 +6,7 @@ export interface BillableServiceView {
   code: string;
   name: string;
   description: string;
+  category: string | null;
   unit: 'HOURLY' | 'SESSION' | 'FIXED';
   /** The rate for the requested currency in minor units, null when not priced for it. */
   rateMinor: number | null;

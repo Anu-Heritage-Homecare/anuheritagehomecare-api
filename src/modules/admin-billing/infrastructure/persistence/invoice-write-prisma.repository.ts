@@ -46,6 +46,10 @@ export class InvoiceWritePrismaRepository implements InvoiceWriteRepository {
             rateMinor: line.rateMinor,
             quantity: line.quantity,
             unitLabel: line.unitLabel,
+            category: line.category,
+            serviceDateStart: line.serviceDateStart,
+            serviceDateEnd: line.serviceDateEnd,
+            caregiverId: line.caregiverId,
           })),
         },
         adjustments: {

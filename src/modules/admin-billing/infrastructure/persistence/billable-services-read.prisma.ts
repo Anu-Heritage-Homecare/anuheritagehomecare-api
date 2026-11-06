@@ -20,6 +20,7 @@ export class BillableServicesReadPrisma implements BillableServicesCatalogReadMo
         code: true,
         name: true,
         description: true,
+        category: true,
         unit: true,
         prices: { where: { currency }, select: { unitAmountMinor: true } },
       },
@@ -30,6 +31,7 @@ export class BillableServicesReadPrisma implements BillableServicesCatalogReadMo
       code: service.code,
       name: service.name,
       description: service.description,
+      category: service.category,
       // The Prisma enum shares the view's string values.
       unit: service.unit,
       rateMinor: service.prices[0]?.unitAmountMinor ?? null,

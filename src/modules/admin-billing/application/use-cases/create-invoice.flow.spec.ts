@@ -46,6 +46,7 @@ const CATALOG: BillableServiceView[] = [
     code: 'SPECIALIST_NURSING',
     name: 'Specialist Nursing Support',
     description: 'Physiotherapy and post stroke rehab',
+    category: 'Nursing',
     unit: 'HOURLY',
     rateMinor: 1_500_000,
   },
@@ -59,7 +60,15 @@ function command(over: Partial<CreateInvoiceCommand> = {}): CreateInvoiceCommand
     paymentTermsDays: null,
     insuranceCoveredMinor: 0,
     currency: Currency.NigerianNaira,
-    lines: [{ serviceId: 's1', quantity: 60 }],
+    lines: [
+      {
+        serviceId: 's1',
+        quantity: 60,
+        serviceDateStart: '2026-07-01',
+        serviceDateEnd: '2026-07-31',
+        caregiverId: '7a3d1e2c-0000-4000-8000-000000000001',
+      },
+    ],
     discounts: [{ label: 'Loyalty Discount', kind: 'PERCENT', value: 5 }],
     adjustments: [],
     ...over,
@@ -93,7 +102,11 @@ describe('CreateInvoiceUseCase', () => {
       quantity: 60,
       unitLabel: 'hr',
       amountMinor: 90_000_000,
+      // Category is snapshotted from the catalog; dates and caregiver from the line.
+      category: 'Nursing',
+      caregiverId: '7a3d1e2c-0000-4000-8000-000000000001',
     });
+    expect(saved.lines[0].serviceDateStart?.toISOString()).toBe('2026-07-01T00:00:00.000Z');
     expect(saved.adjustments[0]).toMatchObject({
       kind: 'DISCOUNT',
       label: 'Loyalty Discount',

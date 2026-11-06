@@ -21,7 +21,13 @@ import {
 
 export interface ComputeInvoiceTotalsCommand {
   currency: Currency;
-  lines: { serviceId: string; quantity: number }[];
+  lines: {
+    serviceId: string;
+    quantity: number;
+    serviceDateStart?: string;
+    serviceDateEnd?: string;
+    caregiverId?: string;
+  }[];
   discounts: { label: string; kind: DiscountKind; value: number }[];
   adjustments: { label: string; amountMinor: number }[];
 }

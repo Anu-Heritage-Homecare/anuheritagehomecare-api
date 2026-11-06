@@ -88,6 +88,10 @@ export class CreateInvoiceUseCase {
         rateMinor: service.rateMinor,
         quantity: line.quantity,
         unitLabel: UNIT_LABEL[service.unit],
+        category: service.category,
+        serviceDateStart: line.serviceDateStart ? new Date(line.serviceDateStart) : null,
+        serviceDateEnd: line.serviceDateEnd ? new Date(line.serviceDateEnd) : null,
+        caregiverId: line.caregiverId ?? null,
       };
     });
 

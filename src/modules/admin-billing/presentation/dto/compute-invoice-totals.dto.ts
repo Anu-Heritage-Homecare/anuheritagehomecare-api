@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsDateString,
   IsIn,
   IsInt,
   IsNumber,
@@ -30,6 +31,21 @@ export class ComputeLineDto {
   @IsNumber()
   @Min(0)
   quantity!: number;
+
+  @ApiPropertyOptional({ description: 'When this service was rendered (start), ISO 8601 date' })
+  @IsOptional()
+  @IsDateString()
+  serviceDateStart?: string;
+
+  @ApiPropertyOptional({ description: 'When this service was rendered (end), ISO 8601 date' })
+  @IsOptional()
+  @IsDateString()
+  serviceDateEnd?: string;
+
+  @ApiPropertyOptional({ description: 'The caregiver who delivered this service' })
+  @IsOptional()
+  @IsUUID()
+  caregiverId?: string;
 }
 
 export class ComputeDiscountDto {

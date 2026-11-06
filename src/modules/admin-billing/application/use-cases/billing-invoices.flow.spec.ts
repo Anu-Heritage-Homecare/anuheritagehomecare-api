@@ -200,12 +200,14 @@ describe('GetBillingInvoiceServicesUseCase', () => {
       services: [
         {
           serviceName: 'Personal Care Support',
-          category: null,
-          hoursUnits: null,
-          unit: null,
-          rateMinor: null,
+          category: 'Care & Support',
+          hoursUnits: 62,
+          unit: 'hr',
+          rateMinor: 500_000,
           amountMinor: 31_000_000,
-          assignedCaregiver: null,
+          serviceDateStart: new Date('2026-07-01T00:00:00.000Z'),
+          serviceDateEnd: new Date('2026-07-31T00:00:00.000Z'),
+          assignedCaregiver: 'Chioma Nwachukwu',
         },
         {
           serviceName: 'Overnight Night Care',
@@ -214,6 +216,8 @@ describe('GetBillingInvoiceServicesUseCase', () => {
           unit: null,
           rateMinor: null,
           amountMinor: 42_500_000,
+          serviceDateStart: null,
+          serviceDateEnd: null,
           assignedCaregiver: null,
         },
       ],
@@ -235,8 +239,11 @@ describe('GetBillingInvoiceServicesUseCase', () => {
     expect(result.servicePeriodStart).toBe('2026-07-01T00:00:00.000Z');
     expect(result.services[0]).toMatchObject({
       serviceName: 'Personal Care Support',
-      category: null,
-      assignedCaregiver: null,
+      category: 'Care & Support',
+      hoursUnits: 62,
+      serviceDateStart: '2026-07-01T00:00:00.000Z',
+      serviceDateEnd: '2026-07-31T00:00:00.000Z',
+      assignedCaregiver: 'Chioma Nwachukwu',
     });
   });
 

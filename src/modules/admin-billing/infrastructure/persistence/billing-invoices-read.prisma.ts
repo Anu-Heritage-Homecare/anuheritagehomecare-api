@@ -214,6 +214,10 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
             quantity: true,
             rateMinor: true,
             unitLabel: true,
+            category: true,
+            serviceDateStart: true,
+            serviceDateEnd: true,
+            caregiverId: true,
           },
         },
       },
@@ -221,19 +225,44 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
     if (invoice === null) {
       return null;
     }
-    // Category and the per line assigned caregiver are not stored on a line yet.
+
+    // Resolve the per line caregiver ids to names in one query.
+    const caregiverIds = [
+      ...new Set(
+        invoice.lines
+          .map((line) => line.caregiverId)
+          .filter((caregiverId): caregiverId is string => caregiverId !== null),
+      ),
+    ];
+    const caregivers =
+      caregiverIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: caregiverIds } },
+            select: { id: true, firstName: true, lastName: true },
+          });
+    const caregiverName = new Map(
+      caregivers.map((caregiver) => [
+        caregiver.id,
+        `${caregiver.firstName} ${caregiver.lastName}`.trim(),
+      ]),
+    );
+
     return {
       currency: invoice.currency,
       servicePeriodStart: invoice.periodStart,
       servicePeriodEnd: invoice.periodEnd,
       services: invoice.lines.map((line) => ({
         serviceName: line.serviceName,
-        category: null,
+        category: line.category,
         hoursUnits: line.quantity,
         unit: line.unitLabel,
         rateMinor: line.rateMinor,
         amountMinor: line.amountMinor,
-        assignedCaregiver: null,
+        serviceDateStart: line.serviceDateStart,
+        serviceDateEnd: line.serviceDateEnd,
+        assignedCaregiver:
+          line.caregiverId === null ? null : (caregiverName.get(line.caregiverId) ?? null),
       })),
     };
   }

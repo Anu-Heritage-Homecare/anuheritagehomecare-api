@@ -105,6 +105,7 @@ const CATALOG: BillableServiceView[] = [
     code: 'PERSONAL_CARE_SUPPORT',
     name: 'Personal Care Support',
     description: 'x',
+    category: null,
     unit: 'HOURLY',
     rateMinor: 1_500_000,
   },
