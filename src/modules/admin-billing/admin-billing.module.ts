@@ -16,6 +16,8 @@ import { AddInvoiceNoteUseCase } from './application/use-cases/add-invoice-note.
 import { ApproveAccountAdjustmentUseCase } from './application/use-cases/approve-account-adjustment.use-case';
 import { CreateAccountAdjustmentUseCase } from './application/use-cases/create-account-adjustment.use-case';
 import { CreateBillingAccountUseCase } from './application/use-cases/create-billing-account.use-case';
+import { SendBillingReminderUseCase } from './application/use-cases/send-billing-reminder.use-case';
+import { SetAccountPreferencesUseCase } from './application/use-cases/set-account-preferences.use-case';
 import { GetBillingAccountActivityUseCase } from './application/use-cases/get-billing-account-activity.use-case';
 import { GetBillingAccountUseCase } from './application/use-cases/get-billing-account.use-case';
 import { GetBillingDashboardUseCase } from './application/use-cases/get-billing-dashboard.use-case';
@@ -86,6 +88,8 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     ListInvoiceNotesUseCase,
     AddInvoiceNoteUseCase,
     CreateBillingAccountUseCase,
+    SendBillingReminderUseCase,
+    SetAccountPreferencesUseCase,
     ListAccountAdjustmentsUseCase,
     CreateAccountAdjustmentUseCase,
     ApproveAccountAdjustmentUseCase,

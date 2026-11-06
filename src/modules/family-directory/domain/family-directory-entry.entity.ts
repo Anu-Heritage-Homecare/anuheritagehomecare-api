@@ -16,12 +16,14 @@ interface FamilyDirectoryEntryProps {
   status: FamilyMemberStatus;
   quickNotes: string | null;
   emergencyContactVerified: boolean;
+  preferredPaymentMethod: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const MAX_NAME = 200;
 const MAX_NOTES = 1000;
+const MAX_METHOD = 60;
 
 /**
  * One family member in the admin directory. An account entry links to an identity
@@ -58,6 +60,7 @@ export class FamilyDirectoryEntry extends AggregateRoot<string> {
       status: FamilyMemberStatus.Active,
       quickNotes: null,
       emergencyContactVerified: false,
+      preferredPaymentMethod: null,
       createdAt: params.now,
       updatedAt: params.now,
     });
@@ -85,6 +88,7 @@ export class FamilyDirectoryEntry extends AggregateRoot<string> {
       status: FamilyMemberStatus.PendingVerification,
       quickNotes: null,
       emergencyContactVerified: false,
+      preferredPaymentMethod: null,
       createdAt: params.now,
       updatedAt: params.now,
     });
@@ -117,6 +121,7 @@ export class FamilyDirectoryEntry extends AggregateRoot<string> {
       status: FamilyMemberStatus.Active,
       quickNotes: null,
       emergencyContactVerified: false,
+      preferredPaymentMethod: null,
       createdAt: params.now,
       updatedAt: params.now,
     });
@@ -142,6 +147,16 @@ export class FamilyDirectoryEntry extends AggregateRoot<string> {
 
   public setEmergencyContactVerified(verified: boolean, now: Date): void {
     this.props.emergencyContactVerified = verified;
+    this.props.updatedAt = now;
+  }
+
+  /** Set the office's preferred settlement method for this account (null to clear). */
+  public setPreferredPaymentMethod(method: string | null, now: Date): void {
+    const clean = cleanOptional(method);
+    if (clean !== null && clean.length > MAX_METHOD) {
+      throw new ValidationException('The payment method exceeds the maximum length');
+    }
+    this.props.preferredPaymentMethod = clean;
     this.props.updatedAt = now;
   }
 
@@ -221,6 +236,10 @@ export class FamilyDirectoryEntry extends AggregateRoot<string> {
 
   public get emergencyContactVerified(): boolean {
     return this.props.emergencyContactVerified;
+  }
+
+  public get preferredPaymentMethod(): string | null {
+    return this.props.preferredPaymentMethod;
   }
 
   public get createdAt(): Date {

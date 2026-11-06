@@ -38,6 +38,8 @@ class BillingAccountEventDto implements BillingAccountEventResult {
   @ApiProperty({ nullable: true, type: String }) methodLabel!: string | null;
   @ApiProperty({ nullable: true, type: String }) invoiceNumber!: string | null;
   @ApiProperty({ nullable: true, type: String }) recipientName!: string | null;
+  @ApiProperty({ nullable: true, type: String }) detail!: string | null;
+  @ApiProperty({ nullable: true, type: String }) actorName!: string | null;
 }
 
 /** The Billing Account detail (Overview tab) response. */

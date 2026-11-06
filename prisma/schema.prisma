@@ -2398,10 +2398,14 @@ model FamilyDirectoryEntry {
   status                   FamilyMemberStatus         @default(ACTIVE)
   quickNotes               String?                    @db.VarChar(1000)
   emergencyContactVerified Boolean                    @default(false)
+  // The office set preferred way this account settles (e.g. "Bank Transfer",
+  // "Card Payment"). Free text shown on the account Overview; null until set.
+  preferredPaymentMethod   String?                    @db.VarChar(60)
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
 
-  adjustments AccountAdjustment[]
+  adjustments   AccountAdjustment[]
+  billingEvents BillingAccountEvent[]
 
   @@index([status])
   @@map("family_directory_entries")
@@ -2412,6 +2416,32 @@ enum FamilyDirectorySubjectKind {
   CONTACT
 
   @@map("family_directory_subject_kind")
+}
+
+// An append only office action on a billing account that is not already evidenced
+// by an invoice, payment or care plan revision: an edit to the account details, or
+// a payment reminder the office sent. Feeds the account Activity Timeline and the
+// Billing dashboard activity. The actor is the admin who performed it.
+model BillingAccountEvent {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  familyDirectoryEntryId String                  @db.Uuid
+  kind                   BillingAccountEventKind
+  detail                 String?                 @db.VarChar(500)
+  actorAdminId           String?                 @db.Uuid
+  createdAt              DateTime                @default(now())
+
+  entry FamilyDirectoryEntry @relation(fields: [familyDirectoryEntryId], references: [id], onDelete: Cascade)
+
+  @@index([familyDirectoryEntryId, createdAt])
+  @@index([kind, createdAt])
+  @@map("billing_account_events")
+}
+
+enum BillingAccountEventKind {
+  ACCOUNT_DETAILS_EDITED
+  REMINDER_SENT
+
+  @@map("billing_account_event_kind")
 }
 
 enum FamilyMemberStatus {

@@ -54,11 +54,12 @@ export interface RecentPaymentResult {
 }
 
 /**
- * The activity types the billing tables can evidence honestly. Reminder Sent is in
- * the mockup but is deliberately omitted: no reminder or notification is modelled
- * yet, so it would be an invented event.
+ * The activity types the feed evidences: payments, issued invoices and overdue
+ * invoices derived from the billing tables, plus reminders the office recorded
+ * through the send reminder action.
  */
-export type BillingActivityType = 'PAYMENT_RECEIVED' | 'INVOICE_CREATED' | 'INVOICE_OVERDUE';
+export type BillingActivityType =
+  'PAYMENT_RECEIVED' | 'INVOICE_CREATED' | 'INVOICE_OVERDUE' | 'REMINDER_SENT';
 
 /**
  * One entry in the Recent Billing Activity feed. Structured, not pre formatted: the

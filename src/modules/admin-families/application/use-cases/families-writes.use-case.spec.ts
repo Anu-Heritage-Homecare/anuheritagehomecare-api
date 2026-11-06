@@ -12,6 +12,22 @@ const clock = { now: () => NOW };
 let counter = 0;
 const ids = { generate: () => `fam-${(counter += 1)}` };
 
+const recorder = { record: () => Promise.resolve() };
+
+function recordingRecorder(): {
+  record: (e: unknown) => Promise<void>;
+  calls: unknown[];
+} {
+  const calls: unknown[] = [];
+  return {
+    calls,
+    record: (e) => {
+      calls.push(e);
+      return Promise.resolve();
+    },
+  };
+}
+
 function store(initial: FamilyDirectoryEntry[] = []): FamilyDirectoryEntryRepository & {
   items: FamilyDirectoryEntry[];
 } {
@@ -67,7 +83,7 @@ describe('ImportFamiliesUseCase', () => {
 describe('EditFamilyUseCase', () => {
   it('sets the quick notes on an entry', async () => {
     const entry = contact('fam-1');
-    await new EditFamilyUseCase(store([entry]), clock).execute({
+    await new EditFamilyUseCase(store([entry]), recorder, clock).execute({
       entryId: 'fam-1',
       section: 'NOTES',
       quickNotes: 'Prefers phone.',
@@ -75,9 +91,26 @@ describe('EditFamilyUseCase', () => {
     expect(entry.quickNotes).toBe('Prefers phone.');
   });
 
+  it('logs an account details edited event to the billing timeline', async () => {
+    const entry = contact('fam-1');
+    const audit = recordingRecorder();
+    await new EditFamilyUseCase(store([entry]), audit, clock).execute({
+      entryId: 'fam-1',
+      adminId: 'admin-3',
+      section: 'CONTACT_DETAILS',
+      fields: { phone: '(555) 999 0000' },
+    });
+    expect(audit.calls).toHaveLength(1);
+    expect(audit.calls[0]).toMatchObject({
+      familyDirectoryEntryId: 'fam-1',
+      kind: 'ACCOUNT_DETAILS_EDITED',
+      actorAdminId: 'admin-3',
+    });
+  });
+
   it('rejects an unknown entry', async () => {
     await expect(
-      new EditFamilyUseCase(store(), clock).execute({
+      new EditFamilyUseCase(store(), recorder, clock).execute({
         entryId: 'nope',
         section: 'EMERGENCY_VERIFIED',
         verified: true,

@@ -20,6 +20,8 @@ import {
 } from '@nestjs/swagger';
 import { FamilyMemberStatus } from '@modules/family-directory/domain/family-member-status.enum';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
+import { AdminPrincipal } from '@shared/presentation/admin-principal';
+import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import {
   AddFamilyUseCase,
   ImportFamiliesUseCase,
@@ -145,11 +147,13 @@ export class AdminFamiliesController {
   @ApiOperation({ summary: 'Set the quick notes on a family member' })
   @ApiNoContentResponse()
   async editNotes(
+    @CurrentAdmin() admin: AdminPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: FamilyNotesRequestDto,
   ): Promise<void> {
     await this.editFamily.execute({
       entryId: id,
+      adminId: admin.adminUserId,
       section: 'NOTES',
       quickNotes: body.quickNotes ?? null,
     });
@@ -160,11 +164,13 @@ export class AdminFamiliesController {
   @ApiOperation({ summary: 'Set the account status of a family member' })
   @ApiNoContentResponse()
   async editStatus(
+    @CurrentAdmin() admin: AdminPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: FamilyStatusRequestDto,
   ): Promise<void> {
     await this.editFamily.execute({
       entryId: id,
+      adminId: admin.adminUserId,
       section: 'STATUS',
       status: toDomainStatus(body.status),
     });
@@ -175,11 +181,13 @@ export class AdminFamiliesController {
   @ApiOperation({ summary: 'Set the emergency contact verified flag' })
   @ApiNoContentResponse()
   async editEmergencyVerified(
+    @CurrentAdmin() admin: AdminPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: FamilyEmergencyVerifiedRequestDto,
   ): Promise<void> {
     await this.editFamily.execute({
       entryId: id,
+      adminId: admin.adminUserId,
       section: 'EMERGENCY_VERIFIED',
       verified: body.verified,
     });
@@ -190,11 +198,13 @@ export class AdminFamiliesController {
   @ApiOperation({ summary: 'Link or clear the primary recipient of a family member' })
   @ApiNoContentResponse()
   async editPrimaryRecipient(
+    @CurrentAdmin() admin: AdminPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: FamilyPrimaryRecipientRequestDto,
   ): Promise<void> {
     await this.editFamily.execute({
       entryId: id,
+      adminId: admin.adminUserId,
       section: 'PRIMARY_RECIPIENT',
       recipientId: body.recipientId ?? null,
     });
@@ -205,11 +215,13 @@ export class AdminFamiliesController {
   @ApiOperation({ summary: 'Revise the captured contact details of a family member' })
   @ApiNoContentResponse()
   async editContact(
+    @CurrentAdmin() admin: AdminPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: FamilyContactDto,
   ): Promise<void> {
     await this.editFamily.execute({
       entryId: id,
+      adminId: admin.adminUserId,
       section: 'CONTACT_DETAILS',
       fields: {
         fullName: body.fullName,

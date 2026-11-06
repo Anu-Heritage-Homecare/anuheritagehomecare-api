@@ -17,6 +17,9 @@ const EVENT_TITLES: Record<BillingAccountEventView['type'], string> = {
   PAYMENT_RECORDED: 'Payment Recorded',
   INVOICE_ISSUED: 'Invoice Issued',
   CARE_RECIPIENT_LINKED: 'New Care Recipient Linked',
+  CARE_PLAN_UPDATED: 'Care Plan Updated',
+  ACCOUNT_DETAILS_EDITED: 'Account Details Edited',
+  REMINDER_SENT: 'Reminder Sent',
 };
 
 /** Assemble the Billing Account detail (Overview tab). Read only. */
@@ -46,8 +49,8 @@ function toResult(view: BillingAccountDetailView): BillingAccountDetailResult {
       reference: `CP-${view.sequence}`,
       createdDate: view.createdAt.toISOString(),
       branch: view.branch,
-      paymentTerms: null,
-      preferredMethod: null,
+      paymentTerms: view.paymentTermsDays === null ? null : `Net ${view.paymentTermsDays}`,
+      preferredMethod: view.preferredPaymentMethod,
     },
     financial: {
       currency: view.currency,
@@ -82,6 +85,8 @@ function toEvent(event: BillingAccountEventView): BillingAccountEventResult {
         ? null
         : invoiceNumber(event.invoiceIssuedAt, event.invoiceSequence),
     recipientName: event.recipientName,
+    detail: event.detail,
+    actorName: event.actorName,
   };
 }
 

@@ -38,6 +38,13 @@ export interface OverdueInvoiceView {
   accountName: string;
 }
 
+/** One payment reminder the office sent, with its account, for the activity feed. */
+export interface RecentReminderView {
+  accountName: string;
+  detail: string | null;
+  at: Date;
+}
+
 /**
  * The whole Billing dashboard assembled from the recipient invoicing tables for one
  * currency. All dates are raw; all money is minor units in the requested currency.
@@ -62,6 +69,13 @@ export interface BillingDashboardView {
   recentPayments: RecentPaymentView[];
   recentInvoices: RecentInvoiceView[];
   overdueInvoices: OverdueInvoiceView[];
+  /**
+   * Recent payment reminders the office sent. Reminders carry no currency, so the
+   * same recent set appears on every market's dashboard.
+   * shortcut: reminders are not currency scoped, fine for a single market agency;
+   * tag reminders with a currency if markets need isolated feeds.
+   */
+  recentReminders: RecentReminderView[];
 }
 
 export interface BillingDashboardReadModel {

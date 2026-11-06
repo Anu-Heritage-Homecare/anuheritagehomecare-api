@@ -15,6 +15,7 @@ import {
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -27,6 +28,8 @@ import { AddInvoiceNoteUseCase } from '../application/use-cases/add-invoice-note
 import { ApproveAccountAdjustmentUseCase } from '../application/use-cases/approve-account-adjustment.use-case';
 import { CreateAccountAdjustmentUseCase } from '../application/use-cases/create-account-adjustment.use-case';
 import { CreateBillingAccountUseCase } from '../application/use-cases/create-billing-account.use-case';
+import { SendBillingReminderUseCase } from '../application/use-cases/send-billing-reminder.use-case';
+import { SetAccountPreferencesUseCase } from '../application/use-cases/set-account-preferences.use-case';
 import { ListAccountAdjustmentsUseCase } from '../application/use-cases/list-account-adjustments.use-case';
 import { ReverseAccountAdjustmentUseCase } from '../application/use-cases/reverse-account-adjustment.use-case';
 import { GetBillingAccountActivityUseCase } from '../application/use-cases/get-billing-account-activity.use-case';
@@ -101,6 +104,7 @@ import {
   BillingAccountCreatedDto,
   CreateBillingAccountRequestDto,
 } from './dto/create-billing-account.dto';
+import { SetAccountPreferencesRequestDto } from './dto/set-account-preferences.dto';
 
 /**
  * Admin Billing control panel. The financial overview dashboard and the Billing
@@ -129,6 +133,8 @@ export class AdminBillingController {
     private readonly listInvoiceNotes: ListInvoiceNotesUseCase,
     private readonly addInvoiceNote: AddInvoiceNoteUseCase,
     private readonly createAccount: CreateBillingAccountUseCase,
+    private readonly setPreferences: SetAccountPreferencesUseCase,
+    private readonly sendReminder: SendBillingReminderUseCase,
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
@@ -552,5 +558,30 @@ export class AdminBillingController {
       phone: body.phone ?? null,
       branch: body.branch ?? null,
     });
+  }
+
+  @Put('accounts/:id/preferences')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Set a billing account's office preferences (Edit Account)" })
+  @ApiNoContentResponse()
+  async setAccountPreferences(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetAccountPreferencesRequestDto,
+  ): Promise<void> {
+    await this.setPreferences.execute({
+      accountId: id,
+      preferredPaymentMethod: body.preferredPaymentMethod ?? null,
+    });
+  }
+
+  @Post('accounts/:id/reminders')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Record that a payment reminder was sent to the account' })
+  @ApiNoContentResponse()
+  async sendAccountReminder(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() admin: AdminPrincipal,
+  ): Promise<void> {
+    await this.sendReminder.execute({ accountId: id, adminId: admin.adminUserId });
   }
 }

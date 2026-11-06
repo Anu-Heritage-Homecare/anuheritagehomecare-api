@@ -116,6 +116,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         primaryRecipientId: true,
         status: true,
         createdAt: true,
+        preferredPaymentMethod: true,
       },
     });
     if (entry === null) {
@@ -176,7 +177,33 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         status: invoice.status,
       }));
 
-    const timeline = this.buildTimeline(invoices, payments, recipients);
+    const [revisions, accountEvents, settings] = await Promise.all([
+      recipientIds.length === 0
+        ? []
+        : this.prisma.carePlanRevision.findMany({
+            where: { careRecipientId: { in: recipientIds } },
+            select: { description: true, authorAdminId: true, createdAt: true },
+          }),
+      this.prisma.billingAccountEvent.findMany({
+        where: { familyDirectoryEntryId: id },
+        select: { kind: true, detail: true, actorAdminId: true, createdAt: true },
+      }),
+      this.prisma.billingSettings.findFirst({ select: { defaultPaymentTermsDays: true } }),
+    ]);
+
+    const adminNames = await this.resolveAdminNames([
+      ...revisions.map((r) => r.authorAdminId),
+      ...accountEvents.map((e) => e.actorAdminId),
+    ]);
+
+    const timeline = this.buildTimeline(
+      invoices,
+      payments,
+      recipients,
+      revisions,
+      accountEvents,
+      adminNames,
+    );
 
     const primaryContact =
       user === null ? entry.fullName : `${user.firstName} ${user.lastName}`.trim();
@@ -191,6 +218,8 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
       status: entry.status,
       createdAt: entry.createdAt,
       currency: invoices[0]?.currency ?? payments[0]?.currency ?? null,
+      paymentTermsDays: settings?.defaultPaymentTermsDays ?? null,
+      preferredPaymentMethod: entry.preferredPaymentMethod,
       outstandingMinor,
       totalBilledMinor,
       totalPaidMinor,
@@ -397,7 +426,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
       return { currency: null, events: [] };
     }
 
-    const [invoices, payments] = await Promise.all([
+    const [invoices, payments, revisions, accountEvents] = await Promise.all([
       this.prisma.recipientInvoice.findMany({
         where: { careRecipientId: { in: recipientIds } },
         select: {
@@ -421,11 +450,22 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
           invoiceId: true,
         },
       }),
+      this.prisma.carePlanRevision.findMany({
+        where: { careRecipientId: { in: recipientIds } },
+        select: { description: true, authorAdminId: true, createdAt: true },
+      }),
+      this.prisma.billingAccountEvent.findMany({
+        where: { familyDirectoryEntryId: id },
+        select: { kind: true, detail: true, actorAdminId: true, createdAt: true },
+      }),
     ]);
 
     const invoiceById = new Map(invoices.map((inv) => [inv.id, inv]));
+    const adminNames = await this.resolveAdminNames([
+      ...revisions.map((r) => r.authorAdminId),
+      ...accountEvents.map((e) => e.actorAdminId),
+    ]);
 
-    // performedBy is null throughout: these records capture no actor today.
     const events: BillingAccountActivityEventView[] = [
       ...invoices.map((invoice): BillingAccountActivityEventView => ({
         type: 'INVOICE_ISSUED',
@@ -437,6 +477,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         periodStart: invoice.periodStart,
         periodEnd: invoice.periodEnd,
         recipientName: null,
+        detail: null,
         performedBy: null,
       })),
       ...payments.map((payment): BillingAccountActivityEventView => {
@@ -451,6 +492,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
           periodStart: null,
           periodEnd: null,
           recipientName: null,
+          detail: null,
           performedBy: null,
         };
       }),
@@ -464,7 +506,34 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         periodStart: null,
         periodEnd: null,
         recipientName: recipient.name,
+        detail: null,
         performedBy: null,
+      })),
+      ...revisions.map((revision): BillingAccountActivityEventView => ({
+        type: 'CARE_PLAN_UPDATED',
+        at: revision.createdAt,
+        amountMinor: null,
+        methodLabel: null,
+        invoiceSequence: null,
+        invoiceIssuedAt: null,
+        periodStart: null,
+        periodEnd: null,
+        recipientName: null,
+        detail: revision.description,
+        performedBy: nameFor(revision.authorAdminId, adminNames),
+      })),
+      ...accountEvents.map((event): BillingAccountActivityEventView => ({
+        type: event.kind,
+        at: event.createdAt,
+        amountMinor: null,
+        methodLabel: null,
+        invoiceSequence: null,
+        invoiceIssuedAt: null,
+        periodStart: null,
+        periodEnd: null,
+        recipientName: null,
+        detail: event.detail,
+        performedBy: nameFor(event.actorAdminId, adminNames),
       })),
     ];
     events.sort((a, b) => b.at.getTime() - a.at.getTime());
@@ -522,6 +591,14 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
     invoices: { sequence: number; issuedAt: Date }[],
     payments: { amountMinor: number; methodLabel: string | null; receivedAt: Date }[],
     recipients: { name: string; createdAt: Date }[],
+    revisions: { description: string; authorAdminId: string | null; createdAt: Date }[],
+    accountEvents: {
+      kind: 'ACCOUNT_DETAILS_EDITED' | 'REMINDER_SENT';
+      detail: string | null;
+      actorAdminId: string | null;
+      createdAt: Date;
+    }[],
+    adminNames: Map<string, string>,
   ): BillingAccountEventView[] {
     const events: BillingAccountEventView[] = [
       ...payments.map((payment): BillingAccountEventView => ({
@@ -532,6 +609,8 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         invoiceSequence: null,
         invoiceIssuedAt: null,
         recipientName: null,
+        detail: null,
+        actorName: null,
       })),
       ...invoices.map((invoice): BillingAccountEventView => ({
         type: 'INVOICE_ISSUED',
@@ -541,6 +620,8 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         invoiceSequence: invoice.sequence,
         invoiceIssuedAt: invoice.issuedAt,
         recipientName: null,
+        detail: null,
+        actorName: null,
       })),
       ...recipients.map((recipient): BillingAccountEventView => ({
         type: 'CARE_RECIPIENT_LINKED',
@@ -550,9 +631,46 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         invoiceSequence: null,
         invoiceIssuedAt: null,
         recipientName: recipient.name,
+        detail: null,
+        actorName: null,
+      })),
+      ...revisions.map((revision): BillingAccountEventView => ({
+        type: 'CARE_PLAN_UPDATED',
+        at: revision.createdAt,
+        amountMinor: null,
+        methodLabel: null,
+        invoiceSequence: null,
+        invoiceIssuedAt: null,
+        recipientName: null,
+        detail: revision.description,
+        actorName: nameFor(revision.authorAdminId, adminNames),
+      })),
+      ...accountEvents.map((event): BillingAccountEventView => ({
+        type: event.kind,
+        at: event.createdAt,
+        amountMinor: null,
+        methodLabel: null,
+        invoiceSequence: null,
+        invoiceIssuedAt: null,
+        recipientName: null,
+        detail: event.detail,
+        actorName: nameFor(event.actorAdminId, adminNames),
       })),
     ];
     return events.sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, TIMELINE_LIMIT);
+  }
+
+  /** Resolve admin ids to display names in one query. */
+  private async resolveAdminNames(ids: (string | null)[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids.filter((id): id is string => id !== null))];
+    if (unique.length === 0) {
+      return new Map();
+    }
+    const admins = await this.prisma.adminUser.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    return new Map(admins.map((a) => [a.id, `${a.firstName} ${a.lastName}`.trim()]));
   }
 
   /** Enrich every entry with recipients, outstanding balance and last payment. */
@@ -678,6 +796,11 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
       };
     });
   }
+}
+
+/** Look up a resolved admin name, null when the id is unknown or absent. */
+function nameFor(adminId: string | null, names: Map<string, string>): string | null {
+  return adminId === null ? null : (names.get(adminId) ?? null);
 }
 
 /** The Invoices tab status: paid, else overdue past its due date, else awaiting payment. */

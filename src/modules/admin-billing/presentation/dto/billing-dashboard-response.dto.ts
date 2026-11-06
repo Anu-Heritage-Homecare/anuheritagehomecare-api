@@ -44,7 +44,9 @@ class RecentPaymentDto implements RecentPaymentResult {
 }
 
 class BillingActivityDto implements BillingActivityResult {
-  @ApiProperty({ enum: ['PAYMENT_RECEIVED', 'INVOICE_CREATED', 'INVOICE_OVERDUE'] })
+  @ApiProperty({
+    enum: ['PAYMENT_RECEIVED', 'INVOICE_CREATED', 'INVOICE_OVERDUE', 'REMINDER_SENT'],
+  })
   type!: BillingActivityType;
   @ApiProperty() title!: string;
   @ApiProperty() at!: string;

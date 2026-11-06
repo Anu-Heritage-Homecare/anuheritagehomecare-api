@@ -13,6 +13,9 @@ const EVENT_TITLES: Record<BillingAccountEventType, string> = {
   PAYMENT_RECORDED: 'Payment Recorded',
   INVOICE_ISSUED: 'Invoice Issued',
   CARE_RECIPIENT_LINKED: 'New Care Recipient Linked',
+  CARE_PLAN_UPDATED: 'Care Plan Updated',
+  ACCOUNT_DETAILS_EDITED: 'Account Details Edited',
+  REMINDER_SENT: 'Reminder Sent',
 };
 
 /** The Activity tab: the full account billing and care timeline. Read only. */
@@ -51,6 +54,7 @@ function toEvent(
     periodStart: event.periodStart === null ? null : event.periodStart.toISOString(),
     periodEnd: event.periodEnd === null ? null : event.periodEnd.toISOString(),
     recipientName: event.recipientName,
+    detail: event.detail,
     performedBy: event.performedBy,
   };
 }

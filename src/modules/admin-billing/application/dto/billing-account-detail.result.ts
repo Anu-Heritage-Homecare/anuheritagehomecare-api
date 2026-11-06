@@ -37,6 +37,10 @@ export interface BillingAccountEventResult {
   methodLabel: string | null;
   invoiceNumber: string | null;
   recipientName: string | null;
+  /** A short description for care plan, account edit and reminder events. */
+  detail: string | null;
+  /** The admin who performed it, when known. */
+  actorName: string | null;
 }
 
 export interface BillingAccountDetailResult {

@@ -56,6 +56,13 @@ function baseView(overrides: Partial<BillingDashboardView> = {}): BillingDashboa
         accountName: 'Bello Trust',
       },
     ],
+    recentReminders: [
+      {
+        accountName: 'Bello Trust',
+        detail: 'Outstanding balance notice sent',
+        at: new Date('2026-07-18T10:00:00.000Z'),
+      },
+    ],
     ...overrides,
   };
 }
@@ -157,8 +164,9 @@ describe('GetBillingDashboardUseCase', () => {
     const result = await useCase.execute({ currency: Currency.NigerianNaira });
 
     expect(result.recentActivity.map((entry) => entry.type)).toEqual([
-      'PAYMENT_RECEIVED', // 08:00
-      'INVOICE_CREATED', // 07:00
+      'PAYMENT_RECEIVED', // 2026-07-24 08:00
+      'INVOICE_CREATED', // 2026-07-24 07:00
+      'REMINDER_SENT', // 2026-07-18
       'INVOICE_OVERDUE', // 2026-06-24
     ]);
     const payment = result.recentActivity[0];
@@ -169,7 +177,7 @@ describe('GetBillingDashboardUseCase', () => {
     const created = result.recentActivity[1];
     expect(created.invoiceNumber).toBe('INV-2026-092');
 
-    const overdue = result.recentActivity[2];
+    const overdue = result.recentActivity[3];
     expect(overdue.invoiceNumber).toBe('INV-2026-054');
     expect(overdue.daysPastDue).toBe(30); // 2026-06-24 to 2026-07-24
   });

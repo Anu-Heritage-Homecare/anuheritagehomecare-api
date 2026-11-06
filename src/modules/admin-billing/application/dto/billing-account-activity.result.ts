@@ -11,6 +11,7 @@ export interface BillingAccountActivityEventResult {
   periodStart: string | null;
   periodEnd: string | null;
   recipientName: string | null;
+  detail: string | null;
   performedBy: string | null;
 }
 

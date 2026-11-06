@@ -33,6 +33,7 @@ export class FamilyDirectoryEntryPrismaRepository implements FamilyDirectoryEntr
         status: data.status,
         quickNotes: data.quickNotes,
         emergencyContactVerified: data.emergencyContactVerified,
+        preferredPaymentMethod: data.preferredPaymentMethod,
         updatedAt: data.updatedAt,
       },
     });
@@ -80,6 +81,7 @@ export class FamilyDirectoryEntryPrismaRepository implements FamilyDirectoryEntr
       status: TO_PERSISTENCE_STATUS[entry.status],
       quickNotes: entry.quickNotes,
       emergencyContactVerified: entry.emergencyContactVerified,
+      preferredPaymentMethod: entry.preferredPaymentMethod,
       createdAt: entry.createdAt,
       updatedAt: entry.updatedAt,
     };
@@ -99,6 +101,7 @@ export class FamilyDirectoryEntryPrismaRepository implements FamilyDirectoryEntr
       status: TO_DOMAIN_STATUS[row.status],
       quickNotes: row.quickNotes,
       emergencyContactVerified: row.emergencyContactVerified,
+      preferredPaymentMethod: row.preferredPaymentMethod,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });

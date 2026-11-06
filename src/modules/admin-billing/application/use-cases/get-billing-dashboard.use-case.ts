@@ -116,6 +116,15 @@ export class GetBillingDashboardUseCase {
         amountMinor: null,
         daysPastDue: daysBetween(row.dueDate, now),
       })),
+      ...view.recentReminders.map((row): BillingActivityResult => ({
+        type: 'REMINDER_SENT',
+        title: 'Reminder Sent',
+        at: row.at.toISOString(),
+        account: row.accountName,
+        invoiceNumber: null,
+        amountMinor: null,
+        daysPastDue: null,
+      })),
     ];
 
     return entries.sort((a, b) => b.at.localeCompare(a.at)).slice(0, ACTIVITY_LIMIT);

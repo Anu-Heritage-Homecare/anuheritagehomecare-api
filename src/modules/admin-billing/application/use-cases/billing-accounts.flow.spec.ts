@@ -138,6 +138,8 @@ describe('GetBillingAccountUseCase', () => {
       status: PrismaFamilyStatus.ACTIVE,
       createdAt: new Date('2025-01-12T00:00:00.000Z'),
       currency: 'NGN',
+      paymentTermsDays: 30,
+      preferredPaymentMethod: 'Bank Transfer',
       outstandingMinor: 45_000_000,
       totalBilledMinor: 420_000_000,
       totalPaidMinor: 375_000_000,
@@ -160,6 +162,8 @@ describe('GetBillingAccountUseCase', () => {
           invoiceSequence: null,
           invoiceIssuedAt: null,
           recipientName: null,
+          detail: null,
+          actorName: null,
         },
         {
           type: 'INVOICE_ISSUED',
@@ -169,6 +173,8 @@ describe('GetBillingAccountUseCase', () => {
           invoiceSequence: 39,
           invoiceIssuedAt: new Date('2026-07-10T09:00:00.000Z'),
           recipientName: null,
+          detail: null,
+          actorName: null,
         },
       ],
     };
@@ -187,7 +193,8 @@ describe('GetBillingAccountUseCase', () => {
 
     expect(result.summary.reference).toBe('CP-42');
     expect(result.summary.branch).toBe('Victoria Island');
-    expect(result.summary.paymentTerms).toBeNull();
+    expect(result.summary.paymentTerms).toBe('Net 30');
+    expect(result.summary.preferredMethod).toBe('Bank Transfer');
     expect(result.financial.totalBilledMinor).toBe(420_000_000);
     expect(result.recentInvoices[0]).toMatchObject({ number: 'INV-2026-039', status: 'PENDING' });
     expect(result.timeline[0]).toMatchObject({
@@ -409,6 +416,7 @@ describe('GetBillingAccountActivityUseCase', () => {
           periodStart: null,
           periodEnd: null,
           recipientName: null,
+          detail: null,
           performedBy: null,
         },
         {
@@ -421,6 +429,7 @@ describe('GetBillingAccountActivityUseCase', () => {
           periodStart: new Date('2026-07-01T00:00:00.000Z'),
           periodEnd: new Date('2026-07-14T00:00:00.000Z'),
           recipientName: null,
+          detail: null,
           performedBy: null,
         },
       ],

@@ -52,7 +52,12 @@ export interface BillingAccountInvoiceView {
 }
 
 export type BillingAccountEventType =
-  'PAYMENT_RECORDED' | 'INVOICE_ISSUED' | 'CARE_RECIPIENT_LINKED';
+  | 'PAYMENT_RECORDED'
+  | 'INVOICE_ISSUED'
+  | 'CARE_RECIPIENT_LINKED'
+  | 'CARE_PLAN_UPDATED'
+  | 'ACCOUNT_DETAILS_EDITED'
+  | 'REMINDER_SENT';
 
 /** One entry in the account Activity Timeline. */
 export interface BillingAccountEventView {
@@ -66,6 +71,10 @@ export interface BillingAccountEventView {
   invoiceIssuedAt: Date | null;
   /** CARE_RECIPIENT_LINKED. */
   recipientName: string | null;
+  /** CARE_PLAN_UPDATED, ACCOUNT_DETAILS_EDITED, REMINDER_SENT: a short description. */
+  detail: string | null;
+  /** The admin who performed it (resolved name), when known. */
+  actorName: string | null;
 }
 
 /** The whole Billing Account detail (the Overview tab). */
@@ -79,6 +88,10 @@ export interface BillingAccountDetailView {
   status: PrismaFamilyStatus;
   createdAt: Date;
   currency: string | null;
+  /** The office's default payment terms in days (global setting), null if unset. */
+  paymentTermsDays: number | null;
+  /** The office set preferred settlement method for this account, null if unset. */
+  preferredPaymentMethod: string | null;
   outstandingMinor: number;
   totalBilledMinor: number;
   totalPaidMinor: number;
@@ -120,6 +133,8 @@ export interface BillingAccountActivityEventView {
   periodStart: Date | null;
   periodEnd: Date | null;
   recipientName: string | null;
+  /** CARE_PLAN_UPDATED, ACCOUNT_DETAILS_EDITED, REMINDER_SENT: a short description. */
+  detail: string | null;
   /** Who performed it; null until an actor is captured on these records. */
   performedBy: string | null;
 }

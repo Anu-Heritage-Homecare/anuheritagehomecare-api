@@ -16,6 +16,7 @@ class BillingAccountActivityEventDto implements BillingAccountActivityEventResul
   @ApiProperty({ nullable: true, type: String }) periodStart!: string | null;
   @ApiProperty({ nullable: true, type: String }) periodEnd!: string | null;
   @ApiProperty({ nullable: true, type: String }) recipientName!: string | null;
+  @ApiProperty({ nullable: true, type: String }) detail!: string | null;
   @ApiProperty({ nullable: true, type: String }) performedBy!: string | null;
 }
 

@@ -55,6 +55,7 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
       recentPayments,
       recentInvoices,
       overdueInvoices,
+      recentReminders,
     ] = await Promise.all([
       this.prisma.recipientInvoicePayment.aggregate({
         where: { currency },
@@ -133,6 +134,16 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
           careRecipient: { select: { name: true } },
         },
       }),
+      this.prisma.billingAccountEvent.findMany({
+        where: { kind: 'REMINDER_SENT' },
+        orderBy: { createdAt: 'desc' },
+        take: feedLimit,
+        select: {
+          detail: true,
+          createdAt: true,
+          entry: { select: { accountName: true, fullName: true } },
+        },
+      }),
     ]);
 
     const thisMonthMinor = paymentsThisMonth._sum.amountMinor ?? 0;
@@ -179,6 +190,11 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
           dueDate: row.dueDate,
           accountName: row.careRecipient.name,
         })),
+      recentReminders: recentReminders.map((row) => ({
+        accountName: row.entry.accountName ?? row.entry.fullName,
+        detail: row.detail,
+        at: row.createdAt,
+      })),
     };
   }
 }
