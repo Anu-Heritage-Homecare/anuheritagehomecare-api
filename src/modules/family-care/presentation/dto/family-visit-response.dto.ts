@@ -137,8 +137,8 @@ class VisitHealthDto {
 }
 
 class VisitNoteDto {
-  @ApiProperty({ format: 'uuid' })
-  authorId!: string;
+  @ApiProperty({ format: 'uuid', nullable: true, description: 'Null for a system authored note' })
+  authorId!: string | null;
 
   @ApiProperty({ nullable: true, example: 'Sarah Adams' })
   authorName!: string | null;
