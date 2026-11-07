@@ -8,6 +8,10 @@ export interface BillingPaymentRowResult {
   billingAccountId: string | null;
   billingAccountName: string | null;
   amountMinor: number;
+  /** Cumulative amount already refunded (0 when none). */
+  refundedAmountMinor: number;
+  /** Still refundable (amountMinor minus refunded); 0 for non refundable rows. */
+  refundableRemainingMinor: number;
   currency: string;
   method: string | null;
   receivedAt: string;
