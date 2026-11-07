@@ -972,15 +972,19 @@ model RecipientInvoicePayment {
   referenceNumber String?  @db.VarChar(120)
   bankName        String?  @db.VarChar(120)
   notes           String?  @db.VarChar(2000)
-  // Set when the office reverses this payment (the Refund action). A refunded payment
-  // shows as REFUNDED on the Payments list and reopens its invoice.
-  refundedAt        DateTime?
-  refundReason      String?   @db.VarChar(500)
-  refundedByAdminId String?   @db.Uuid
+  // Set when the office fully reverses this payment; a fully refunded payment shows as
+  // REFUNDED on the Payments list. refundReason/refundedByAdminId carry the latest
+  // refund's detail. refundedAmountMinor is the cumulative refunded total (partial
+  // refunds are allowed), denormalised so revenue reads net it without a join.
+  refundedAt          DateTime?
+  refundReason        String?   @db.VarChar(500)
+  refundedByAdminId   String?   @db.Uuid
+  refundedAmountMinor Int       @default(0)
   createdAt       DateTime @default(now())
 
   careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)
   events        PaymentEvent[]
+  refunds       PaymentRefund[]
 
   @@index([careRecipientId, receivedAt])
   @@index([currency, receivedAt])
@@ -1015,6 +1019,24 @@ enum PaymentEventType {
   REFUNDED
 
   @@map("payment_event_type")
+}
+
+/// One refund issued against a recorded payment (the Create Refund modal). A payment
+/// may have several partial refunds; the parent's refundedAmountMinor is their sum.
+model PaymentRefund {
+  id                String   @id @default(uuid()) @db.Uuid
+  paymentId         String   @db.Uuid
+  amountMinor       Int
+  method            String?  @db.VarChar(120)
+  reason            String?  @db.VarChar(200)
+  notes             String?  @db.VarChar(2000)
+  refundedByAdminId String   @db.Uuid
+  createdAt         DateTime @default(now())
+
+  payment RecipientInvoicePayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, createdAt])
+  @@map("payment_refunds")
 }
 
 enum PaymentEventActor {

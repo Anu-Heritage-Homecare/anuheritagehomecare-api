@@ -38,7 +38,9 @@ export interface InvoicePayable {
 /** A recorded payment being considered for a refund. */
 export interface RefundablePayment {
   invoiceId: string | null;
-  alreadyRefunded: boolean;
+  /** The gross payment amount and how much has already been refunded, in minor units. */
+  amountMinor: number;
+  refundedAmountMinor: number;
 }
 
 /** Persistence port for recording a payment against an invoice from the back office. */
@@ -52,10 +54,16 @@ export interface InvoicePaymentWriteRepository {
   markPaid(invoiceId: string): Promise<void>;
   /** The recorded payment to refund, or null when the id is unknown. */
   loadRecordedPayment(paymentId: string): Promise<RefundablePayment | null>;
-  /** Stamp a payment refunded and reopen its invoice. */
+  /**
+   * Record a (possibly partial) refund against a payment and recompute its invoice
+   * status from the remaining net payments.
+   */
   refund(params: {
     paymentId: string;
+    amountMinor: number;
+    method: string | null;
     reason: string | null;
+    notes: string | null;
     adminId: string;
     now: Date;
   }): Promise<void>;

@@ -514,7 +514,10 @@ export class AdminBillingController {
   ): Promise<void> {
     await this.refundPayment_.execute({
       paymentId: id,
+      amountMinor: body.amountMinor,
+      method: body.method ?? null,
       reason: body.reason ?? null,
+      notes: body.notes ?? null,
       adminId: admin.adminUserId,
     });
   }

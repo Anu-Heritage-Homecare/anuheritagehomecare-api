@@ -91,16 +91,17 @@ export class InvoicePayableService implements PayableService {
       return null;
     }
     const paid = await this.prisma.recipientInvoicePayment.aggregate({
-      where: { invoiceId, refundedAt: null },
-      _sum: { amountMinor: true },
+      where: { invoiceId },
+      _sum: { amountMinor: true, refundedAmountMinor: true },
     });
     const patientDue = Math.max(0, invoice.amountMinor - invoice.insuranceCoveredMinor);
+    const netPaid = (paid._sum.amountMinor ?? 0) - (paid._sum.refundedAmountMinor ?? 0);
     return {
       ownerId: invoice.careRecipient.ownerId,
       careRecipientId: invoice.careRecipientId,
       currency: TO_DOMAIN_CURRENCY[invoice.currency],
       prismaCurrency: invoice.currency,
-      balanceMinor: Math.max(0, patientDue - (paid._sum.amountMinor ?? 0)),
+      balanceMinor: Math.max(0, patientDue - netPaid),
       alreadyPaid: invoice.status === 'PAID',
     };
   }

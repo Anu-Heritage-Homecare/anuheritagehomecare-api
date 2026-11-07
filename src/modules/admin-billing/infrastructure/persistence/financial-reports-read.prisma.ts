@@ -24,6 +24,7 @@ interface InvoiceRow {
 
 interface PaymentRow {
   amountMinor: number;
+  refundedAmountMinor: number;
   methodLabel: string | null;
   receivedAt: Date;
 }
@@ -53,8 +54,13 @@ export class FinancialReportsReadPrisma implements FinancialReportsReadModel {
         select: { amountMinor: true, insuranceCoveredMinor: true, issuedAt: true, status: true },
       }),
       this.prisma.recipientInvoicePayment.findMany({
-        where: { currency: filter.currency, refundedAt: null, ...recipientWhere },
-        select: { amountMinor: true, methodLabel: true, receivedAt: true },
+        where: { currency: filter.currency, ...recipientWhere },
+        select: {
+          amountMinor: true,
+          refundedAmountMinor: true,
+          methodLabel: true,
+          receivedAt: true,
+        },
       }),
       this.prisma.accountAdjustment.findMany({
         where: {
@@ -92,7 +98,7 @@ export class FinancialReportsReadPrisma implements FinancialReportsReadModel {
 
     const collectionsMinor = payments
       .filter((p) => inWindow(p.receivedAt))
-      .reduce((sum, p) => sum + p.amountMinor, 0);
+      .reduce((sum, p) => sum + (p.amountMinor - p.refundedAmountMinor), 0);
 
     const writeOffsMinor = writeOffs
       .filter((w) => inWindow(w.createdAt))
@@ -179,7 +185,10 @@ function buildMethodShares(payments: PaymentRow[]): CollectionMethodShareView[] 
   const byMethod = new Map<string, number>();
   for (const payment of payments) {
     const method = payment.methodLabel ?? UNKNOWN_METHOD;
-    byMethod.set(method, (byMethod.get(method) ?? 0) + payment.amountMinor);
+    byMethod.set(
+      method,
+      (byMethod.get(method) ?? 0) + (payment.amountMinor - payment.refundedAmountMinor),
+    );
   }
   return [...byMethod.entries()]
     .map(([method, amountMinor]) => ({ method, amountMinor }))

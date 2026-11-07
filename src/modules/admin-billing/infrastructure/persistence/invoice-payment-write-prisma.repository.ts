@@ -38,14 +38,14 @@ export class InvoicePaymentWritePrismaRepository implements InvoicePaymentWriteR
       return null;
     }
     const paid = await this.prisma.recipientInvoicePayment.aggregate({
-      where: { invoiceId, refundedAt: null },
-      _sum: { amountMinor: true },
+      where: { invoiceId },
+      _sum: { amountMinor: true, refundedAmountMinor: true },
     });
     return {
       careRecipientId: invoice.careRecipientId,
       currency: TO_DOMAIN_CURRENCY[invoice.currency],
       patientDueMinor: Math.max(0, invoice.amountMinor - invoice.insuranceCoveredMinor),
-      paidMinor: paid._sum.amountMinor ?? 0,
+      paidMinor: netPaid(paid._sum),
       alreadyPaid: invoice.status === 'PAID',
     };
   }
@@ -71,8 +71,8 @@ export class InvoicePaymentWritePrismaRepository implements InvoicePaymentWriteR
         select: { id: true, email: true },
       }),
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { invoiceId, refundedAt: null },
-        _sum: { amountMinor: true },
+        where: { invoiceId },
+        _sum: { amountMinor: true, refundedAmountMinor: true },
       }),
     ]);
     if (owner === null) {
@@ -83,7 +83,7 @@ export class InvoicePaymentWritePrismaRepository implements InvoicePaymentWriteR
       ownerId: owner.id,
       ownerEmail: owner.email,
       currency: TO_DOMAIN_CURRENCY[invoice.currency],
-      balanceMinor: Math.max(0, patientDue - (paid._sum.amountMinor ?? 0)),
+      balanceMinor: Math.max(0, patientDue - netPaid(paid._sum)),
       alreadyPaid: invoice.status === 'PAID',
     };
   }
@@ -112,41 +112,91 @@ export class InvoicePaymentWritePrismaRepository implements InvoicePaymentWriteR
     });
   }
 
-  async loadRecordedPayment(
-    paymentId: string,
-  ): Promise<{ invoiceId: string | null; alreadyRefunded: boolean } | null> {
+  async loadRecordedPayment(paymentId: string): Promise<{
+    invoiceId: string | null;
+    amountMinor: number;
+    refundedAmountMinor: number;
+  } | null> {
     const payment = await this.prisma.recipientInvoicePayment.findUnique({
       where: { id: paymentId },
-      select: { invoiceId: true, refundedAt: true },
+      select: { invoiceId: true, amountMinor: true, refundedAmountMinor: true },
     });
     if (payment === null) {
       return null;
     }
-    return { invoiceId: payment.invoiceId, alreadyRefunded: payment.refundedAt !== null };
+    return {
+      invoiceId: payment.invoiceId,
+      amountMinor: payment.amountMinor,
+      refundedAmountMinor: payment.refundedAmountMinor,
+    };
   }
 
   async refund(params: {
     paymentId: string;
+    amountMinor: number;
+    method: string | null;
     reason: string | null;
+    notes: string | null;
     adminId: string;
     now: Date;
   }): Promise<void> {
-    const payment = await this.prisma.recipientInvoicePayment.update({
-      where: { id: params.paymentId },
-      data: {
-        refundedAt: params.now,
-        refundReason: params.reason,
-        refundedByAdminId: params.adminId,
-      },
-      select: { invoiceId: true },
-    });
-    // Reopen the invoice the refund unsettles; its display status recomputes from the
-    // remaining (non refunded) payments.
-    if (payment.invoiceId !== null) {
-      await this.prisma.recipientInvoice.update({
-        where: { id: payment.invoiceId },
-        data: { status: 'PENDING' },
+    const invoiceId = await this.prisma.$transaction(async (tx) => {
+      await tx.paymentRefund.create({
+        data: {
+          paymentId: params.paymentId,
+          amountMinor: params.amountMinor,
+          method: params.method,
+          reason: params.reason,
+          notes: params.notes,
+          refundedByAdminId: params.adminId,
+        },
       });
+      const payment = await tx.recipientInvoicePayment.update({
+        where: { id: params.paymentId },
+        data: {
+          refundedAmountMinor: { increment: params.amountMinor },
+          refundReason: params.reason,
+          refundedByAdminId: params.adminId,
+        },
+        select: { invoiceId: true, amountMinor: true, refundedAmountMinor: true },
+      });
+      // Mark the payment fully reversed once the refunds reach its amount.
+      if (payment.refundedAmountMinor >= payment.amountMinor) {
+        await tx.recipientInvoicePayment.update({
+          where: { id: params.paymentId },
+          data: { refundedAt: params.now },
+        });
+      }
+      return payment.invoiceId;
+    });
+
+    if (invoiceId !== null) {
+      await this.recomputeInvoiceStatus(invoiceId);
     }
   }
+
+  /** Reopen or settle an invoice from its remaining net payments after a refund. */
+  private async recomputeInvoiceStatus(invoiceId: string): Promise<void> {
+    const invoice = await this.prisma.recipientInvoice.findUnique({
+      where: { id: invoiceId },
+      select: { amountMinor: true, insuranceCoveredMinor: true },
+    });
+    if (invoice === null) {
+      return;
+    }
+    const paid = await this.prisma.recipientInvoicePayment.aggregate({
+      where: { invoiceId },
+      _sum: { amountMinor: true, refundedAmountMinor: true },
+    });
+    const patientDue = Math.max(0, invoice.amountMinor - invoice.insuranceCoveredMinor);
+    await this.prisma.recipientInvoice.update({
+      where: { id: invoiceId },
+      data: { status: netPaid(paid._sum) >= patientDue ? 'PAID' : 'PENDING' },
+    });
+  }
+}
+
+/** Net paid in minor units: gross received less everything refunded. */
+function netPaid(sum: { amountMinor: number | null; refundedAmountMinor: number | null }): number {
+  return (sum.amountMinor ?? 0) - (sum.refundedAmountMinor ?? 0);
 }

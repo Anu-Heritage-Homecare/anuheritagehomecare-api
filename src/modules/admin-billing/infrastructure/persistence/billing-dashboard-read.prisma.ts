@@ -58,17 +58,17 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
       recentReminders,
     ] = await Promise.all([
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { currency, refundedAt: null },
-        _sum: { amountMinor: true },
+        where: { currency },
+        _sum: { amountMinor: true, refundedAmountMinor: true },
       }),
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { currency, refundedAt: null, receivedAt: { gte: monthStart } },
-        _sum: { amountMinor: true },
+        where: { currency, receivedAt: { gte: monthStart } },
+        _sum: { amountMinor: true, refundedAmountMinor: true },
         _count: true,
       }),
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { currency, refundedAt: null, receivedAt: { gte: lastMonthStart, lt: monthStart } },
-        _sum: { amountMinor: true },
+        where: { currency, receivedAt: { gte: lastMonthStart, lt: monthStart } },
+        _sum: { amountMinor: true, refundedAmountMinor: true },
       }),
       this.prisma.recipientInvoice.aggregate({ where: { currency }, _sum: invoiceSum }),
       this.prisma.recipientInvoice.aggregate({
@@ -102,8 +102,8 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
         _sum: invoiceSum,
       }),
       this.prisma.recipientInvoicePayment.findMany({
-        where: { currency, refundedAt: null, receivedAt: { gte: seriesStart } },
-        select: { amountMinor: true, receivedAt: true },
+        where: { currency, receivedAt: { gte: seriesStart } },
+        select: { amountMinor: true, refundedAmountMinor: true, receivedAt: true },
       }),
       this.prisma.recipientInvoicePayment.findMany({
         where: { currency },
@@ -146,8 +146,8 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
       }),
     ]);
 
-    const thisMonthMinor = paymentsThisMonth._sum.amountMinor ?? 0;
-    const lastMonthMinor = paymentsLastMonth._sum.amountMinor ?? 0;
+    const thisMonthMinor = netPaid(paymentsThisMonth._sum);
+    const lastMonthMinor = netPaid(paymentsLastMonth._sum);
 
     const aging: AgingBucketsView = {
       days0to30Minor: patientDue(aging0to30),
@@ -157,7 +157,7 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
     };
 
     return {
-      collectedLifetimeMinor: collectedLifetime._sum.amountMinor ?? 0,
+      collectedLifetimeMinor: netPaid(collectedLifetime._sum),
       paymentsThisMonthMinor: thisMonthMinor,
       paymentsThisMonthCount: paymentsThisMonth._count,
       paymentsLastMonthMinor: lastMonthMinor,
@@ -169,7 +169,14 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
       outstanding: amountAndCount(outstanding),
       overdue: amountAndCount(overdue),
       aging,
-      revenueSeries: bucketByMonth(trendRows, seriesStart, months),
+      revenueSeries: bucketByMonth(
+        trendRows.map((row) => ({
+          amountMinor: row.amountMinor - row.refundedAmountMinor,
+          receivedAt: row.receivedAt,
+        })),
+        seriesStart,
+        months,
+      ),
       recentPayments: recentPayments.map((row) => ({
         sequence: row.sequence,
         accountName: row.careRecipient.name,
@@ -224,6 +231,11 @@ function daysAgo(value: Date, days: number): Date {
  * keyed on when the payment was received. Rows outside the window are ignored (the
  * query already bounds the lower edge). One point per month, oldest first.
  */
+/** Net paid in minor units: gross received less everything refunded. */
+function netPaid(sum: { amountMinor: number | null; refundedAmountMinor: number | null }): number {
+  return (sum.amountMinor ?? 0) - (sum.refundedAmountMinor ?? 0);
+}
+
 function bucketByMonth(
   rows: { amountMinor: number; receivedAt: Date }[],
   seriesStart: Date,

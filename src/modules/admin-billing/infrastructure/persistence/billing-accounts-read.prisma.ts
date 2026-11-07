@@ -153,8 +153,14 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
               },
             }),
             this.prisma.recipientInvoicePayment.findMany({
-              where: { careRecipientId: { in: recipientIds }, refundedAt: null },
-              select: { amountMinor: true, methodLabel: true, currency: true, receivedAt: true },
+              where: { careRecipientId: { in: recipientIds } },
+              select: {
+                amountMinor: true,
+                refundedAmountMinor: true,
+                methodLabel: true,
+                currency: true,
+                receivedAt: true,
+              },
             }),
           ]);
 
@@ -164,10 +170,13 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
       .filter((invoice) => invoice.status === 'PENDING')
       .reduce((sum, invoice) => sum + patientDue(invoice), 0);
     const totalBilledMinor = invoices.reduce((sum, invoice) => sum + patientDue(invoice), 0);
-    const totalPaidMinor = payments.reduce((sum, payment) => sum + payment.amountMinor, 0);
-    const lastPayment = [...payments].sort(
-      (a, b) => b.receivedAt.getTime() - a.receivedAt.getTime(),
-    )[0];
+    const totalPaidMinor = payments.reduce(
+      (sum, payment) => sum + (payment.amountMinor - payment.refundedAmountMinor),
+      0,
+    );
+    const lastPayment = [...payments]
+      .filter((payment) => payment.amountMinor - payment.refundedAmountMinor > 0)
+      .sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime())[0];
 
     const recentInvoices: BillingAccountInvoiceView[] = [...invoices]
       .sort((a, b) => b.issuedAt.getTime() - a.issuedAt.getTime())

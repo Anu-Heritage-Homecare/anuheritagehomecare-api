@@ -62,8 +62,8 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
       invoiceIds.length === 0
         ? []
         : await this.prisma.recipientInvoicePayment.findMany({
-            where: { invoiceId: { in: invoiceIds }, refundedAt: null },
-            select: { invoiceId: true, amountMinor: true },
+            where: { invoiceId: { in: invoiceIds } },
+            select: { invoiceId: true, amountMinor: true, refundedAmountMinor: true },
           });
 
     const paidByInvoice = new Map<string, number>();
@@ -73,7 +73,8 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
       }
       paidByInvoice.set(
         payment.invoiceId,
-        (paidByInvoice.get(payment.invoiceId) ?? 0) + payment.amountMinor,
+        (paidByInvoice.get(payment.invoiceId) ?? 0) +
+          (payment.amountMinor - payment.refundedAmountMinor),
       );
     }
 
@@ -169,8 +170,8 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
 
     const [payments, account, owner] = await Promise.all([
       this.prisma.recipientInvoicePayment.findMany({
-        where: { invoiceId: id, refundedAt: null },
-        select: { amountMinor: true },
+        where: { invoiceId: id },
+        select: { amountMinor: true, refundedAmountMinor: true },
       }),
       this.resolveAccount(invoice.careRecipient.ownerId, invoice.careRecipientId),
       this.prisma.user.findUnique({
@@ -185,7 +186,10 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
       }),
     ]);
 
-    const amountPaidMinor = payments.reduce((sum, payment) => sum + payment.amountMinor, 0);
+    const amountPaidMinor = payments.reduce(
+      (sum, payment) => sum + (payment.amountMinor - payment.refundedAmountMinor),
+      0,
+    );
     const patientDue = Math.max(0, invoice.amountMinor - invoice.insuranceCoveredMinor);
 
     return {
