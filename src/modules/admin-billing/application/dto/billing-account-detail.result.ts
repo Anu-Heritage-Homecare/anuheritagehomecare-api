@@ -47,10 +47,16 @@ export interface BillingAccountDetailResult {
   id: string;
   accountName: string;
   primaryContact: string;
+  email: string | null;
   phone: string | null;
   status: string;
   summary: BillingAccountSummaryResult;
   financial: BillingAccountFinancialResult;
   recentInvoices: BillingAccountInvoiceResult[];
   timeline: BillingAccountEventResult[];
+}
+
+/** The canonical account reference, ACC-<year>-<sequence>, used across billing. */
+export function formatAccountReference(createdAt: Date, sequence: number): string {
+  return `ACC-${createdAt.getUTCFullYear()}-${String(sequence).padStart(4, '0')}`;
 }

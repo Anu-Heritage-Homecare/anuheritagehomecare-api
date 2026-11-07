@@ -20,6 +20,7 @@ export interface BillingAccountsFilter {
 export interface BillingAccountRowView {
   id: string;
   sequence: number;
+  createdAt: Date;
   /** The billing account label (falls back to the contact name when unset). */
   accountName: string;
   /** The primary contact person (the linked user's name, or the captured name). */
@@ -83,6 +84,7 @@ export interface BillingAccountDetailView {
   sequence: number;
   accountName: string;
   primaryContact: string;
+  email: string | null;
   phone: string | null;
   branch: string | null;
   status: PrismaFamilyStatus;

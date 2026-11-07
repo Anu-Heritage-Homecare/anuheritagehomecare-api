@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { FamilyMemberStatus as PrismaFamilyStatus } from '@prisma/client';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
+import { formatAccountReference } from '../dto/billing-account-detail.result';
 import { BillingAccountResult, BillingAccountsListResult } from '../dto/billing-accounts.result';
 import {
   BILLING_ACCOUNTS_READ_MODEL,
@@ -65,7 +66,7 @@ export class ListBillingAccountsUseCase {
 function toResult(row: BillingAccountRowView): BillingAccountResult {
   return {
     id: row.id,
-    reference: `CP-${row.sequence}`,
+    reference: formatAccountReference(row.createdAt, row.sequence),
     accountName: row.accountName,
     primaryContact: row.primaryContact,
     phone: row.phone,

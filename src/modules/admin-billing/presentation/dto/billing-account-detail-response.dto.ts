@@ -47,6 +47,7 @@ export class BillingAccountDetailResponseDto implements BillingAccountDetailResu
   @ApiProperty() id!: string;
   @ApiProperty() accountName!: string;
   @ApiProperty() primaryContact!: string;
+  @ApiProperty({ nullable: true, type: String }) email!: string | null;
   @ApiProperty({ nullable: true, type: String }) phone!: string | null;
   @ApiProperty() status!: string;
   @ApiProperty({ type: BillingAccountSummaryDto }) summary!: BillingAccountSummaryDto;

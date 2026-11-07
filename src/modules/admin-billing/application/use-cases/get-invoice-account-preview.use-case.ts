@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
+import { formatAccountReference } from '../dto/billing-account-detail.result';
 import { InvoiceAccountPreviewResult } from '../dto/invoice-wizard.result';
 import {
   INVOICE_WIZARD_READ_MODEL,
@@ -18,7 +19,7 @@ export class GetInvoiceAccountPreviewUseCase {
     }
     return {
       id: view.id,
-      accountNumber: `ACC-${view.createdAt.getUTCFullYear()}-${String(view.sequence).padStart(3, '0')}`,
+      accountNumber: formatAccountReference(view.createdAt, view.sequence),
       name: view.name,
       status: view.status,
       primaryContactName: view.primaryContactName,

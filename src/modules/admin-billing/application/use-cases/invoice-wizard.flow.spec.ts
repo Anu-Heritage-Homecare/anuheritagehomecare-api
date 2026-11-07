@@ -56,7 +56,7 @@ describe('GetInvoiceAccountPreviewUseCase', () => {
   it('formats the account and last invoice references and passes the card through', async () => {
     const result = await new GetInvoiceAccountPreviewUseCase(reads()).execute('a1');
 
-    expect(result.accountNumber).toBe('ACC-2026-081');
+    expect(result.accountNumber).toBe('ACC-2026-0081');
     expect(result.lastInvoiceNumber).toBe('INV-2026-412');
     expect(result.lastInvoiceStatus).toBe('PAID');
     expect(result.primaryContactRelationship).toBe('Son');

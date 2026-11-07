@@ -47,6 +47,7 @@ import { ADMIN_DIRECTORY } from './application/ports/admin-directory.port';
 import { PrismaAdminDirectory } from './infrastructure/persistence/prisma-admin-directory';
 import { GetBillingAccountActivityUseCase } from './application/use-cases/get-billing-account-activity.use-case';
 import { GetBillingAccountUseCase } from './application/use-cases/get-billing-account.use-case';
+import { GetAccountPreviewUseCase } from './application/use-cases/get-account-preview.use-case';
 import { GetBillingDashboardUseCase } from './application/use-cases/get-billing-dashboard.use-case';
 import { GetBillingSettingsUseCase } from './application/use-cases/get-billing-settings.use-case';
 import { GetFinancialReportUseCase } from './application/use-cases/get-financial-report.use-case';
@@ -103,6 +104,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     GetBillingDashboardUseCase,
     ListBillingAccountsUseCase,
     GetBillingAccountUseCase,
+    GetAccountPreviewUseCase,
     ListBillingAccountRecipientsUseCase,
     ListBillingAccountInvoicesUseCase,
     ListBillingAccountPaymentsUseCase,

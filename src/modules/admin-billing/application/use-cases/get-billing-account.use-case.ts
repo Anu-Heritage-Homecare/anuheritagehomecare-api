@@ -4,6 +4,7 @@ import {
   BillingAccountDetailResult,
   BillingAccountEventResult,
   BillingAccountInvoiceResult,
+  formatAccountReference,
 } from '../dto/billing-account-detail.result';
 import {
   BILLING_ACCOUNTS_READ_MODEL,
@@ -43,10 +44,11 @@ function toResult(view: BillingAccountDetailView): BillingAccountDetailResult {
     id: view.id,
     accountName: view.accountName,
     primaryContact: view.primaryContact,
+    email: view.email,
     phone: view.phone,
     status: view.status,
     summary: {
-      reference: `CP-${view.sequence}`,
+      reference: formatAccountReference(view.createdAt, view.sequence),
       createdDate: view.createdAt.toISOString(),
       branch: view.branch,
       paymentTerms: view.paymentTermsDays === null ? null : `Net ${view.paymentTermsDays}`,

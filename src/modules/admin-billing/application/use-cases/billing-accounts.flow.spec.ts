@@ -37,6 +37,7 @@ function row(overrides: Partial<BillingAccountRowView> = {}): BillingAccountRowV
   return {
     id: 'a1',
     sequence: 42,
+    createdAt: new Date('2026-03-04T00:00:00.000Z'),
     accountName: 'Adeyemi Family Account',
     primaryContact: 'Funmilayo Adeyemi',
     phone: '+234 803 111 2222',
@@ -90,7 +91,7 @@ describe('ListBillingAccountsUseCase', () => {
     expect(result.tabs).toEqual({ all: 156, outstanding: 23, inactive: 12 });
     expect(result.branches).toEqual(['Lagos', 'Abuja']);
     expect(result.accounts[0]).toMatchObject({
-      reference: 'CP-42',
+      reference: 'ACC-2026-0042',
       accountName: 'Adeyemi Family Account',
       primaryContact: 'Funmilayo Adeyemi',
       lastPaymentAt: '2026-07-12T00:00:00.000Z',
@@ -133,6 +134,7 @@ describe('GetBillingAccountUseCase', () => {
       sequence: 42,
       accountName: 'Adeyemi Family Account',
       primaryContact: 'Funmilayo Adeyemi',
+      email: 'babatunde@adeyemifamily.com',
       phone: '+234 803 111 2222',
       branch: 'Victoria Island',
       status: PrismaFamilyStatus.ACTIVE,
@@ -191,7 +193,7 @@ describe('GetBillingAccountUseCase', () => {
     };
     const result = await new GetBillingAccountUseCase(reads).execute('a1');
 
-    expect(result.summary.reference).toBe('CP-42');
+    expect(result.summary.reference).toBe('ACC-2025-0042');
     expect(result.summary.branch).toBe('Victoria Island');
     expect(result.summary.paymentTerms).toBe('Net 30');
     expect(result.summary.preferredMethod).toBe('Bank Transfer');

@@ -31,6 +31,7 @@ interface EntryCore {
   phone: string | null;
   primaryRecipientId: string | null;
   status: PrismaFamilyStatus;
+  createdAt: Date;
 }
 
 interface PendingInvoice {
@@ -67,6 +68,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         phone: true,
         primaryRecipientId: true,
         status: true,
+        createdAt: true,
       },
     })) satisfies EntryCore[];
 
@@ -112,6 +114,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         fullName: true,
         accountName: true,
         branch: true,
+        email: true,
         phone: true,
         primaryRecipientId: true,
         status: true,
@@ -130,7 +133,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         ? null
         : await this.prisma.user.findUnique({
             where: { id: entry.userId },
-            select: { firstName: true, lastName: true, phone: true },
+            select: { firstName: true, lastName: true, email: true, phone: true },
           });
 
     const [invoices, payments] =
@@ -213,6 +216,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
       sequence: entry.sequence,
       accountName: entry.accountName ?? primaryContact,
       primaryContact,
+      email: entry.email ?? user?.email ?? null,
       phone: user?.phone ?? entry.phone,
       branch: entry.branch,
       status: entry.status,
@@ -789,6 +793,7 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
       return {
         id: entry.id,
         sequence: entry.sequence,
+        createdAt: entry.createdAt,
         accountName: entry.accountName ?? primaryContact,
         primaryContact,
         phone: user?.phone ?? entry.phone,

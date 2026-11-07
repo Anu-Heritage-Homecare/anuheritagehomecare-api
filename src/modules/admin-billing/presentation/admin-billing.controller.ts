@@ -38,6 +38,7 @@ import { ListAccountAdjustmentsUseCase } from '../application/use-cases/list-acc
 import { ReverseAccountAdjustmentUseCase } from '../application/use-cases/reverse-account-adjustment.use-case';
 import { GetBillingAccountActivityUseCase } from '../application/use-cases/get-billing-account-activity.use-case';
 import { GetBillingAccountUseCase } from '../application/use-cases/get-billing-account.use-case';
+import { GetAccountPreviewUseCase } from '../application/use-cases/get-account-preview.use-case';
 import { GetBillingDashboardUseCase } from '../application/use-cases/get-billing-dashboard.use-case';
 import { GetBillingSettingsUseCase } from '../application/use-cases/get-billing-settings.use-case';
 import {
@@ -67,6 +68,7 @@ import { ListBillingInvoicesUseCase } from '../application/use-cases/list-billin
 import { ListBillingPaymentsUseCase } from '../application/use-cases/list-billing-payments.use-case';
 import { BillingAccountActivityResponseDto } from './dto/billing-account-activity-response.dto';
 import { BillingAccountDetailResponseDto } from './dto/billing-account-detail-response.dto';
+import { AccountPreviewResponseDto } from './dto/account-preview-response.dto';
 import { BillingAccountInvoicesResponseDto } from './dto/billing-account-invoices-response.dto';
 import { BillingAccountPaymentsResponseDto } from './dto/billing-account-payments-response.dto';
 import { BillingAccountRecipientsResponseDto } from './dto/billing-account-recipients-response.dto';
@@ -166,6 +168,7 @@ export class AdminBillingController {
     private readonly getDashboard: GetBillingDashboardUseCase,
     private readonly listAccounts: ListBillingAccountsUseCase,
     private readonly getAccount: GetBillingAccountUseCase,
+    private readonly getAccountPreview: GetAccountPreviewUseCase,
     private readonly listRecipients: ListBillingAccountRecipientsUseCase,
     private readonly listInvoices: ListBillingAccountInvoicesUseCase,
     private readonly listPayments: ListBillingAccountPaymentsUseCase,
@@ -703,6 +706,15 @@ export class AdminBillingController {
   async account(@Param('id', ParseUUIDPipe) id: string): Promise<BillingAccountDetailResponseDto> {
     const result = await this.getAccount.execute(id);
     return BillingAccountDetailResponseDto.fromResult(result);
+  }
+
+  @Get('accounts/:id/preview')
+  @ApiOperation({
+    summary: 'The Account Preview drawer: contact, financials, linked recipients, recent invoices',
+  })
+  @ApiOkResponse({ type: AccountPreviewResponseDto })
+  async accountPreview(@Param('id', ParseUUIDPipe) id: string): Promise<AccountPreviewResponseDto> {
+    return AccountPreviewResponseDto.fromResult(await this.getAccountPreview.execute(id));
   }
 
   @Get('accounts/:id/care-recipients')
