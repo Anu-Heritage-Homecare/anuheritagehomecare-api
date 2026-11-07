@@ -24,6 +24,15 @@ export interface BillingNotificationSettingsResult {
   inApp: boolean;
 }
 
+/** The issuing agency's profile, used as the invoice letterhead and payment info. */
+export interface BillingCompanyProfileResult {
+  companyName: string | null;
+  companyAddress: string | null;
+  bankName: string | null;
+  bankAccountNumber: string | null;
+  bankAccountName: string | null;
+}
+
 export interface BillingPaymentMethodResult {
   method: string;
   enabled: boolean;
@@ -34,6 +43,7 @@ export interface BillingSettingsResult {
   invoice: BillingInvoiceSettingsResult;
   automation: BillingAutomationSettingsResult;
   notifications: BillingNotificationSettingsResult;
+  company: BillingCompanyProfileResult;
   paymentMethods: BillingPaymentMethodResult[];
 }
 
@@ -73,6 +83,13 @@ export function toBillingSettingsResult(
       email: p.emailNotifications,
       sms: p.smsNotifications,
       inApp: p.inAppNotifications,
+    },
+    company: {
+      companyName: p.companyName,
+      companyAddress: p.companyAddress,
+      bankName: p.bankName,
+      bankAccountNumber: p.bankAccountNumber,
+      bankAccountName: p.bankAccountName,
     },
     paymentMethods: paymentMethods.map(toPaymentMethodResult),
   };

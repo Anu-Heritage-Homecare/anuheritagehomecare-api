@@ -9,6 +9,15 @@ export interface BillingInvoiceLineResult {
   amountMinor: number;
 }
 
+/** The issuing agency's profile, printed as the invoice letterhead and payment info. */
+export interface BillingInvoiceIssuerResult {
+  companyName: string | null;
+  companyAddress: string | null;
+  bankName: string | null;
+  bankAccountNumber: string | null;
+  bankAccountName: string | null;
+}
+
 /** The single invoice detail (the Overview tab). Money is minor units, dates are ISO. */
 export interface BillingInvoiceDetailResult {
   id: string;
@@ -16,6 +25,8 @@ export interface BillingInvoiceDetailResult {
   status: InvoiceListStatus;
   billingAccountId: string | null;
   billingAccountName: string | null;
+  /** The bill to address, from the owner's stored address, null when unknown. */
+  billingAddress: string | null;
   careRecipientName: string;
   careRecipientPhotoKey: string | null;
   invoiceDate: string;
@@ -25,10 +36,18 @@ export interface BillingInvoiceDetailResult {
   servicePeriodStart: string;
   servicePeriodEnd: string;
   currency: string;
+  /** The line totals before discounts and tax. */
+  subtotalMinor: number;
+  discountTotalMinor: number;
+  taxMinor: number;
+  /** The tax rate applied, as whole percent (e.g. 7.5). */
+  taxRatePercent: number;
   totalAmountMinor: number;
   insuranceCoveredMinor: number;
   amountPaidMinor: number;
   balanceDueMinor: number;
   percentPaid: number;
   lineItems: BillingInvoiceLineResult[];
+  /** The issuing agency's profile from billing settings (letterhead and payment info). */
+  issuer: BillingInvoiceIssuerResult;
 }

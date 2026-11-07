@@ -1,5 +1,7 @@
 import { Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
+import { BillingSettings } from '../../domain/billing-settings.entity';
+import { BillingSettingsRepository } from '../../domain/billing-settings.repository';
 import {
   BillingInvoiceDetailView,
   BillingInvoiceServicesView,
@@ -18,6 +20,15 @@ import { ListBillingInvoicesUseCase } from './list-billing-invoices.use-case';
 
 const NOW = new Date('2026-10-30T10:00:00.000Z');
 const clock: Clock = { now: () => NOW };
+
+/** A settings repo whose load returns null, so the issuer comes from the defaults. */
+const settingsRepo: BillingSettingsRepository = {
+  load: () => Promise.resolve(null),
+  save: () => Promise.resolve(),
+  loadPaymentMethods: () => Promise.resolve([]),
+  loadPaymentMethod: () => Promise.resolve(null),
+  savePaymentMethod: () => Promise.resolve(),
+};
 
 function row(overrides: Partial<InvoiceListRowView> = {}): InvoiceListRowView {
   return {
@@ -129,11 +140,16 @@ describe('GetBillingInvoiceUseCase', () => {
       status: 'AWAITING_PAYMENT',
       billingAccountId: 'a1',
       billingAccountName: 'Adeyemi Family Account',
+      billingAddress: '24 Gbagada Expressway, Gbagada, Lagos',
       careRecipientName: 'Funmilayo Adeyemi',
       careRecipientPhotoKey: null,
       currency: 'NGN',
       totalAmountMinor: 145_000_000,
       insuranceCoveredMinor: 0,
+      subtotalMinor: 145_000_000,
+      discountTotalMinor: 0,
+      taxMinor: 0,
+      taxRateBasisPoints: 750,
       amountPaidMinor: 0,
       lineItems: [
         {
@@ -155,13 +171,45 @@ describe('GetBillingInvoiceUseCase', () => {
       payments: () => Promise.resolve(null),
       history: () => Promise.resolve(null),
     };
-    const result = await new GetBillingInvoiceUseCase(reads, clock).execute('inv1');
+    const result = await new GetBillingInvoiceUseCase(reads, settingsRepo, clock).execute('inv1');
 
     expect(result.number).toBe('INV-2026-451');
     expect(result.paymentTerms).toBe('Net 30'); // 30 Jun to 30 Jul is 30 days
     expect(result.balanceDueMinor).toBe(145_000_000);
     expect(result.percentPaid).toBe(0);
     expect(result.lineItems[0]).toMatchObject({ serviceName: 'Personal Care', rateMinor: null });
+    expect(result.subtotalMinor).toBe(145_000_000);
+    expect(result.taxRatePercent).toBe(7.5); // 750 basis points
+    expect(result.billingAddress).toBe('24 Gbagada Expressway, Gbagada, Lagos');
+    // With no saved settings the issuer falls back to nulls.
+    expect(result.issuer.companyName).toBeNull();
+  });
+
+  it('maps the issuer from the saved company profile', async () => {
+    const reads: BillingInvoicesReadModel = {
+      list: () => Promise.reject(new Error('not used')),
+      detail: () => Promise.resolve(detailView()),
+      services: () => Promise.resolve(null),
+      payments: () => Promise.resolve(null),
+      history: () => Promise.resolve(null),
+    };
+    const withProfile: BillingSettingsRepository = {
+      ...settingsRepo,
+      load: () =>
+        Promise.resolve(
+          BillingSettings.createDefault().apply({
+            companyName: 'CareProfs Medical Ltd',
+            bankName: 'First Bank',
+            bankAccountNumber: '1029302910',
+          }),
+        ),
+    };
+    const result = await new GetBillingInvoiceUseCase(reads, withProfile, clock).execute('inv1');
+    expect(result.issuer).toMatchObject({
+      companyName: 'CareProfs Medical Ltd',
+      bankName: 'First Bank',
+      bankAccountNumber: '1029302910',
+    });
   });
 
   it('computes a partial percent paid', async () => {
@@ -172,7 +220,7 @@ describe('GetBillingInvoiceUseCase', () => {
       payments: () => Promise.resolve(null),
       history: () => Promise.resolve(null),
     };
-    const result = await new GetBillingInvoiceUseCase(reads, clock).execute('inv1');
+    const result = await new GetBillingInvoiceUseCase(reads, settingsRepo, clock).execute('inv1');
     expect(result.balanceDueMinor).toBe(72_500_000);
     expect(result.percentPaid).toBe(50);
   });
@@ -186,7 +234,7 @@ describe('GetBillingInvoiceUseCase', () => {
       history: () => Promise.resolve(null),
     };
     await expect(
-      new GetBillingInvoiceUseCase(reads, clock).execute('missing'),
+      new GetBillingInvoiceUseCase(reads, settingsRepo, clock).execute('missing'),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 });

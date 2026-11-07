@@ -8,6 +8,7 @@ function invoice(overrides: Partial<BillingInvoiceDetailResult> = {}): BillingIn
     status: 'PAID',
     billingAccountId: 'acc-1',
     billingAccountName: 'Adeyemi Family Account',
+    billingAddress: '24 Gbagada Expressway, Gbagada, Lagos',
     careRecipientName: 'Funmilayo Adeyemi',
     careRecipientPhotoKey: null,
     invoiceDate: '2026-08-01T00:00:00.000Z',
@@ -16,6 +17,10 @@ function invoice(overrides: Partial<BillingInvoiceDetailResult> = {}): BillingIn
     servicePeriodStart: '2026-08-01T00:00:00.000Z',
     servicePeriodEnd: '2026-08-15T00:00:00.000Z',
     currency: 'NGN',
+    subtotalMinor: 25_000_000,
+    discountTotalMinor: 0,
+    taxMinor: 0,
+    taxRatePercent: 7.5,
     totalAmountMinor: 25_000_000,
     insuranceCoveredMinor: 0,
     amountPaidMinor: 25_000_000,
@@ -30,6 +35,13 @@ function invoice(overrides: Partial<BillingInvoiceDetailResult> = {}): BillingIn
         amountMinor: 25_000_000,
       },
     ],
+    issuer: {
+      companyName: 'CareProfs Medical Ltd',
+      companyAddress: '12 Medical Road, Ikeja, Lagos, Nigeria',
+      bankName: 'First Bank',
+      bankAccountNumber: '1029302910',
+      bankAccountName: 'CareProfs Medical Ltd',
+    },
     ...overrides,
   };
 }
@@ -54,6 +66,13 @@ describe('buildInvoicePdf', () => {
     // The formatted amount (minor units to NGN) is rendered.
     expect(text).toContain('NGN 250,000.00');
     expect(text).toContain('INVOICE');
+    // Letterhead, breakdown and payment info are rendered.
+    expect(text).toContain('CareProfs Medical Ltd');
+    expect(text).toContain('Subtotal');
+    // Parentheses are escaped in the PDF content stream.
+    expect(text).toContain('VAT \\(7.5%\\)');
+    expect(text).toContain('First Bank');
+    expect(text).toContain('24 Gbagada Expressway, Gbagada, Lagos');
   });
 
   it('escapes parentheses in text so the content stream stays valid', () => {

@@ -23,6 +23,11 @@ export interface UpdateBillingSettingsCommand {
   emailNotifications?: boolean;
   smsNotifications?: boolean;
   inAppNotifications?: boolean;
+  companyName?: string | null;
+  companyAddress?: string | null;
+  bankName?: string | null;
+  bankAccountNumber?: string | null;
+  bankAccountName?: string | null;
 }
 
 /** Save the invoice, automation and notification preferences (the settings singleton). */

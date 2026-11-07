@@ -29,13 +29,25 @@ export function buildInvoicePdf(invoice: BillingInvoiceDetailResult): {
   };
 
   const c = invoice.currency;
-  line(LEFT, 800, 'INVOICE', 22, 'bold');
-  line(LEFT, 778, invoice.number, 11);
-  line(LEFT, 764, `Status: ${invoice.status.replace(/_/g, ' ')}`);
+  const issuer = invoice.issuer;
+
+  // Issuer letterhead (left) and the INVOICE heading (right).
+  if (issuer.companyName !== null) {
+    line(LEFT, 800, issuer.companyName, 14, 'bold');
+  }
+  if (issuer.companyAddress !== null) {
+    line(LEFT, 786, issuer.companyAddress, 8);
+  }
+  line(420, 800, 'INVOICE', 20, 'bold');
+  line(420, 782, invoice.number, 10);
+  line(420, 770, `Status: ${invoice.status.replace(/_/g, ' ')}`, 8);
 
   line(LEFT, 736, 'Billed to', 9, 'bold');
   line(LEFT, 722, invoice.billingAccountName ?? invoice.careRecipientName);
-  line(LEFT, 708, `Care recipient: ${invoice.careRecipientName}`);
+  if (invoice.billingAddress !== null) {
+    line(LEFT, 708, invoice.billingAddress, 8);
+  }
+  line(LEFT, 696, `Care recipient: ${invoice.careRecipientName}`, 8);
 
   line(360, 736, 'Invoice date', 9, 'bold');
   line(360, 722, date(invoice.invoiceDate));
@@ -66,21 +78,46 @@ export function buildInvoicePdf(invoice: BillingInvoiceDetailResult): {
     y -= 16;
   }
 
-  // Totals.
+  // Totals: subtotal, discounts, VAT, then the final figures.
   y -= 10;
-  line(COL_RATE, y, 'Total', 10, 'bold');
-  line(COL_AMOUNT, y, money(invoice.totalAmountMinor, c), 10, 'bold');
+  line(COL_RATE, y, 'Subtotal');
+  line(COL_AMOUNT, y, money(invoice.subtotalMinor, c));
+  y -= 16;
+  if (invoice.discountTotalMinor > 0) {
+    line(COL_RATE, y, 'Discounts');
+    line(COL_AMOUNT, y, `-${money(invoice.discountTotalMinor, c)}`);
+    y -= 16;
+  }
+  line(COL_RATE, y, `VAT (${invoice.taxRatePercent}%)`);
+  line(COL_AMOUNT, y, money(invoice.taxMinor, c));
   y -= 16;
   if (invoice.insuranceCoveredMinor > 0) {
     line(COL_RATE, y, 'Insurance');
     line(COL_AMOUNT, y, `-${money(invoice.insuranceCoveredMinor, c)}`);
     y -= 16;
   }
+  line(COL_RATE, y, 'Total Due', 11, 'bold');
+  line(COL_AMOUNT, y, money(invoice.totalAmountMinor, c), 11, 'bold');
+  y -= 16;
   line(COL_RATE, y, 'Paid');
   line(COL_AMOUNT, y, money(invoice.amountPaidMinor, c));
   y -= 16;
   line(COL_RATE, y, 'Balance due', 11, 'bold');
   line(COL_AMOUNT, y, money(invoice.balanceDueMinor, c), 11, 'bold');
+
+  // Payment info footer, when the agency's bank details are set.
+  if (issuer.bankName !== null || issuer.bankAccountNumber !== null) {
+    line(LEFT, 90, 'Payment info', 9, 'bold');
+    line(
+      LEFT,
+      76,
+      [issuer.bankName, issuer.bankAccountNumber].filter((v) => v !== null).join(' • '),
+      9,
+    );
+    if (issuer.bankAccountName !== null) {
+      line(LEFT, 64, issuer.bankAccountName, 9);
+    }
+  }
 
   return { filename: `${invoice.number}.pdf`, pdf: buildPdf(runs) };
 }

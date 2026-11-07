@@ -825,6 +825,13 @@ model BillingSettings {
   emailNotifications         Boolean  @default(true)
   smsNotifications           Boolean  @default(true)
   inAppNotifications         Boolean  @default(true)
+  // The issuing agency's own profile, printed as the invoice letterhead and payment
+  // info. All optional; the frontend falls back when unset.
+  companyName                String?  @db.VarChar(160)
+  companyAddress             String?  @db.VarChar(300)
+  bankName                   String?  @db.VarChar(120)
+  bankAccountNumber          String?  @db.VarChar(40)
+  bankAccountName            String?  @db.VarChar(160)
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 

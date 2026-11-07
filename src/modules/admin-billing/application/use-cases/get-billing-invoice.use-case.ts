@@ -1,7 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
-import { BillingInvoiceDetailResult } from '../dto/billing-invoice-detail.result';
+import { BillingSettings } from '../../domain/billing-settings.entity';
+import {
+  BILLING_SETTINGS_REPOSITORY,
+  BillingSettingsRepository,
+} from '../../domain/billing-settings.repository';
+import {
+  BillingInvoiceDetailResult,
+  BillingInvoiceIssuerResult,
+} from '../dto/billing-invoice-detail.result';
+import { basisPointsToPercent } from '../dto/billing-settings.result';
 import {
   BILLING_INVOICES_READ_MODEL,
   BillingInvoiceDetailView,
@@ -15,19 +24,37 @@ const MILLIS_PER_DAY = 86_400_000;
 export class GetBillingInvoiceUseCase {
   constructor(
     @Inject(BILLING_INVOICES_READ_MODEL) private readonly reads: BillingInvoicesReadModel,
+    @Inject(BILLING_SETTINGS_REPOSITORY) private readonly settings: BillingSettingsRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   async execute(id: string): Promise<BillingInvoiceDetailResult> {
-    const view = await this.reads.detail(id, this.clock.now());
+    const [view, settings] = await Promise.all([
+      this.reads.detail(id, this.clock.now()),
+      this.settings.load(),
+    ]);
     if (view === null) {
       throw new NotFoundDomainException('Invoice not found');
     }
-    return toResult(view);
+    return toResult(view, issuerOf(settings ?? BillingSettings.createDefault()));
   }
 }
 
-function toResult(view: BillingInvoiceDetailView): BillingInvoiceDetailResult {
+function issuerOf(settings: BillingSettings): BillingInvoiceIssuerResult {
+  const p = settings.snapshot();
+  return {
+    companyName: p.companyName,
+    companyAddress: p.companyAddress,
+    bankName: p.bankName,
+    bankAccountNumber: p.bankAccountNumber,
+    bankAccountName: p.bankAccountName,
+  };
+}
+
+function toResult(
+  view: BillingInvoiceDetailView,
+  issuer: BillingInvoiceIssuerResult,
+): BillingInvoiceDetailResult {
   const balanceDueMinor = Math.max(0, view.totalAmountMinor - view.amountPaidMinor);
   const percentPaid =
     view.totalAmountMinor === 0
@@ -39,6 +66,7 @@ function toResult(view: BillingInvoiceDetailView): BillingInvoiceDetailResult {
     status: view.status,
     billingAccountId: view.billingAccountId,
     billingAccountName: view.billingAccountName,
+    billingAddress: view.billingAddress,
     careRecipientName: view.careRecipientName,
     careRecipientPhotoKey: view.careRecipientPhotoKey,
     invoiceDate: view.issuedAt.toISOString(),
@@ -47,6 +75,10 @@ function toResult(view: BillingInvoiceDetailView): BillingInvoiceDetailResult {
     servicePeriodStart: view.periodStart.toISOString(),
     servicePeriodEnd: view.periodEnd.toISOString(),
     currency: view.currency,
+    subtotalMinor: view.subtotalMinor,
+    discountTotalMinor: view.discountTotalMinor,
+    taxMinor: view.taxMinor,
+    taxRatePercent: basisPointsToPercent(view.taxRateBasisPoints),
     totalAmountMinor: view.totalAmountMinor,
     insuranceCoveredMinor: view.insuranceCoveredMinor,
     amountPaidMinor: view.amountPaidMinor,
@@ -59,6 +91,7 @@ function toResult(view: BillingInvoiceDetailView): BillingInvoiceDetailResult {
       rateMinor: line.rateMinor,
       amountMinor: line.amountMinor,
     })),
+    issuer,
   };
 }
 

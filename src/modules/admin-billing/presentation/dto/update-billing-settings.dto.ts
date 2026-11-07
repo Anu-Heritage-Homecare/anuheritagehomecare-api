@@ -96,4 +96,34 @@ export class UpdateBillingSettingsRequestDto {
   @IsOptional()
   @IsBoolean()
   inAppNotifications?: boolean;
+
+  @ApiPropertyOptional({ maxLength: 160, example: 'CareProfs Medical Ltd' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  companyName?: string;
+
+  @ApiPropertyOptional({ maxLength: 300, example: '12 Medical Road, Ikeja, Lagos, Nigeria' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  companyAddress?: string;
+
+  @ApiPropertyOptional({ maxLength: 120, example: 'First Bank' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  bankName?: string;
+
+  @ApiPropertyOptional({ maxLength: 40, example: '1029302910' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  bankAccountNumber?: string;
+
+  @ApiPropertyOptional({ maxLength: 160, example: 'CareProfs Medical Ltd' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  bankAccountName?: string;
 }

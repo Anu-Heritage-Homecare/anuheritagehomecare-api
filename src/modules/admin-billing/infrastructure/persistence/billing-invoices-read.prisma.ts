@@ -143,6 +143,10 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
         periodEnd: true,
         amountMinor: true,
         insuranceCoveredMinor: true,
+        subtotalMinor: true,
+        discountTotalMinor: true,
+        taxMinor: true,
+        taxRateBasisPoints: true,
         currency: true,
         status: true,
         careRecipientId: true,
@@ -163,12 +167,22 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
       return null;
     }
 
-    const [payments, account] = await Promise.all([
+    const [payments, account, owner] = await Promise.all([
       this.prisma.recipientInvoicePayment.findMany({
         where: { invoiceId: id, refundedAt: null },
         select: { amountMinor: true },
       }),
       this.resolveAccount(invoice.careRecipient.ownerId, invoice.careRecipientId),
+      this.prisma.user.findUnique({
+        where: { id: invoice.careRecipient.ownerId },
+        select: {
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          state: true,
+          postalCode: true,
+        },
+      }),
     ]);
 
     const amountPaidMinor = payments.reduce((sum, payment) => sum + payment.amountMinor, 0);
@@ -184,11 +198,16 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
       status: invoiceListStatus(invoice.status, invoice.dueDate, patientDue, amountPaidMinor, now),
       billingAccountId: account?.id ?? null,
       billingAccountName: account === null ? null : (account.accountName ?? account.fullName),
+      billingAddress: owner === null ? null : formatAddress(owner),
       careRecipientName: invoice.careRecipient.name,
       careRecipientPhotoKey: invoice.careRecipient.photoKey,
       currency: invoice.currency,
       totalAmountMinor: invoice.amountMinor,
       insuranceCoveredMinor: invoice.insuranceCoveredMinor,
+      subtotalMinor: invoice.subtotalMinor,
+      discountTotalMinor: invoice.discountTotalMinor,
+      taxMinor: invoice.taxMinor,
+      taxRateBasisPoints: invoice.taxRateBasisPoints,
       amountPaidMinor,
       lineItems: invoice.lines.map((line) => ({
         serviceName: line.serviceName,
@@ -473,4 +492,17 @@ function matchesAmount(row: InvoiceListRowView, min: number | null, max: number 
     return false;
   }
   return max === null || row.amountMinor <= max;
+}
+
+/** The bill to address, one line, from the owner's stored address parts. */
+function formatAddress(owner: {
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+}): string {
+  return [owner.addressLine1, owner.addressLine2, owner.city, owner.state, owner.postalCode]
+    .filter((part): part is string => part !== null && part.trim().length > 0)
+    .join(', ');
 }

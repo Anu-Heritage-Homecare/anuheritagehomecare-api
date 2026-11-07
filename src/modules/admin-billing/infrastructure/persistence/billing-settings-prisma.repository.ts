@@ -31,6 +31,11 @@ export class BillingSettingsPrismaRepository implements BillingSettingsRepositor
       emailNotifications: row.emailNotifications,
       smsNotifications: row.smsNotifications,
       inAppNotifications: row.inAppNotifications,
+      companyName: row.companyName,
+      companyAddress: row.companyAddress,
+      bankName: row.bankName,
+      bankAccountNumber: row.bankAccountNumber,
+      bankAccountName: row.bankAccountName,
     });
   }
 
@@ -52,6 +57,11 @@ export class BillingSettingsPrismaRepository implements BillingSettingsRepositor
       emailNotifications: p.emailNotifications,
       smsNotifications: p.smsNotifications,
       inAppNotifications: p.inAppNotifications,
+      companyName: p.companyName,
+      companyAddress: p.companyAddress,
+      bankName: p.bankName,
+      bankAccountNumber: p.bankAccountNumber,
+      bankAccountName: p.bankAccountName,
     };
     await this.prisma.billingSettings.upsert({
       where: { singleton: true },

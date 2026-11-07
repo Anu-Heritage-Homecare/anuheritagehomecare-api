@@ -16,6 +16,12 @@ export interface BillingSettingsProps {
   emailNotifications: boolean;
   smsNotifications: boolean;
   inAppNotifications: boolean;
+  /** The issuing agency's profile, printed as the invoice letterhead and payment info. */
+  companyName: string | null;
+  companyAddress: string | null;
+  bankName: string | null;
+  bankAccountNumber: string | null;
+  bankAccountName: string | null;
 }
 
 /** Every field a caller may change; omitted fields keep their current value. */
@@ -55,6 +61,11 @@ export class BillingSettings {
       emailNotifications: true,
       smsNotifications: true,
       inAppNotifications: true,
+      companyName: null,
+      companyAddress: null,
+      bankName: null,
+      bankAccountNumber: null,
+      bankAccountName: null,
     });
   }
 
@@ -75,6 +86,19 @@ export class BillingSettings {
     }
     if (patch.invoicePrefix !== undefined) {
       next.invoicePrefix = patch.invoicePrefix.trim();
+    }
+    // Trim the issuer text fields; an empty value clears them back to null.
+    for (const key of [
+      'companyName',
+      'companyAddress',
+      'bankName',
+      'bankAccountNumber',
+      'bankAccountName',
+    ] as const) {
+      if (patch[key] !== undefined) {
+        const trimmed = (patch[key] ?? '').trim();
+        next[key] = trimmed.length === 0 ? null : trimmed;
+      }
     }
     this.state = next;
     this.validate();

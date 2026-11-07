@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   BillingAutomationSettingsResult,
+  BillingCompanyProfileResult,
   BillingInvoiceSettingsResult,
   BillingNotificationSettingsResult,
   BillingPaymentMethodResult,
@@ -37,12 +38,25 @@ class BillingPaymentMethodDto implements BillingPaymentMethodResult {
   @ApiProperty({ example: 'Manual confirmation of transfers' }) description!: string;
 }
 
+class BillingCompanyProfileDto implements BillingCompanyProfileResult {
+  @ApiProperty({ nullable: true, type: String, example: 'CareProfs Medical Ltd' })
+  companyName!: string | null;
+  @ApiProperty({ nullable: true, type: String, example: '12 Medical Road, Ikeja, Lagos, Nigeria' })
+  companyAddress!: string | null;
+  @ApiProperty({ nullable: true, type: String, example: 'First Bank' }) bankName!: string | null;
+  @ApiProperty({ nullable: true, type: String, example: '1029302910' })
+  bankAccountNumber!: string | null;
+  @ApiProperty({ nullable: true, type: String, example: 'CareProfs Medical Ltd' })
+  bankAccountName!: string | null;
+}
+
 /** The whole Billing Settings screen. */
 export class BillingSettingsResponseDto implements BillingSettingsResult {
   @ApiProperty({ type: BillingInvoiceSettingsDto }) invoice!: BillingInvoiceSettingsDto;
   @ApiProperty({ type: BillingAutomationSettingsDto }) automation!: BillingAutomationSettingsDto;
   @ApiProperty({ type: BillingNotificationSettingsDto })
   notifications!: BillingNotificationSettingsDto;
+  @ApiProperty({ type: BillingCompanyProfileDto }) company!: BillingCompanyProfileDto;
   @ApiProperty({ type: [BillingPaymentMethodDto] }) paymentMethods!: BillingPaymentMethodDto[];
 
   static fromResult(result: BillingSettingsResult): BillingSettingsResponseDto {

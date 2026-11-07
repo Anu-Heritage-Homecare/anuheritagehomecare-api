@@ -69,12 +69,19 @@ export interface BillingInvoiceDetailView {
   status: InvoiceListStatus;
   billingAccountId: string | null;
   billingAccountName: string | null;
+  /** The bill to address, from the owner's stored address, null when unknown. */
+  billingAddress: string | null;
   careRecipientName: string;
   careRecipientPhotoKey: string | null;
   currency: string;
-  /** Gross invoice total (the sum of the line amounts), in minor units. */
+  /** Gross invoice total (net of discounts and including tax), in minor units. */
   totalAmountMinor: number;
   insuranceCoveredMinor: number;
+  /** The line totals before discounts and tax, plus the discount and tax amounts. */
+  subtotalMinor: number;
+  discountTotalMinor: number;
+  taxMinor: number;
+  taxRateBasisPoints: number;
   amountPaidMinor: number;
   lineItems: BillingInvoiceLineView[];
 }

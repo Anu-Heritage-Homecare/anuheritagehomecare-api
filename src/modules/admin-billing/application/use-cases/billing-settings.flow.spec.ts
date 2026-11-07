@@ -105,6 +105,26 @@ describe('UpdateBillingSettingsUseCase', () => {
     expect(result.automation.autoReceipts).toBe(true); // untouched default
     expect(repo.settings?.snapshot().standardTaxRateBasisPoints).toBe(1_000);
   });
+
+  it('saves the company profile and echoes it, clearing a blanked field', async () => {
+    const repo = new FakeRepo();
+    const saved = await new UpdateBillingSettingsUseCase(repo).execute({
+      companyName: 'CareProfs Medical Ltd',
+      companyAddress: '12 Medical Road, Ikeja, Lagos, Nigeria',
+      bankName: 'First Bank',
+      bankAccountNumber: '1029302910',
+    });
+    expect(saved.company).toMatchObject({
+      companyName: 'CareProfs Medical Ltd',
+      bankName: 'First Bank',
+      bankAccountNumber: '1029302910',
+      bankAccountName: null,
+    });
+
+    const cleared = await new UpdateBillingSettingsUseCase(repo).execute({ companyName: '  ' });
+    expect(cleared.company.companyName).toBeNull();
+    expect(cleared.company.bankName).toBe('First Bank'); // untouched
+  });
 });
 
 describe('UpdatePaymentMethodUseCase', () => {
