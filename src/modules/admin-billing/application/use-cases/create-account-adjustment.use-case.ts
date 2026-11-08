@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generator.port';
-import { NotFoundDomainException } from '@shared/domain/domain-exception';
+import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
 import { Currency } from '@shared/domain/currency.enum';
 import { AccountAdjustmentCategory } from '../../domain/account-adjustment-category.enum';
 import { adjustmentReference } from '../../domain/account-adjustment-category.enum';
@@ -16,9 +16,12 @@ export interface CreateAccountAdjustmentCommand {
   category: AccountAdjustmentCategory;
   type: string;
   billingAccountId: string;
+  /** The invoice a credit applies to (Apply Credit); null for an account level correction. */
+  invoiceId: string | null;
   amountMinor: number;
   currency: Currency;
   reason: string;
+  notes: string | null;
   createdById: string;
 }
 
@@ -36,14 +39,33 @@ export class CreateAccountAdjustmentUseCase {
     if (!(await this.adjustments.billingAccountExists(command.billingAccountId))) {
       throw new NotFoundDomainException('Billing account not found');
     }
+    // A credit applied to an invoice must target an invoice on this account, in the same
+    // currency, and cannot exceed what the invoice still owes (Apply Credit modal).
+    if (command.invoiceId !== null) {
+      const invoice = await this.adjustments.loadCreditableInvoice(
+        command.billingAccountId,
+        command.invoiceId,
+      );
+      if (invoice === null) {
+        throw new NotFoundDomainException('Invoice not found on this billing account');
+      }
+      if (invoice.currency !== command.currency) {
+        throw new ValidationException('The credit currency must match the invoice currency');
+      }
+      if (command.amountMinor > invoice.outstandingMinor) {
+        throw new ValidationException('The credit cannot exceed the invoice outstanding balance');
+      }
+    }
     const adjustment = AccountAdjustment.create({
       id: this.ids.generate(),
       category: command.category,
       type: command.type,
       billingAccountId: command.billingAccountId,
+      invoiceId: command.invoiceId,
       amountMinor: command.amountMinor,
       currency: command.currency,
       reason: command.reason,
+      notes: command.notes,
       createdById: command.createdById,
       now: this.clock.now(),
     });

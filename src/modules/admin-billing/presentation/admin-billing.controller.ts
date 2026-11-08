@@ -882,9 +882,11 @@ export class AdminBillingController {
       category: body.category,
       type: body.type,
       billingAccountId: body.billingAccountId,
+      invoiceId: body.invoiceId ?? null,
       amountMinor: body.amountMinor,
       currency: body.currency,
       reason: body.reason,
+      notes: body.notes ?? null,
       createdById: admin.adminUserId,
     });
   }

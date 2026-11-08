@@ -4,7 +4,10 @@ import { Currency } from '@shared/domain/currency.enum';
 import { AccountAdjustmentCategory } from '../../domain/account-adjustment-category.enum';
 import { AccountAdjustmentStatus } from '../../domain/account-adjustment-status.enum';
 import { AccountAdjustment } from '../../domain/account-adjustment.entity';
-import { AccountAdjustmentRepository } from '../../domain/account-adjustment.repository';
+import {
+  AccountAdjustmentRepository,
+  CreditableInvoice,
+} from '../../domain/account-adjustment.repository';
 
 /** Prisma backed adapter for the AccountAdjustmentRepository port. */
 @Injectable()
@@ -19,10 +22,12 @@ export class AccountAdjustmentPrismaRepository implements AccountAdjustmentRepos
         category: adjustment.category,
         type: adjustment.type,
         billingAccountId: adjustment.billingAccountId,
+        invoiceId: adjustment.invoiceId,
         amountMinor: adjustment.amountMinor,
         currency: adjustment.currency,
         status: adjustment.status,
         reason: adjustment.reason,
+        notes: adjustment.notes,
         createdById: adjustment.createdById,
         createdAt: adjustment.createdAt,
       },
@@ -53,10 +58,12 @@ export class AccountAdjustmentPrismaRepository implements AccountAdjustmentRepos
       category: row.category as unknown as AccountAdjustmentCategory,
       type: row.type,
       billingAccountId: row.billingAccountId,
+      invoiceId: row.invoiceId,
       amountMinor: row.amountMinor,
       currency: row.currency as unknown as Currency,
       status: row.status as unknown as AccountAdjustmentStatus,
       reason: row.reason,
+      notes: row.notes,
       createdById: row.createdById,
       createdAt: row.createdAt,
       approvedById: row.approvedById,
@@ -72,5 +79,49 @@ export class AccountAdjustmentPrismaRepository implements AccountAdjustmentRepos
       select: { id: true },
     });
     return entry !== null;
+  }
+
+  async loadCreditableInvoice(
+    billingAccountId: string,
+    invoiceId: string,
+  ): Promise<CreditableInvoice | null> {
+    const [account, invoice] = await Promise.all([
+      this.prisma.familyDirectoryEntry.findUnique({
+        where: { id: billingAccountId },
+        select: { userId: true, primaryRecipientId: true },
+      }),
+      this.prisma.recipientInvoice.findUnique({
+        where: { id: invoiceId },
+        select: {
+          amountMinor: true,
+          insuranceCoveredMinor: true,
+          currency: true,
+          careRecipientId: true,
+          careRecipient: { select: { ownerId: true } },
+        },
+      }),
+    ]);
+    if (account === null || invoice === null) {
+      return null;
+    }
+    // The invoice must belong to this billing account (owner or its primary recipient).
+    const belongsToAccount =
+      (account.userId !== null && account.userId === invoice.careRecipient.ownerId) ||
+      (account.primaryRecipientId !== null &&
+        account.primaryRecipientId === invoice.careRecipientId);
+    if (!belongsToAccount) {
+      return null;
+    }
+    const paid = await this.prisma.recipientInvoicePayment.aggregate({
+      where: { invoiceId },
+      _sum: { amountMinor: true, refundedAmountMinor: true },
+    });
+    const patientDue = Math.max(0, invoice.amountMinor - invoice.insuranceCoveredMinor);
+    const netPaid = (paid._sum.amountMinor ?? 0) - (paid._sum.refundedAmountMinor ?? 0);
+    return {
+      careRecipientId: invoice.careRecipientId,
+      currency: invoice.currency as unknown as Currency,
+      outstandingMinor: Math.max(0, patientDue - netPaid),
+    };
   }
 }

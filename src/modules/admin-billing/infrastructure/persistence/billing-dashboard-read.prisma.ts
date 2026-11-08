@@ -58,16 +58,21 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
       recentReminders,
     ] = await Promise.all([
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { currency },
+        // creditAdjustmentId null excludes non cash credit settlements from collected cash.
+        where: { currency, creditAdjustmentId: null },
         _sum: { amountMinor: true, refundedAmountMinor: true },
       }),
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { currency, receivedAt: { gte: monthStart } },
+        where: { currency, creditAdjustmentId: null, receivedAt: { gte: monthStart } },
         _sum: { amountMinor: true, refundedAmountMinor: true },
         _count: true,
       }),
       this.prisma.recipientInvoicePayment.aggregate({
-        where: { currency, receivedAt: { gte: lastMonthStart, lt: monthStart } },
+        where: {
+          currency,
+          creditAdjustmentId: null,
+          receivedAt: { gte: lastMonthStart, lt: monthStart },
+        },
         _sum: { amountMinor: true, refundedAmountMinor: true },
       }),
       this.prisma.recipientInvoice.aggregate({ where: { currency }, _sum: invoiceSum }),
@@ -102,11 +107,11 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
         _sum: invoiceSum,
       }),
       this.prisma.recipientInvoicePayment.findMany({
-        where: { currency, receivedAt: { gte: seriesStart } },
+        where: { currency, creditAdjustmentId: null, receivedAt: { gte: seriesStart } },
         select: { amountMinor: true, refundedAmountMinor: true, receivedAt: true },
       }),
       this.prisma.recipientInvoicePayment.findMany({
-        where: { currency },
+        where: { currency, creditAdjustmentId: null },
         orderBy: { receivedAt: 'desc' },
         take: feedLimit,
         select: {

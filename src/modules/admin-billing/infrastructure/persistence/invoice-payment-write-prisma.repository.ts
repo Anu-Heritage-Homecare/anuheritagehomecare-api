@@ -117,8 +117,10 @@ export class InvoicePaymentWritePrismaRepository implements InvoicePaymentWriteR
     amountMinor: number;
     refundedAmountMinor: number;
   } | null> {
-    const payment = await this.prisma.recipientInvoicePayment.findUnique({
-      where: { id: paymentId },
+    // A credit settlement (creditAdjustmentId set) is not a cash payment and cannot be
+    // refunded; it is reversed through its adjustment instead.
+    const payment = await this.prisma.recipientInvoicePayment.findFirst({
+      where: { id: paymentId, creditAdjustmentId: null },
       select: { invoiceId: true, amountMinor: true, refundedAmountMinor: true },
     });
     if (payment === null) {

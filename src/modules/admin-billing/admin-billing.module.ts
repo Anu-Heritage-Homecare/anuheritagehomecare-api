@@ -74,6 +74,8 @@ import { ReverseAccountAdjustmentUseCase } from './application/use-cases/reverse
 import { ListBillingPaymentsUseCase } from './application/use-cases/list-billing-payments.use-case';
 import { ListInvoiceNotesUseCase } from './application/use-cases/list-invoice-notes.use-case';
 import { ACCOUNT_ADJUSTMENT_REPOSITORY } from './domain/account-adjustment.repository';
+import { INVOICE_CREDIT_WRITER } from './domain/invoice-credit-writer';
+import { InvoiceCreditWriterPrisma } from './infrastructure/persistence/invoice-credit-writer-prisma';
 import { BILLING_SETTINGS_REPOSITORY } from './domain/billing-settings.repository';
 import { INVOICE_NOTE_REPOSITORY } from './domain/invoice-note.repository';
 import { AccountAdjustmentPrismaRepository } from './infrastructure/persistence/account-adjustment-prisma.repository';
@@ -157,6 +159,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     { provide: INVOICE_NOTE_REPOSITORY, useClass: InvoiceNotePrismaRepository },
     { provide: ACCOUNT_ADJUSTMENTS_READ_MODEL, useClass: AccountAdjustmentsReadPrisma },
     { provide: ACCOUNT_ADJUSTMENT_REPOSITORY, useClass: AccountAdjustmentPrismaRepository },
+    { provide: INVOICE_CREDIT_WRITER, useClass: InvoiceCreditWriterPrisma },
     { provide: FINANCIAL_REPORTS_READ_MODEL, useClass: FinancialReportsReadPrisma },
     { provide: BILLING_SETTINGS_REPOSITORY, useClass: BillingSettingsPrismaRepository },
     { provide: INVOICE_WIZARD_READ_MODEL, useClass: InvoiceWizardReadPrisma },

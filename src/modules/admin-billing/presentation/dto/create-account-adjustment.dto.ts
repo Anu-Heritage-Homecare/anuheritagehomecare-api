@@ -1,5 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsString, IsUUID, MaxLength, Min, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { Currency } from '@shared/domain/currency.enum';
 import {
   ALL_ACCOUNT_ADJUSTMENT_CATEGORIES,
@@ -29,6 +38,14 @@ export class CreateAccountAdjustmentRequestDto {
   @IsUUID()
   billingAccountId!: string;
 
+  @ApiPropertyOptional({
+    description:
+      'The invoice a credit applies to (Apply Credit modal); omit for an account level correction',
+  })
+  @IsOptional()
+  @IsUUID()
+  invoiceId?: string;
+
   @ApiProperty({ minimum: 1, description: 'Amount in the currency minor units' })
   @IsInt()
   @Min(1)
@@ -43,6 +60,12 @@ export class CreateAccountAdjustmentRequestDto {
   @MinLength(1)
   @MaxLength(500)
   reason!: string;
+
+  @ApiPropertyOptional({ maxLength: 2000, description: 'Auditing notes for the correction' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
 }
 
 export class AccountAdjustmentCreatedDto implements AccountAdjustmentCreatedResult {

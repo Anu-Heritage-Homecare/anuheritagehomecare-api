@@ -153,7 +153,8 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
               },
             }),
             this.prisma.recipientInvoicePayment.findMany({
-              where: { careRecipientId: { in: recipientIds } },
+              // Cash only: total paid and last payment exclude credit settlements.
+              where: { careRecipientId: { in: recipientIds }, creditAdjustmentId: null },
               select: {
                 amountMinor: true,
                 refundedAmountMinor: true,
@@ -384,7 +385,8 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
     }
 
     const payments = await this.prisma.recipientInvoicePayment.findMany({
-      where: { careRecipientId: { in: recipientIds } },
+      // The Payments tab lists cash payments; credit settlements are shown on Credits.
+      where: { careRecipientId: { in: recipientIds }, creditAdjustmentId: null },
       orderBy: { receivedAt: 'desc' },
       select: {
         id: true,
@@ -460,7 +462,8 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         },
       }),
       this.prisma.recipientInvoicePayment.findMany({
-        where: { careRecipientId: { in: recipientIds } },
+        // Cash payments only on the activity timeline; credits appear on Credits.
+        where: { careRecipientId: { in: recipientIds }, creditAdjustmentId: null },
         select: {
           amountMinor: true,
           methodLabel: true,

@@ -665,6 +665,8 @@ model RecipientInvoice {
   notes         InvoiceNote[]
   attachments   InvoiceAttachment[]
   events        InvoiceEvent[]
+  // Credit corrections applied to this invoice (Apply Credit), linked for integrity.
+  creditAdjustments AccountAdjustment[] @relation("AdjustmentInvoice")
 
   @@index([careRecipientId, issuedAt])
   // The org wide Billing dashboard aggregates by market, status and date.
@@ -767,10 +769,15 @@ model AccountAdjustment {
   category         AccountAdjustmentCategory
   type             String                    @db.VarChar(80)
   billingAccountId String                    @db.Uuid
+  // The invoice a credit applies to (Apply Credit modal); null for account level
+  // corrections. On approval the credit settles this invoice's outstanding balance.
+  invoiceId        String?                   @db.Uuid
   amountMinor      Int
   currency         Currency
   status           AccountAdjustmentStatus   @default(PENDING_APPROVAL)
   reason           String                    @db.VarChar(500)
+  // Free text auditing notes captured on the Apply Credit modal, separate from reason.
+  notes            String?                   @db.VarChar(2000)
   createdById      String                    @db.Uuid
   createdAt        DateTime                  @default(now())
   approvedById     String?                   @db.Uuid
@@ -779,11 +786,13 @@ model AccountAdjustment {
   reversedAt       DateTime?
 
   billingAccount FamilyDirectoryEntry @relation(fields: [billingAccountId], references: [id], onDelete: Restrict)
+  invoice        RecipientInvoice?    @relation("AdjustmentInvoice", fields: [invoiceId], references: [id], onDelete: SetNull)
   createdBy      AdminUser            @relation("AdjustmentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   approvedBy     AdminUser?           @relation("AdjustmentApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
   reversedBy     AdminUser?           @relation("AdjustmentReversedBy", fields: [reversedById], references: [id], onDelete: Restrict)
 
   @@index([category, createdAt])
+  @@index([invoiceId])
   @@map("account_adjustments")
 }
 
@@ -980,6 +989,10 @@ model RecipientInvoicePayment {
   refundReason        String?   @db.VarChar(500)
   refundedByAdminId   String?   @db.Uuid
   refundedAmountMinor Int       @default(0)
+  // Set when this row is a non cash credit settlement from an approved CREDIT
+  // adjustment (Apply Credit), null for a real cash/online payment. It nets against the
+  // invoice balance like a payment but is excluded from cash collection and revenue reads.
+  creditAdjustmentId String? @db.Uuid @unique
   createdAt       DateTime @default(now())
 
   careRecipient CareRecipient @relation(fields: [careRecipientId], references: [id], onDelete: Cascade)

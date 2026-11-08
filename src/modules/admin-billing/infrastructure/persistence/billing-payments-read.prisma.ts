@@ -36,6 +36,8 @@ export class BillingPaymentsReadPrisma implements BillingPaymentsReadModel {
   async list(filter: PaymentListFilter): Promise<PaymentListView> {
     const [recorded, gateway, entries] = await Promise.all([
       this.prisma.recipientInvoicePayment.findMany({
+        // Credit settlements are not cash payments; they never appear on the list.
+        where: { creditAdjustmentId: null },
         orderBy: { receivedAt: 'desc' },
         select: {
           id: true,

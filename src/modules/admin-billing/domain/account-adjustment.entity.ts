@@ -8,10 +8,12 @@ interface AccountAdjustmentProps {
   category: AccountAdjustmentCategory;
   type: string;
   billingAccountId: string;
+  invoiceId: string | null;
   amountMinor: number;
   currency: Currency;
   status: AccountAdjustmentStatus;
   reason: string;
+  notes: string | null;
   createdById: string;
   createdAt: Date;
   approvedById: string | null;
@@ -22,6 +24,7 @@ interface AccountAdjustmentProps {
 
 const MAX_TYPE = 80;
 const MAX_REASON = 500;
+const MAX_NOTES = 2000;
 
 /**
  * A manual financial correction raised against a billing account. Created awaiting
@@ -43,9 +46,11 @@ export class AccountAdjustment extends AggregateRoot<string> {
     category: AccountAdjustmentCategory;
     type: string;
     billingAccountId: string;
+    invoiceId?: string | null;
     amountMinor: number;
     currency: Currency;
     reason: string;
+    notes?: string | null;
     createdById: string;
     now: Date;
   }): AccountAdjustment {
@@ -63,6 +68,10 @@ export class AccountAdjustment extends AggregateRoot<string> {
     if (reason.length > MAX_REASON) {
       throw new ValidationException(`An adjustment reason cannot exceed ${MAX_REASON} characters`);
     }
+    const notes = params.notes?.trim() ?? '';
+    if (notes.length > MAX_NOTES) {
+      throw new ValidationException(`Adjustment notes cannot exceed ${MAX_NOTES} characters`);
+    }
     if (!Number.isInteger(params.amountMinor) || params.amountMinor <= 0) {
       throw new ValidationException(
         'An adjustment amount must be a positive integer of minor units',
@@ -72,10 +81,12 @@ export class AccountAdjustment extends AggregateRoot<string> {
       category: params.category,
       type,
       billingAccountId: params.billingAccountId,
+      invoiceId: params.invoiceId ?? null,
       amountMinor: params.amountMinor,
       currency: params.currency,
       status: AccountAdjustmentStatus.PendingApproval,
       reason,
+      notes: notes.length === 0 ? null : notes,
       createdById: params.createdById,
       createdAt: params.now,
       approvedById: null,
@@ -126,6 +137,14 @@ export class AccountAdjustment extends AggregateRoot<string> {
 
   get billingAccountId(): string {
     return this.props.billingAccountId;
+  }
+
+  get invoiceId(): string | null {
+    return this.props.invoiceId;
+  }
+
+  get notes(): string | null {
+    return this.props.notes;
   }
 
   get amountMinor(): number {
