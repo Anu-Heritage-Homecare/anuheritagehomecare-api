@@ -142,6 +142,7 @@ import { RequestInvoiceOnlinePaymentUseCase } from '../application/use-cases/req
 import { ApproveInvoiceUseCase } from '../application/use-cases/approve-invoice.use-case';
 import { SendInvoiceReminderUseCase } from '../application/use-cases/send-invoice-reminder.use-case';
 import { DeleteInvoiceAttachmentUseCase } from '../application/use-cases/delete-invoice-attachment.use-case';
+import { DeleteDraftInvoiceUseCase } from '../application/use-cases/delete-draft-invoice.use-case';
 import { DeleteAccountDocumentUseCase } from '../application/use-cases/delete-account-document.use-case';
 import { RefundInvoicePaymentUseCase } from '../application/use-cases/refund-invoice-payment.use-case';
 import { GetPaymentDetailUseCase } from '../application/use-cases/get-payment-detail.use-case';
@@ -200,6 +201,7 @@ export class AdminBillingController {
     private readonly approveInvoice_: ApproveInvoiceUseCase,
     private readonly remindInvoice: SendInvoiceReminderUseCase,
     private readonly deleteAttachment: DeleteInvoiceAttachmentUseCase,
+    private readonly deleteDraftInvoice: DeleteDraftInvoiceUseCase,
     private readonly deleteDocument: DeleteAccountDocumentUseCase,
     private readonly refundPayment_: RefundInvoicePaymentUseCase,
     private readonly getPaymentDetail: GetPaymentDetailUseCase,
@@ -619,6 +621,14 @@ export class AdminBillingController {
       adminId: admin.adminUserId,
     });
     return CancelInvoiceResponseDto.fromResult(result);
+  }
+
+  @Delete('invoices/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a draft (unsent, unpaid) invoice (the Delete Draft modal)' })
+  @ApiNoContentResponse()
+  async deleteInvoice(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.deleteDraftInvoice.execute({ invoiceId: id });
   }
 
   @Get('invoices/:id/history')
