@@ -35,6 +35,9 @@ import { INVOICE_PAYMENT_WRITE_REPOSITORY } from './domain/invoice-payment-write
 import { InvoicePaymentWritePrismaRepository } from './infrastructure/persistence/invoice-payment-write-prisma.repository';
 import { ApproveInvoiceUseCase } from './application/use-cases/approve-invoice.use-case';
 import { SendInvoiceReminderUseCase } from './application/use-cases/send-invoice-reminder.use-case';
+import { GetInvoiceReminderPreviewUseCase } from './application/use-cases/get-invoice-reminder-preview.use-case';
+import { INVOICE_REMINDER_GATEWAY } from './domain/invoice-reminder.gateway';
+import { InvoiceReminderGatewayPrisma } from './infrastructure/persistence/invoice-reminder-gateway.prisma';
 import { INVOICE_EVENT_RECORDER } from './domain/invoice-event.recorder';
 import { InvoiceEventPrismaRecorder } from './infrastructure/persistence/invoice-event-prisma.recorder';
 import { PAYMENT_EVENT_RECORDER } from './domain/payment-event.recorder';
@@ -139,6 +142,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     RequestInvoiceOnlinePaymentUseCase,
     ApproveInvoiceUseCase,
     SendInvoiceReminderUseCase,
+    GetInvoiceReminderPreviewUseCase,
     DeleteInvoiceAttachmentUseCase,
     DeleteAccountDocumentUseCase,
     RefundInvoicePaymentUseCase,
@@ -176,6 +180,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     { provide: BILLABLE_SERVICES_READ_MODEL, useClass: BillableServicesReadPrisma },
     { provide: INVOICE_WRITE_REPOSITORY, useClass: InvoiceWritePrismaRepository },
     { provide: INVOICE_SEND_REPOSITORY, useClass: InvoiceSendPrismaRepository },
+    { provide: INVOICE_REMINDER_GATEWAY, useClass: InvoiceReminderGatewayPrisma },
     { provide: ACCOUNT_DOCUMENT_REPOSITORY, useClass: AccountDocumentPrismaRepository },
     { provide: INVOICE_ATTACHMENT_REPOSITORY, useClass: InvoiceAttachmentPrismaRepository },
     { provide: INVOICE_PAYMENT_WRITE_REPOSITORY, useClass: InvoicePaymentWritePrismaRepository },

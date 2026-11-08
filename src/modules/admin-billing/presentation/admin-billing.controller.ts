@@ -141,6 +141,11 @@ import { RecordInvoicePaymentUseCase } from '../application/use-cases/record-inv
 import { RequestInvoiceOnlinePaymentUseCase } from '../application/use-cases/request-invoice-online-payment.use-case';
 import { ApproveInvoiceUseCase } from '../application/use-cases/approve-invoice.use-case';
 import { SendInvoiceReminderUseCase } from '../application/use-cases/send-invoice-reminder.use-case';
+import { GetInvoiceReminderPreviewUseCase } from '../application/use-cases/get-invoice-reminder-preview.use-case';
+import {
+  InvoiceReminderPreviewResponseDto,
+  SendInvoiceReminderRequestDto,
+} from './dto/invoice-reminder.dto';
 import { DeleteInvoiceAttachmentUseCase } from '../application/use-cases/delete-invoice-attachment.use-case';
 import { DeleteDraftInvoiceUseCase } from '../application/use-cases/delete-draft-invoice.use-case';
 import { DeleteAccountDocumentUseCase } from '../application/use-cases/delete-account-document.use-case';
@@ -200,6 +205,7 @@ export class AdminBillingController {
     private readonly requestOnlinePayment: RequestInvoiceOnlinePaymentUseCase,
     private readonly approveInvoice_: ApproveInvoiceUseCase,
     private readonly remindInvoice: SendInvoiceReminderUseCase,
+    private readonly reminderPreview: GetInvoiceReminderPreviewUseCase,
     private readonly deleteAttachment: DeleteInvoiceAttachmentUseCase,
     private readonly deleteDraftInvoice: DeleteDraftInvoiceUseCase,
     private readonly deleteDocument: DeleteAccountDocumentUseCase,
@@ -451,15 +457,30 @@ export class AdminBillingController {
     await this.approveInvoice_.execute({ invoiceId: id, adminId: admin.adminUserId });
   }
 
+  @Get('invoices/:id/reminder-preview')
+  @ApiOperation({ summary: 'The payment reminder preview (amount due, days overdue, message)' })
+  @ApiOkResponse({ type: InvoiceReminderPreviewResponseDto })
+  async invoiceReminderPreview(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<InvoiceReminderPreviewResponseDto> {
+    const result = await this.reminderPreview.execute(id);
+    return InvoiceReminderPreviewResponseDto.fromResult(result);
+  }
+
   @Post('invoices/:id/reminders')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Record that a payment reminder was sent for an invoice' })
+  @ApiOperation({ summary: 'Send a payment reminder for an invoice (the Send Reminder action)' })
   @ApiNoContentResponse()
   async sendInvoiceReminder(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SendInvoiceReminderRequestDto,
     @CurrentAdmin() admin: AdminPrincipal,
   ): Promise<void> {
-    await this.remindInvoice.execute({ invoiceId: id, adminId: admin.adminUserId });
+    await this.remindInvoice.execute({
+      invoiceId: id,
+      adminId: admin.adminUserId,
+      channels: body.channels,
+    });
   }
 
   @Get('invoices')
