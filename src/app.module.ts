@@ -16,6 +16,7 @@ import { AdminSchedulingModule } from './modules/admin-scheduling/admin-scheduli
 import { AdminLiveMonitoringModule } from './modules/admin-live-monitoring/admin-live-monitoring.module';
 import { AdminIdentityModule } from './modules/admin-identity/admin-identity.module';
 import { AdminPlansBillingModule } from './modules/admin-plans-billing/admin-plans-billing.module';
+import { AdminReportsModule } from './modules/admin-reports/admin-reports.module';
 import { AdminTasksModule } from './modules/admin-tasks/admin-tasks.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
@@ -159,6 +160,7 @@ import { SharedModule } from './shared/shared.module';
     CareNotesModule,
     FamilyContactsModule,
     AdminDashboardModule,
+    AdminReportsModule,
     AdminCareRecipientsModule,
     AdminPlansBillingModule,
     AdminBillingModule,
