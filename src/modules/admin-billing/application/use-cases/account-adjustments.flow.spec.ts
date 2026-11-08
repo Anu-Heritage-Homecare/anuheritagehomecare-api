@@ -19,6 +19,7 @@ import {
 import { ApproveAccountAdjustmentUseCase } from './approve-account-adjustment.use-case';
 import { CreateAccountAdjustmentUseCase } from './create-account-adjustment.use-case';
 import { ListAccountAdjustmentsUseCase } from './list-account-adjustments.use-case';
+import { RejectAccountAdjustmentUseCase } from './reject-account-adjustment.use-case';
 import { ReverseAccountAdjustmentUseCase } from './reverse-account-adjustment.use-case';
 
 const NOW = new Date('2026-08-12T10:00:00.000Z');
@@ -304,9 +305,11 @@ describe('ApproveAccountAdjustmentUseCase', () => {
     const result = await new ApproveAccountAdjustmentUseCase(r, credits, clock).execute({
       id: 'a1',
       approvedById: 'admin2',
+      approverNotes: 'Verified against the roster',
     });
     expect(result.status).toBe(AccountAdjustmentStatus.Processing);
     expect(r.updated[0].approvedById).toBe('admin2');
+    expect(r.updated[0].approverNotes).toBe('Verified against the roster');
     expect(credits.applied).toHaveLength(0);
   });
 
@@ -316,6 +319,7 @@ describe('ApproveAccountAdjustmentUseCase', () => {
     const result = await new ApproveAccountAdjustmentUseCase(r, credits, clock).execute({
       id: 'a1',
       approvedById: 'admin2',
+      approverNotes: null,
     });
     expect(result.status).toBe(AccountAdjustmentStatus.Completed);
     expect(credits.applied).toEqual([
@@ -335,6 +339,46 @@ describe('ApproveAccountAdjustmentUseCase', () => {
       new ApproveAccountAdjustmentUseCase(r, creditWriter(), clock).execute({
         id: 'missing',
         approvedById: 'a2',
+        approverNotes: null,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+    expect(r.updated).toHaveLength(0);
+  });
+});
+
+describe('RejectAccountAdjustmentUseCase', () => {
+  it('rejects a pending adjustment and records the approver notes', async () => {
+    const r = repo({ stored: newAdjustment(AccountAdjustmentCategory.Credit) });
+    const result = await new RejectAccountAdjustmentUseCase(r, clock).execute({
+      id: 'a1',
+      rejectedById: 'admin9',
+      approverNotes: 'Rate was actually correct',
+    });
+    expect(result.status).toBe(AccountAdjustmentStatus.Rejected);
+    expect(r.updated[0].rejectedById).toBe('admin9');
+    expect(r.updated[0].approverNotes).toBe('Rate was actually correct');
+  });
+
+  it('refuses to reject an adjustment that is not awaiting approval', async () => {
+    const approved = newAdjustment(AccountAdjustmentCategory.Credit);
+    approved.approve({ approvedById: 'admin2', now: NOW });
+    const r = repo({ stored: approved });
+    await expect(
+      new RejectAccountAdjustmentUseCase(r, clock).execute({
+        id: 'a1',
+        rejectedById: 'admin9',
+        approverNotes: null,
+      }),
+    ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('throws when the adjustment does not exist', async () => {
+    const r = repo({ stored: null });
+    await expect(
+      new RejectAccountAdjustmentUseCase(r, clock).execute({
+        id: 'missing',
+        rejectedById: 'admin9',
+        approverNotes: null,
       }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
     expect(r.updated).toHaveLength(0);

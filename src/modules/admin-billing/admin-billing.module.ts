@@ -74,6 +74,7 @@ import { ListBillingInvoicePaymentsUseCase } from './application/use-cases/list-
 import { ListBillingInvoicesUseCase } from './application/use-cases/list-billing-invoices.use-case';
 import { ListAccountAdjustmentsUseCase } from './application/use-cases/list-account-adjustments.use-case';
 import { ReverseAccountAdjustmentUseCase } from './application/use-cases/reverse-account-adjustment.use-case';
+import { RejectAccountAdjustmentUseCase } from './application/use-cases/reject-account-adjustment.use-case';
 import { ListBillingPaymentsUseCase } from './application/use-cases/list-billing-payments.use-case';
 import { ListInvoiceNotesUseCase } from './application/use-cases/list-invoice-notes.use-case';
 import { ACCOUNT_ADJUSTMENT_REPOSITORY } from './domain/account-adjustment.repository';
@@ -143,6 +144,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     ListAccountAdjustmentsUseCase,
     CreateAccountAdjustmentUseCase,
     ApproveAccountAdjustmentUseCase,
+    RejectAccountAdjustmentUseCase,
     ReverseAccountAdjustmentUseCase,
     GetFinancialReportUseCase,
     GetBillingSettingsUseCase,

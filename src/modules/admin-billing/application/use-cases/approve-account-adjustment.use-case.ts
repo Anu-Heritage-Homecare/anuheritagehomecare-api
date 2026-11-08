@@ -12,6 +12,7 @@ import { INVOICE_CREDIT_WRITER, InvoiceCreditWriter } from '../../domain/invoice
 export interface ApproveAccountAdjustmentCommand {
   id: string;
   approvedById: string;
+  approverNotes: string | null;
 }
 
 export interface ApproveAccountAdjustmentResult {
@@ -36,7 +37,11 @@ export class ApproveAccountAdjustmentUseCase {
       throw new NotFoundDomainException('Adjustment not found');
     }
     const now = this.clock.now();
-    adjustment.approve({ approvedById: command.approvedById, now });
+    adjustment.approve({
+      approvedById: command.approvedById,
+      approverNotes: command.approverNotes,
+      now,
+    });
     await this.adjustments.update(adjustment);
     // An approved credit applied to an invoice settles part of that invoice now.
     if (

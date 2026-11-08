@@ -36,6 +36,7 @@ import { SendBillingReminderUseCase } from '../application/use-cases/send-billin
 import { SetAccountPreferencesUseCase } from '../application/use-cases/set-account-preferences.use-case';
 import { ListAccountAdjustmentsUseCase } from '../application/use-cases/list-account-adjustments.use-case';
 import { ReverseAccountAdjustmentUseCase } from '../application/use-cases/reverse-account-adjustment.use-case';
+import { RejectAccountAdjustmentUseCase } from '../application/use-cases/reject-account-adjustment.use-case';
 import { GetBillingAccountActivityUseCase } from '../application/use-cases/get-billing-account-activity.use-case';
 import { GetBillingAccountUseCase } from '../application/use-cases/get-billing-account.use-case';
 import { GetAccountPreviewUseCase } from '../application/use-cases/get-account-preview.use-case';
@@ -110,7 +111,9 @@ import { AccountAdjustmentsResponseDto } from './dto/account-adjustments-respons
 import {
   AccountAdjustmentApprovedDto,
   AccountAdjustmentCreatedDto,
+  AccountAdjustmentRejectedDto,
   AccountAdjustmentReversedDto,
+  AdjustmentDecisionRequestDto,
   CreateAccountAdjustmentRequestDto,
 } from './dto/create-account-adjustment.dto';
 import {
@@ -204,6 +207,7 @@ export class AdminBillingController {
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
+    private readonly rejectAdjustment: RejectAccountAdjustmentUseCase,
     private readonly reverseAdjustment: ReverseAccountAdjustmentUseCase,
     private readonly getFinancialReport: GetFinancialReportUseCase,
     private readonly getSettings: GetBillingSettingsUseCase,
@@ -916,9 +920,29 @@ export class AdminBillingController {
   @ApiOkResponse({ type: AccountAdjustmentApprovedDto })
   async approveAccountAdjustment(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AdjustmentDecisionRequestDto,
     @CurrentAdmin() admin: AdminPrincipal,
   ): Promise<AccountAdjustmentApprovedDto> {
-    return this.approveAdjustment.execute({ id, approvedById: admin.adminUserId });
+    return this.approveAdjustment.execute({
+      id,
+      approvedById: admin.adminUserId,
+      approverNotes: body.approverNotes ?? null,
+    });
+  }
+
+  @Post('adjustments/:id/reject')
+  @ApiOperation({ summary: 'Reject (decline) a correction awaiting approval (the Reject action)' })
+  @ApiOkResponse({ type: AccountAdjustmentRejectedDto })
+  async rejectAccountAdjustment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AdjustmentDecisionRequestDto,
+    @CurrentAdmin() admin: AdminPrincipal,
+  ): Promise<AccountAdjustmentRejectedDto> {
+    return this.rejectAdjustment.execute({
+      id,
+      rejectedById: admin.adminUserId,
+      approverNotes: body.approverNotes ?? null,
+    });
   }
 
   @Post('adjustments/:id/reverse')

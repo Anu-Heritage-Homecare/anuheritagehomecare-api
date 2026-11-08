@@ -779,10 +779,14 @@ model AccountAdjustment {
   reason           String                    @db.VarChar(500)
   // Free text auditing notes captured on the Apply Credit modal, separate from reason.
   notes            String?                   @db.VarChar(2000)
+  // Optional approver feedback captured when approving or rejecting (Approve Adjustment).
+  approverNotes    String?                   @db.VarChar(2000)
   createdById      String                    @db.Uuid
   createdAt        DateTime                  @default(now())
   approvedById     String?                   @db.Uuid
   approvedAt       DateTime?
+  rejectedById     String?                   @db.Uuid
+  rejectedAt       DateTime?
   reversedById     String?                   @db.Uuid
   reversedAt       DateTime?
 
@@ -790,6 +794,7 @@ model AccountAdjustment {
   invoice        RecipientInvoice?    @relation("AdjustmentInvoice", fields: [invoiceId], references: [id], onDelete: SetNull)
   createdBy      AdminUser            @relation("AdjustmentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   approvedBy     AdminUser?           @relation("AdjustmentApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+  rejectedBy     AdminUser?           @relation("AdjustmentRejectedBy", fields: [rejectedById], references: [id], onDelete: Restrict)
   reversedBy     AdminUser?           @relation("AdjustmentReversedBy", fields: [reversedById], references: [id], onDelete: Restrict)
 
   @@index([category, createdAt])
@@ -810,6 +815,7 @@ enum AccountAdjustmentStatus {
   PENDING_APPROVAL
   PROCESSING
   COMPLETED
+  REJECTED
   REVERSED
 
   @@map("account_adjustment_status")
@@ -2807,6 +2813,7 @@ model AdminUser {
   invoiceNotes InvoiceNote[]
   createdAdjustments  AccountAdjustment[] @relation("AdjustmentCreatedBy")
   approvedAdjustments AccountAdjustment[] @relation("AdjustmentApprovedBy")
+  rejectedAdjustments AccountAdjustment[] @relation("AdjustmentRejectedBy")
   reversedAdjustments AccountAdjustment[] @relation("AdjustmentReversedBy")
 
   @@index([status])
