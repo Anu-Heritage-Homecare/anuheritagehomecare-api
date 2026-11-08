@@ -1495,6 +1495,10 @@ model Visit {
   visitType           VisitType     @default(PERSONAL_CARE)
   priority            VisitPriority @default(NORMAL)
   status              VisitStatus @default(SCHEDULED)
+  // Why a cancelled visit was called off (the Operations Report cancellation
+  // breakdown). Null until a cancel with reason action sets it; only meaningful
+  // when the status is CANCELLED.
+  cancellationReason  VisitCancellationReason?
   specialInstructions String[]
   // Attendance, stamped server side when the caregiver clocks in and out. The
   // arrival coordinates record where the geofenced clock in was accepted.
@@ -1987,6 +1991,16 @@ enum VisitType {
   COMPANIONSHIP
 
   @@map("visit_type")
+}
+
+enum VisitCancellationReason {
+  CLIENT_REQUEST
+  CAREGIVER_UNAVAILABLE
+  WEATHER
+  EMERGENCY
+  OTHER
+
+  @@map("visit_cancellation_reason")
 }
 
 enum VisitPriority {
