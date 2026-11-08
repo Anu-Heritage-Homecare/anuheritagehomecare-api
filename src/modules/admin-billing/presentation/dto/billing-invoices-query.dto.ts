@@ -19,6 +19,7 @@ const STATUSES: InvoiceListStatus[] = [
   'OVERDUE',
   'PAID',
   'CANCELLED',
+  'WRITTEN_OFF',
 ];
 
 /** Filters and paging for the org wide Invoices list. */

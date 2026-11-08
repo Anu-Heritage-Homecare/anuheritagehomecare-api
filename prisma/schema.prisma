@@ -702,6 +702,7 @@ enum InvoiceEventType {
   VIEWED
   REMINDER_SENT
   CANCELLED
+  WRITTEN_OFF
 
   @@map("invoice_event_type")
 }
@@ -1096,6 +1097,7 @@ enum RecipientInvoiceStatus {
   PENDING
   PAID
   CANCELLED
+  WRITTEN_OFF
 
   @@map("recipient_invoice_status")
 }

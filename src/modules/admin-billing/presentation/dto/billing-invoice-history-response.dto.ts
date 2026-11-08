@@ -14,6 +14,7 @@ class InvoiceHistoryEventDto implements InvoiceHistoryEventResult {
       'INVOICE_VIEWED',
       'INVOICE_REMINDER_SENT',
       'INVOICE_CANCELLED',
+      'INVOICE_WRITTEN_OFF',
       'PAYMENT_RECORDED',
     ],
   })

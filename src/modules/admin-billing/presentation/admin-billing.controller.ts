@@ -152,8 +152,10 @@ import { DeleteAccountDocumentUseCase } from '../application/use-cases/delete-ac
 import { RefundInvoicePaymentUseCase } from '../application/use-cases/refund-invoice-payment.use-case';
 import { GetPaymentDetailUseCase } from '../application/use-cases/get-payment-detail.use-case';
 import { CancelInvoiceUseCase } from '../application/use-cases/cancel-invoice.use-case';
+import { WriteOffInvoiceUseCase } from '../application/use-cases/write-off-invoice.use-case';
 import { RefundPaymentRequestDto } from './dto/refund-payment.dto';
 import { CancelInvoiceRequestDto, CancelInvoiceResponseDto } from './dto/cancel-invoice.dto';
+import { WriteOffInvoiceRequestDto, WriteOffInvoiceResponseDto } from './dto/write-off-invoice.dto';
 import {
   RecordInvoicePaymentRequestDto,
   RecordInvoicePaymentResponseDto,
@@ -212,6 +214,7 @@ export class AdminBillingController {
     private readonly refundPayment_: RefundInvoicePaymentUseCase,
     private readonly getPaymentDetail: GetPaymentDetailUseCase,
     private readonly cancelInvoice_: CancelInvoiceUseCase,
+    private readonly writeOffInvoice_: WriteOffInvoiceUseCase,
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
@@ -642,6 +645,25 @@ export class AdminBillingController {
       adminId: admin.adminUserId,
     });
     return CancelInvoiceResponseDto.fromResult(result);
+  }
+
+  @Post('invoices/:id/write-off')
+  @ApiOperation({
+    summary: 'Write off an outstanding invoice as bad debt (the Confirm Write-off modal)',
+  })
+  @ApiOkResponse({ type: WriteOffInvoiceResponseDto })
+  async writeOffInvoice(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: WriteOffInvoiceRequestDto,
+    @CurrentAdmin() admin: AdminPrincipal,
+  ): Promise<WriteOffInvoiceResponseDto> {
+    const result = await this.writeOffInvoice_.execute({
+      invoiceId: id,
+      reason: body.reason,
+      justification: body.justification,
+      adminId: admin.adminUserId,
+    });
+    return WriteOffInvoiceResponseDto.fromResult(result);
   }
 
   @Delete('invoices/:id')

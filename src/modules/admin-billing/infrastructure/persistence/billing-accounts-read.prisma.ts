@@ -170,9 +170,9 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
     const outstandingMinor = invoices
       .filter((invoice) => invoice.status === 'PENDING')
       .reduce((sum, invoice) => sum + patientDue(invoice), 0);
-    // Billed excludes cancelled (voided) invoices.
+    // Billed excludes cancelled (voided) and written off (bad debt) invoices.
     const totalBilledMinor = invoices
-      .filter((invoice) => invoice.status !== 'CANCELLED')
+      .filter((invoice) => invoice.status !== 'CANCELLED' && invoice.status !== 'WRITTEN_OFF')
       .reduce((sum, invoice) => sum + patientDue(invoice), 0);
     const totalPaidMinor = payments.reduce(
       (sum, payment) => sum + (payment.amountMinor - payment.refundedAmountMinor),
@@ -831,12 +831,12 @@ function nameFor(adminId: string | null, names: Map<string, string>): string | n
 
 /** The Invoices tab status: paid, else overdue past its due date, else awaiting payment. */
 function invoiceDisplayStatus(
-  status: 'PENDING' | 'PAID' | 'CANCELLED',
+  status: 'PENDING' | 'PAID' | 'CANCELLED' | 'WRITTEN_OFF',
   dueDate: Date | null,
   now: Date,
 ): BillingAccountInvoiceRowView['status'] {
-  if (status === 'CANCELLED') {
-    return 'CANCELLED';
+  if (status === 'CANCELLED' || status === 'WRITTEN_OFF') {
+    return status;
   }
   if (status === 'PAID') {
     return 'PAID';

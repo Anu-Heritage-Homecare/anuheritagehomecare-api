@@ -49,6 +49,9 @@ import { RefundInvoicePaymentUseCase } from './application/use-cases/refund-invo
 import { CancelInvoiceUseCase } from './application/use-cases/cancel-invoice.use-case';
 import { INVOICE_CANCEL_REPOSITORY } from './domain/invoice-cancel.repository';
 import { InvoiceCancelPrismaRepository } from './infrastructure/persistence/invoice-cancel-prisma.repository';
+import { WriteOffInvoiceUseCase } from './application/use-cases/write-off-invoice.use-case';
+import { INVOICE_WRITEOFF_REPOSITORY } from './domain/invoice-writeoff.repository';
+import { InvoiceWriteOffPrismaRepository } from './infrastructure/persistence/invoice-writeoff-prisma.repository';
 import { DeleteDraftInvoiceUseCase } from './application/use-cases/delete-draft-invoice.use-case';
 import { INVOICE_DELETE_REPOSITORY } from './domain/invoice-delete.repository';
 import { InvoiceDeletePrismaRepository } from './infrastructure/persistence/invoice-delete-prisma.repository';
@@ -148,6 +151,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     RefundInvoicePaymentUseCase,
     GetPaymentDetailUseCase,
     CancelInvoiceUseCase,
+    WriteOffInvoiceUseCase,
     DeleteDraftInvoiceUseCase,
     ListAccountAdjustmentsUseCase,
     CreateAccountAdjustmentUseCase,
@@ -186,6 +190,7 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     { provide: INVOICE_PAYMENT_WRITE_REPOSITORY, useClass: InvoicePaymentWritePrismaRepository },
     { provide: INVOICE_EVENT_RECORDER, useClass: InvoiceEventPrismaRecorder },
     { provide: INVOICE_CANCEL_REPOSITORY, useClass: InvoiceCancelPrismaRepository },
+    { provide: INVOICE_WRITEOFF_REPOSITORY, useClass: InvoiceWriteOffPrismaRepository },
     { provide: INVOICE_DELETE_REPOSITORY, useClass: InvoiceDeletePrismaRepository },
     { provide: PAYMENT_EVENT_RECORDER, useClass: PaymentEventPrismaRecorder },
     { provide: ADMIN_DIRECTORY, useClass: PrismaAdminDirectory },

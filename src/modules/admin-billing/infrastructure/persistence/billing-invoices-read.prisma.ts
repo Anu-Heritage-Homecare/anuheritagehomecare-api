@@ -414,7 +414,7 @@ export class BillingInvoicesReadPrisma implements BillingInvoicesReadModel {
 
 /** Map a logged invoice event type to its history timeline type. */
 const LOGGED_EVENT_TYPE: Record<
-  'CREATED' | 'APPROVED' | 'SENT' | 'VIEWED' | 'REMINDER_SENT' | 'CANCELLED',
+  'CREATED' | 'APPROVED' | 'SENT' | 'VIEWED' | 'REMINDER_SENT' | 'CANCELLED' | 'WRITTEN_OFF',
   InvoiceHistoryEventType
 > = {
   CREATED: 'INVOICE_CREATED',
@@ -423,6 +423,7 @@ const LOGGED_EVENT_TYPE: Record<
   VIEWED: 'INVOICE_VIEWED',
   REMINDER_SENT: 'INVOICE_REMINDER_SENT',
   CANCELLED: 'INVOICE_CANCELLED',
+  WRITTEN_OFF: 'INVOICE_WRITTEN_OFF',
 };
 
 /** A derived milestone with no captured actor or detail. */
@@ -432,14 +433,14 @@ function blankEvent(type: InvoiceHistoryEventType, at: Date): InvoiceHistoryEven
 
 /** PAID, else partially paid, else overdue past its due date, else awaiting payment. */
 function invoiceListStatus(
-  status: 'PENDING' | 'PAID' | 'CANCELLED',
+  status: 'PENDING' | 'PAID' | 'CANCELLED' | 'WRITTEN_OFF',
   dueDate: Date | null,
   patientDue: number,
   paidMinor: number,
   now: Date,
 ): InvoiceListStatus {
-  if (status === 'CANCELLED') {
-    return 'CANCELLED';
+  if (status === 'CANCELLED' || status === 'WRITTEN_OFF') {
+    return status;
   }
   if (status === 'PAID') {
     return 'PAID';
@@ -465,6 +466,7 @@ function countByStatus(rows: InvoiceListRowView[]): InvoiceListCounts {
     overdue: rows.filter((r) => r.status === 'OVERDUE').length,
     paid: rows.filter((r) => r.status === 'PAID').length,
     cancelled: rows.filter((r) => r.status === 'CANCELLED').length,
+    writtenOff: rows.filter((r) => r.status === 'WRITTEN_OFF').length,
   };
 }
 

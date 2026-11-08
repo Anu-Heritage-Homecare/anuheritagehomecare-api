@@ -19,6 +19,8 @@ export const TO_DOMAIN_INVOICE_STATUS: Record<PrismaInvoiceStatus, InvoiceStatus
   PENDING: InvoiceStatus.Pending,
   PAID: InvoiceStatus.Paid,
   CANCELLED: InvoiceStatus.Cancelled,
+  // A written off (bad debt) invoice is closed to the payer, like a cancelled one.
+  WRITTEN_OFF: InvoiceStatus.Cancelled,
 };
 
 export const TO_PERSISTENCE_INVOICE_STATUS: Record<InvoiceStatus, PrismaInvoiceStatus> = {

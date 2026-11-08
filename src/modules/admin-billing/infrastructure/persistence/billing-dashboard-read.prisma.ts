@@ -37,8 +37,12 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
 
     const invoiceSum = { amountMinor: true, insuranceCoveredMinor: true } as const;
     const pending = { currency, status: RecipientInvoiceStatus.PENDING };
-    // Billed figures exclude cancelled (voided) invoices, which are never revenue.
-    const billed = { currency, status: { not: RecipientInvoiceStatus.CANCELLED } };
+    // Billed figures exclude cancelled (voided) and written off (bad debt) invoices,
+    // which are never revenue.
+    const billed = {
+      currency,
+      status: { notIn: [RecipientInvoiceStatus.CANCELLED, RecipientInvoiceStatus.WRITTEN_OFF] },
+    };
 
     const [
       collectedLifetime,

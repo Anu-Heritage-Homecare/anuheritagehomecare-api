@@ -1,6 +1,12 @@
 /** The status vocabulary of the org wide Invoices list. */
 export type InvoiceListStatus =
-  'DRAFT' | 'AWAITING_PAYMENT' | 'PARTIALLY_PAID' | 'OVERDUE' | 'PAID' | 'CANCELLED';
+  | 'DRAFT'
+  | 'AWAITING_PAYMENT'
+  | 'PARTIALLY_PAID'
+  | 'OVERDUE'
+  | 'PAID'
+  | 'CANCELLED'
+  | 'WRITTEN_OFF';
 
 /** Filters and paging for the org wide Invoices list. */
 export interface InvoiceListFilter {
@@ -42,6 +48,7 @@ export interface InvoiceListCounts {
   overdue: number;
   paid: number;
   cancelled: number;
+  writtenOff: number;
 }
 
 export interface InvoiceListView {
@@ -129,6 +136,7 @@ export type InvoiceHistoryEventType =
   | 'INVOICE_VIEWED'
   | 'INVOICE_REMINDER_SENT'
   | 'INVOICE_CANCELLED'
+  | 'INVOICE_WRITTEN_OFF'
   | 'PAYMENT_RECORDED';
 
 /** One entry in the invoice lifecycle timeline. */

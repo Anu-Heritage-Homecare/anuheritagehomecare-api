@@ -14,6 +14,7 @@ const EVENT_TITLES: Record<InvoiceHistoryEventType, string> = {
   INVOICE_VIEWED: 'Invoice Viewed by Client',
   INVOICE_REMINDER_SENT: 'Reminder Sent',
   INVOICE_CANCELLED: 'Invoice Cancelled',
+  INVOICE_WRITTEN_OFF: 'Invoice Written Off',
   PAYMENT_RECORDED: 'Payment Recorded',
 };
 
