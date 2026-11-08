@@ -2817,9 +2817,48 @@ model AdminUser {
   approvedAdjustments AccountAdjustment[] @relation("AdjustmentApprovedBy")
   rejectedAdjustments AccountAdjustment[] @relation("AdjustmentRejectedBy")
   reversedAdjustments AccountAdjustment[] @relation("AdjustmentReversedBy")
+  generatedReports    GeneratedReport[]   @relation("ReportGeneratedBy")
 
   @@index([status])
   @@map("admin_users")
+}
+
+// A report produced from the admin Reports screen (the Recent Report Activity feed
+// and the Generate Report action). Only the metadata is stored: the title, kind,
+// requested format, the market and period it covered, and who generated it. The
+// artifact itself is streamed on demand from the live aggregates, never persisted.
+model GeneratedReport {
+  id            String       @id @default(uuid()) @db.Uuid
+  type          ReportType
+  title         String       @db.VarChar(200)
+  format        ReportFormat
+  currency      Currency
+  periodStart   DateTime
+  periodEnd     DateTime
+  generatedById String?      @db.Uuid
+  createdAt     DateTime     @default(now())
+
+  generatedBy AdminUser? @relation("ReportGeneratedBy", fields: [generatedById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@map("generated_reports")
+}
+
+enum ReportType {
+  OPERATIONS
+  CAREGIVER_PERFORMANCE
+  FINANCIAL_SUMMARY
+  CLIENT_SATISFACTION
+  WORKFORCE_COMPLIANCE
+
+  @@map("report_type")
+}
+
+enum ReportFormat {
+  PDF
+  EXCEL
+
+  @@map("report_format")
 }
 
 // A signed in admin session behind a rotating refresh token. The refresh token
