@@ -10,15 +10,23 @@ import {
   GetOperationsReportCommand,
 } from '../application/use-cases/get-operations-report.use-case';
 import { GetReportsOverviewUseCase } from '../application/use-cases/get-reports-overview.use-case';
+import {
+  GetWorkforceReportUseCase,
+  GetWorkforceReportCommand,
+} from '../application/use-cases/get-workforce-report.use-case';
 import { buildOperationsReportPdf } from '../infrastructure/export/operations-report-pdf';
 import { buildOperationsReportXlsx } from '../infrastructure/export/operations-report-xlsx';
 import { buildReportsOverviewPdf } from '../infrastructure/export/reports-overview-pdf';
 import { buildReportsOverviewXlsx } from '../infrastructure/export/reports-overview-xlsx';
+import { buildWorkforceReportPdf } from '../infrastructure/export/workforce-report-pdf';
+import { buildWorkforceReportXlsx } from '../infrastructure/export/workforce-report-xlsx';
 import { GenerateReportRequestDto, GenerateReportResponseDto } from './dto/generate-report.dto';
 import { OperationsReportQueryDto } from './dto/operations-report-query.dto';
 import { OperationsReportResponseDto } from './dto/operations-report-response.dto';
 import { ReportsOverviewQueryDto } from './dto/reports-overview-query.dto';
 import { ReportsOverviewResponseDto } from './dto/reports-overview-response.dto';
+import { WorkforceReportQueryDto } from './dto/workforce-report-query.dto';
+import { WorkforceReportResponseDto } from './dto/workforce-report-response.dto';
 
 function parseCurrency(value: Currency | undefined): Currency {
   return value ?? Currency.NigerianNaira;
@@ -39,6 +47,16 @@ function operationsCommand(query: OperationsReportQueryDto): GetOperationsReport
   };
 }
 
+function workforceCommand(query: WorkforceReportQueryDto): GetWorkforceReportCommand {
+  return {
+    from: parseDate(query.from),
+    to: parseDate(query.to),
+    branch: query.branch ?? null,
+    caregiverId: query.caregiverId ?? null,
+    employmentType: query.employmentType ?? null,
+  };
+}
+
 /**
  * Admin Reports screen: the one aggregated read that powers the Overview, the Generate
  * Report action that records a report in the activity feed, and the PDF/Excel exports
@@ -54,6 +72,7 @@ export class ReportsController {
     private readonly getOverview: GetReportsOverviewUseCase,
     private readonly generateReport: GenerateReportUseCase,
     private readonly getOperations: GetOperationsReportUseCase,
+    private readonly getWorkforce: GetWorkforceReportUseCase,
   ) {}
 
   @Get('overview')
@@ -150,6 +169,40 @@ export class ReportsController {
   async exportOperationsXlsx(@Query() query: OperationsReportQueryDto): Promise<StreamableFile> {
     const result = await this.getOperations.execute(operationsCommand(query));
     const { filename, xlsx } = buildOperationsReportXlsx(result);
+    return new StreamableFile(xlsx, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      disposition: `attachment; filename="${filename}"`,
+    });
+  }
+
+  @Get('workforce')
+  @ApiOperation({ summary: 'The Workforce Report drill down for a period and filters' })
+  @ApiOkResponse({ type: WorkforceReportResponseDto })
+  async workforce(@Query() query: WorkforceReportQueryDto): Promise<WorkforceReportResponseDto> {
+    const result = await this.getWorkforce.execute(workforceCommand(query));
+    return WorkforceReportResponseDto.fromResult(result);
+  }
+
+  @Get('workforce/export/pdf')
+  @ApiOperation({ summary: 'Export the Workforce Report as a PDF (the Export PDF action)' })
+  @ApiProduces('application/pdf')
+  async exportWorkforcePdf(@Query() query: WorkforceReportQueryDto): Promise<StreamableFile> {
+    const result = await this.getWorkforce.execute(workforceCommand(query));
+    const { filename, pdf } = buildWorkforceReportPdf(result);
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${filename}"`,
+    });
+  }
+
+  @Get('workforce/export/xlsx')
+  @ApiOperation({
+    summary: 'Export the Workforce Report as an Excel workbook (the Export Excel action)',
+  })
+  @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  async exportWorkforceXlsx(@Query() query: WorkforceReportQueryDto): Promise<StreamableFile> {
+    const result = await this.getWorkforce.execute(workforceCommand(query));
+    const { filename, xlsx } = buildWorkforceReportXlsx(result);
     return new StreamableFile(xlsx, {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       disposition: `attachment; filename="${filename}"`,
