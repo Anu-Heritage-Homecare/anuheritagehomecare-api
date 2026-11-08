@@ -5,10 +5,18 @@ import { AdminPrincipal } from '@shared/presentation/admin-principal';
 import { AdminJwtAuthGuard } from '@shared/presentation/admin-jwt-auth.guard';
 import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { GenerateReportUseCase } from '../application/use-cases/generate-report.use-case';
+import {
+  GetOperationsReportUseCase,
+  GetOperationsReportCommand,
+} from '../application/use-cases/get-operations-report.use-case';
 import { GetReportsOverviewUseCase } from '../application/use-cases/get-reports-overview.use-case';
+import { buildOperationsReportPdf } from '../infrastructure/export/operations-report-pdf';
+import { buildOperationsReportXlsx } from '../infrastructure/export/operations-report-xlsx';
 import { buildReportsOverviewPdf } from '../infrastructure/export/reports-overview-pdf';
 import { buildReportsOverviewXlsx } from '../infrastructure/export/reports-overview-xlsx';
 import { GenerateReportRequestDto, GenerateReportResponseDto } from './dto/generate-report.dto';
+import { OperationsReportQueryDto } from './dto/operations-report-query.dto';
+import { OperationsReportResponseDto } from './dto/operations-report-response.dto';
 import { ReportsOverviewQueryDto } from './dto/reports-overview-query.dto';
 import { ReportsOverviewResponseDto } from './dto/reports-overview-response.dto';
 
@@ -18,6 +26,17 @@ function parseCurrency(value: Currency | undefined): Currency {
 
 function parseDate(value: string | undefined): Date | null {
   return value === undefined ? null : new Date(value);
+}
+
+function operationsCommand(query: OperationsReportQueryDto): GetOperationsReportCommand {
+  return {
+    from: parseDate(query.from),
+    to: parseDate(query.to),
+    visitType: query.serviceType ?? null,
+    caregiverId: query.caregiverId ?? null,
+    status: query.status ?? null,
+    city: query.city ?? null,
+  };
 }
 
 /**
@@ -34,6 +53,7 @@ export class ReportsController {
   constructor(
     private readonly getOverview: GetReportsOverviewUseCase,
     private readonly generateReport: GenerateReportUseCase,
+    private readonly getOperations: GetOperationsReportUseCase,
   ) {}
 
   @Get('overview')
@@ -96,6 +116,40 @@ export class ReportsController {
       to: parseDate(query.to),
     });
     const { filename, xlsx } = buildReportsOverviewXlsx(result);
+    return new StreamableFile(xlsx, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      disposition: `attachment; filename="${filename}"`,
+    });
+  }
+
+  @Get('operations')
+  @ApiOperation({ summary: 'The Operations Report drill down for a period and filters' })
+  @ApiOkResponse({ type: OperationsReportResponseDto })
+  async operations(@Query() query: OperationsReportQueryDto): Promise<OperationsReportResponseDto> {
+    const result = await this.getOperations.execute(operationsCommand(query));
+    return OperationsReportResponseDto.fromResult(result);
+  }
+
+  @Get('operations/export/pdf')
+  @ApiOperation({ summary: 'Export the Operations Report as a PDF (the Export PDF action)' })
+  @ApiProduces('application/pdf')
+  async exportOperationsPdf(@Query() query: OperationsReportQueryDto): Promise<StreamableFile> {
+    const result = await this.getOperations.execute(operationsCommand(query));
+    const { filename, pdf } = buildOperationsReportPdf(result);
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${filename}"`,
+    });
+  }
+
+  @Get('operations/export/xlsx')
+  @ApiOperation({
+    summary: 'Export the Operations Report as an Excel workbook (the Export Excel action)',
+  })
+  @ApiProduces('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  async exportOperationsXlsx(@Query() query: OperationsReportQueryDto): Promise<StreamableFile> {
+    const result = await this.getOperations.execute(operationsCommand(query));
+    const { filename, xlsx } = buildOperationsReportXlsx(result);
     return new StreamableFile(xlsx, {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       disposition: `attachment; filename="${filename}"`,

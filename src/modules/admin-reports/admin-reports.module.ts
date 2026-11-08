@@ -2,9 +2,12 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { GENERATED_REPORT_REPOSITORY } from './domain/generated-report.repository';
 import { REPORTS_OVERVIEW_READ_MODEL } from './application/ports/reports-overview-read.port';
+import { OPERATIONS_REPORT_READ_MODEL } from './application/ports/operations-report-read.port';
 import { GenerateReportUseCase } from './application/use-cases/generate-report.use-case';
+import { GetOperationsReportUseCase } from './application/use-cases/get-operations-report.use-case';
 import { GetReportsOverviewUseCase } from './application/use-cases/get-reports-overview.use-case';
 import { GeneratedReportPrismaRepository } from './infrastructure/persistence/generated-report.prisma.repository';
+import { OperationsReportReadPrisma } from './infrastructure/persistence/operations-report-read.prisma';
 import { ReportsOverviewReadPrisma } from './infrastructure/persistence/reports-overview-read.prisma';
 import { ReportsController } from './presentation/reports.controller';
 
@@ -19,7 +22,9 @@ import { ReportsController } from './presentation/reports.controller';
   providers: [
     GetReportsOverviewUseCase,
     GenerateReportUseCase,
+    GetOperationsReportUseCase,
     { provide: REPORTS_OVERVIEW_READ_MODEL, useClass: ReportsOverviewReadPrisma },
+    { provide: OPERATIONS_REPORT_READ_MODEL, useClass: OperationsReportReadPrisma },
     { provide: GENERATED_REPORT_REPOSITORY, useClass: GeneratedReportPrismaRepository },
   ],
 })
