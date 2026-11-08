@@ -14,7 +14,7 @@ class BillingAccountInvoiceRowDto implements BillingAccountInvoiceRowResult {
   @ApiProperty() currency!: string;
   @ApiProperty({ nullable: true, type: String }) dueDate!: string | null;
   @ApiProperty() paidAmountMinor!: number;
-  @ApiProperty({ enum: ['PAID', 'AWAITING_PAYMENT', 'OVERDUE'] })
+  @ApiProperty({ enum: ['PAID', 'AWAITING_PAYMENT', 'OVERDUE', 'CANCELLED'] })
   status!: InvoiceDisplayStatus;
 }
 

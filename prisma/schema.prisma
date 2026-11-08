@@ -701,6 +701,7 @@ enum InvoiceEventType {
   SENT
   VIEWED
   REMINDER_SENT
+  CANCELLED
 
   @@map("invoice_event_type")
 }
@@ -1088,6 +1089,7 @@ model BillingProfile {
 enum RecipientInvoiceStatus {
   PENDING
   PAID
+  CANCELLED
 
   @@map("recipient_invoice_status")
 }

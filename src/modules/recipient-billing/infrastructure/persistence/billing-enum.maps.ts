@@ -18,9 +18,11 @@ export const TO_PERSISTENCE_CURRENCY: Record<Currency, PrismaCurrency> = {
 export const TO_DOMAIN_INVOICE_STATUS: Record<PrismaInvoiceStatus, InvoiceStatus> = {
   PENDING: InvoiceStatus.Pending,
   PAID: InvoiceStatus.Paid,
+  CANCELLED: InvoiceStatus.Cancelled,
 };
 
 export const TO_PERSISTENCE_INVOICE_STATUS: Record<InvoiceStatus, PrismaInvoiceStatus> = {
   [InvoiceStatus.Pending]: 'PENDING',
   [InvoiceStatus.Paid]: 'PAID',
+  [InvoiceStatus.Cancelled]: 'CANCELLED',
 };

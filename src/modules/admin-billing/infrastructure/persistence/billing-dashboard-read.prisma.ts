@@ -37,6 +37,8 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
 
     const invoiceSum = { amountMinor: true, insuranceCoveredMinor: true } as const;
     const pending = { currency, status: RecipientInvoiceStatus.PENDING };
+    // Billed figures exclude cancelled (voided) invoices, which are never revenue.
+    const billed = { currency, status: { not: RecipientInvoiceStatus.CANCELLED } };
 
     const [
       collectedLifetime,
@@ -75,13 +77,13 @@ export class BillingDashboardReadPrisma implements BillingDashboardReadModel {
         },
         _sum: { amountMinor: true, refundedAmountMinor: true },
       }),
-      this.prisma.recipientInvoice.aggregate({ where: { currency }, _sum: invoiceSum }),
+      this.prisma.recipientInvoice.aggregate({ where: billed, _sum: invoiceSum }),
       this.prisma.recipientInvoice.aggregate({
-        where: { currency, issuedAt: { gte: monthStart } },
+        where: { ...billed, issuedAt: { gte: monthStart } },
         _sum: invoiceSum,
       }),
       this.prisma.recipientInvoice.aggregate({
-        where: { currency, issuedAt: { gte: lastMonthStart, lt: monthStart } },
+        where: { ...billed, issuedAt: { gte: lastMonthStart, lt: monthStart } },
         _sum: invoiceSum,
       }),
       this.prisma.recipientInvoice.aggregate({ where: pending, _sum: invoiceSum, _count: true }),

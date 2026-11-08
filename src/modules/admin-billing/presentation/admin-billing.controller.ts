@@ -142,7 +142,9 @@ import { DeleteInvoiceAttachmentUseCase } from '../application/use-cases/delete-
 import { DeleteAccountDocumentUseCase } from '../application/use-cases/delete-account-document.use-case';
 import { RefundInvoicePaymentUseCase } from '../application/use-cases/refund-invoice-payment.use-case';
 import { GetPaymentDetailUseCase } from '../application/use-cases/get-payment-detail.use-case';
+import { CancelInvoiceUseCase } from '../application/use-cases/cancel-invoice.use-case';
 import { RefundPaymentRequestDto } from './dto/refund-payment.dto';
+import { CancelInvoiceRequestDto, CancelInvoiceResponseDto } from './dto/cancel-invoice.dto';
 import {
   RecordInvoicePaymentRequestDto,
   RecordInvoicePaymentResponseDto,
@@ -198,6 +200,7 @@ export class AdminBillingController {
     private readonly deleteDocument: DeleteAccountDocumentUseCase,
     private readonly refundPayment_: RefundInvoicePaymentUseCase,
     private readonly getPaymentDetail: GetPaymentDetailUseCase,
+    private readonly cancelInvoice_: CancelInvoiceUseCase,
     private readonly listAdjustments: ListAccountAdjustmentsUseCase,
     private readonly createAdjustment: CreateAccountAdjustmentUseCase,
     private readonly approveAdjustment: ApproveAccountAdjustmentUseCase,
@@ -595,6 +598,23 @@ export class AdminBillingController {
   ): Promise<InvoicePaymentRequestResponseDto> {
     const result = await this.requestOnlinePayment.execute({ invoiceId: id });
     return InvoicePaymentRequestResponseDto.fromResult(result);
+  }
+
+  @Post('invoices/:id/cancel')
+  @ApiOperation({ summary: 'Cancel (void) a pending invoice (the Cancel Invoice modal)' })
+  @ApiOkResponse({ type: CancelInvoiceResponseDto })
+  async cancelInvoice(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CancelInvoiceRequestDto,
+    @CurrentAdmin() admin: AdminPrincipal,
+  ): Promise<CancelInvoiceResponseDto> {
+    const result = await this.cancelInvoice_.execute({
+      invoiceId: id,
+      reason: body.reason,
+      notes: body.notes ?? null,
+      adminId: admin.adminUserId,
+    });
+    return CancelInvoiceResponseDto.fromResult(result);
   }
 
   @Get('invoices/:id/history')

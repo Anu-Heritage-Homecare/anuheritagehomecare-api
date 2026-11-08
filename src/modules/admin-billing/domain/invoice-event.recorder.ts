@@ -1,4 +1,5 @@
-export type InvoiceEventType = 'CREATED' | 'APPROVED' | 'SENT' | 'VIEWED' | 'REMINDER_SENT';
+export type InvoiceEventType =
+  'CREATED' | 'APPROVED' | 'SENT' | 'VIEWED' | 'REMINDER_SENT' | 'CANCELLED';
 export type InvoiceEventActor = 'ADMIN' | 'SYSTEM' | 'CLIENT';
 
 export interface RecordInvoiceEvent {

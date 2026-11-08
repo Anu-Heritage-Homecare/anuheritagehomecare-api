@@ -50,7 +50,8 @@ export class FinancialReportsReadPrisma implements FinancialReportsReadModel {
 
     const [invoices, payments, writeOffs] = await Promise.all([
       this.prisma.recipientInvoice.findMany({
-        where: { currency: filter.currency, ...recipientWhere },
+        // Cancelled (voided) invoices are neither revenue nor receivable.
+        where: { currency: filter.currency, status: { not: 'CANCELLED' }, ...recipientWhere },
         select: { amountMinor: true, insuranceCoveredMinor: true, issuedAt: true, status: true },
       }),
       this.prisma.recipientInvoicePayment.findMany({
