@@ -849,6 +849,10 @@ model BillingSettings {
   bankName                   String?  @db.VarChar(120)
   bankAccountNumber          String?  @db.VarChar(40)
   bankAccountName            String?  @db.VarChar(160)
+  // Whether listed prices already include VAT (the Include VAT in Pricing toggle),
+  // and which payment avenue is presented as the default.
+  includeVatInPricing        Boolean                   @default(true)
+  defaultPaymentMethod       BillingPaymentMethodKind?
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
@@ -2812,6 +2816,8 @@ model AdminUser {
   firstName          String      @db.VarChar(100)
   lastName           String      @db.VarChar(100)
   email              String      @unique @db.VarChar(255)
+  phoneNumber        String?     @db.VarChar(32)
+  department         String?     @db.VarChar(100)
   passwordHash       String      @db.VarChar(255)
   role               AdminRole   @default(COORDINATOR)
   status             AdminStatus @default(ACTIVE)
@@ -2825,6 +2831,16 @@ model AdminUser {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
+  // Configurable access role and branch assignment (Settings > Users & Permissions).
+  // The coarse `role` enum above stays the auth principal's claim; `roleId` is the
+  // managed, configurable role and is kept in step with the enum on assignment.
+  roleId   String? @db.Uuid
+  branchId String? @db.Uuid
+
+  accessRole AdminAccessRole?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  branch     OrganizationBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  managedBranches OrganizationBranch[] @relation("BranchManager")
+  createdApiKeys  ApiKey[]            @relation("ApiKeyCreator")
   sessions    AdminSession[]
   invoiceNotes InvoiceNote[]
   createdAdjustments  AccountAdjustment[] @relation("AdjustmentCreatedBy")
@@ -2832,8 +2848,11 @@ model AdminUser {
   rejectedAdjustments AccountAdjustment[] @relation("AdjustmentRejectedBy")
   reversedAdjustments AccountAdjustment[] @relation("AdjustmentReversedBy")
   generatedReports    GeneratedReport[]   @relation("ReportGeneratedBy")
+  sentInvitations     AdminInvitation[]   @relation("InvitationInvitedBy")
 
   @@index([status])
+  @@index([roleId])
+  @@index([branchId])
   @@map("admin_users")
 }
 
@@ -3619,4 +3638,501 @@ enum AnnouncementStatus {
   ARCHIVED
 
   @@map("announcement_status")
+}
+
+// --- Admin Organization (Settings > Organization Profile) ---------------------
+
+/// The single back office that runs the service (one row, keyed on the literal
+/// id "organization"). Holds the legal identity, billing currency and regional
+/// display preferences, with its branches, emergency contacts and weekly schedule.
+model Organization {
+  id                String   @id @db.VarChar(64)
+  legalName         String?  @db.VarChar(200)
+  businessRegNumber String?  @db.VarChar(80)
+  registeredAddress String?  @db.VarChar(400)
+  timezone          String?  @db.VarChar(80)
+  systemLanguage    String?  @db.VarChar(80)
+  currency          Currency @default(NGN)
+  dateFormat        String?  @db.VarChar(40)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  branches          OrganizationBranch[]
+  emergencyContacts OrganizationEmergencyContact[]
+  businessHours     OrganizationBusinessHour[]
+  apiKeys           ApiKey[]
+}
+
+model OrganizationBranch {
+  id             String       @id @db.Uuid
+  organizationId String       @db.VarChar(64)
+  name           String       @db.VarChar(200)
+  addressLine1   String       @db.VarChar(200)
+  addressLine2   String?      @db.VarChar(200)
+  city           String       @db.VarChar(120)
+  state          String       @db.VarChar(120)
+  phone          String?      @db.VarChar(40)
+  managerId      String?      @db.Uuid
+  status         BranchStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization  Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  manager       AdminUser?           @relation("BranchManager", fields: [managerId], references: [id], onDelete: SetNull)
+  adminUsers    AdminUser[]
+  invitations   AdminInvitation[]
+  businessHours BranchBusinessHour[]
+
+  @@index([organizationId])
+  @@index([managerId])
+}
+
+model BranchBusinessHour {
+  id          String  @id @default(uuid()) @db.Uuid
+  branchId    String  @db.Uuid
+  dayOfWeek   Int     @db.SmallInt
+  isOpen      Boolean @default(true)
+  openMinute  Int
+  closeMinute Int
+
+  branch OrganizationBranch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, dayOfWeek])
+}
+
+model OrganizationEmergencyContact {
+  id             String   @id @db.Uuid
+  organizationId String   @db.VarChar(64)
+  name           String   @db.VarChar(200)
+  role           String?  @db.VarChar(160)
+  phone          String   @db.VarChar(40)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+/// One day of the weekly opening schedule. Minutes are measured from midnight; a
+/// day that is closed keeps its preset times but is flagged isOpen = false.
+model OrganizationBusinessHour {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @db.VarChar(64)
+  dayOfWeek      Int     @db.SmallInt
+  isOpen         Boolean @default(true)
+  openMinute     Int
+  closeMinute    Int
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, dayOfWeek])
+}
+
+enum BranchStatus {
+  ACTIVE
+  INACTIVE
+
+  @@map("branch_status")
+}
+
+/// A programmatic API key for partner or external integrations (Settings >
+/// Organization > API Keys). The raw secret is never stored: only its SHA-256
+/// hash (for O(1) lookup on authentication), a display prefix and the last four
+/// characters are kept, so a leaked database cannot reveal a usable key. Usage is
+/// counted live by the inbound guard into rolling hour, day and week buckets; each
+/// bucket holds a key string (the hour, the day, the Monday of the week) and a
+/// count, so a bucket whose key no longer matches "now" reads as zero without a
+/// reset job.
+model ApiKey {
+  id               String       @id @db.Uuid
+  organizationId   String       @db.VarChar(64)
+  name             String       @db.VarChar(160)
+  keyPrefix        String       @db.VarChar(16)
+  last4            String       @db.VarChar(8)
+  keyHash          String       @unique @db.VarChar(128)
+  scopes           String[]
+  rateLimitPerHour Int          @default(1000)
+  status           ApiKeyStatus @default(ACTIVE)
+  createdById      String?      @db.Uuid
+  lastUsedAt       DateTime?
+  hourBucket       String?      @db.VarChar(16)
+  hourCount        Int          @default(0)
+  dayBucket        String?      @db.VarChar(16)
+  dayCount         Int          @default(0)
+  weekBucket       String?      @db.VarChar(16)
+  weekCount        Int          @default(0)
+  revokedAt        DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    AdminUser?   @relation("ApiKeyCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([createdById])
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  REVOKED
+
+  @@map("api_key_status")
+}
+
+// --- Admin Access (Settings > Users & Permissions) ----------------------------
+
+/// A configurable back office access role (Administrator, Coordinator, Scheduler,
+/// Finance, ...). `permissions` is the set of permission keys the role grants
+/// (the Permissions tab matrix). System roles cannot be deleted; `systemKey` maps
+/// a role to the coarse AdminRole enum that the auth token still carries.
+model AdminAccessRole {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String     @unique @db.VarChar(80)
+  description String?    @db.VarChar(300)
+  isSystem    Boolean    @default(false)
+  systemKey   AdminRole?
+  permissions String[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  users       AdminUser[]
+  invitations AdminInvitation[]
+
+  @@map("admin_roles")
+}
+
+/// A pending invitation to join the back office. Accepting it provisions an
+/// AdminUser with the invited role and branch. Only a hash of the one time token
+/// is stored; the raw token is delivered out of band.
+model AdminInvitation {
+  id               String                @id @default(uuid()) @db.Uuid
+  email            String                @db.VarChar(255)
+  firstName        String                @db.VarChar(100)
+  lastName         String                @db.VarChar(100)
+  phoneNumber      String?               @db.VarChar(32)
+  department       String?               @db.VarChar(100)
+  roleId           String                @db.Uuid
+  branchId         String?               @db.Uuid
+  tokenHash        String                @db.VarChar(128)
+  status           AdminInvitationStatus @default(PENDING)
+  expiresAt        DateTime
+  invitedByAdminId String?               @db.Uuid
+  acceptedAt       DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  role      AdminAccessRole     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  branch    OrganizationBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  invitedBy AdminUser?          @relation("InvitationInvitedBy", fields: [invitedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([email])
+  @@map("admin_invitations")
+}
+
+enum AdminInvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+
+  @@map("admin_invitation_status")
+}
+
+// --- Admin Care Operations (Settings > Care Operations) -----------------------
+
+/// A support service the organization offers (Personal Care, Nursing Care, ...),
+/// with an enable/disable toggle. The fixed CareNeed enum on a care recipient is a
+/// separate concern; this is the configurable, business facing service catalog.
+model ServiceOffering {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(160)
+  description String?  @db.VarChar(300)
+  isEnabled   Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("service_offerings")
+}
+
+/// A bookable visit format (Standard Visit, Overnight Care, Emergency Dispatch),
+/// with a duration and a base rate per currency. A format charged per hour leaves
+/// duration null ("Varies").
+model VisitFormat {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @db.VarChar(160)
+  description     String?  @db.VarChar(300)
+  durationMinutes Int?
+  rateUnit        RateUnit @default(PER_VISIT)
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  rates VisitFormatRate[]
+
+  @@map("visit_formats")
+}
+
+model VisitFormatRate {
+  id            String   @id @default(uuid()) @db.Uuid
+  visitFormatId String   @db.Uuid
+  currency      Currency
+  baseRateMinor Int
+
+  visitFormat VisitFormat @relation(fields: [visitFormatId], references: [id], onDelete: Cascade)
+
+  @@unique([visitFormatId, currency])
+  @@map("visit_format_rates")
+}
+
+/// The single set of scheduling constraints (one row, keyed on the literal id
+/// "scheduling_guardrails") applied when visits are created and assigned.
+model SchedulingGuardrails {
+  id                         String              @id @db.VarChar(64)
+  minimumNoticeHours         Int                 @default(24)
+  travelBufferMinutes        Int                 @default(30)
+  maxVisitsPerCaregiverPerDay Int                @default(6)
+  autoAssignAlgorithm        AutoAssignAlgorithm @default(PROXIMITY_AND_SKILLS)
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+
+  @@map("scheduling_guardrails")
+}
+
+enum RateUnit {
+  PER_VISIT
+  PER_HOUR
+
+  @@map("rate_unit")
+}
+
+enum AutoAssignAlgorithm {
+  PROXIMITY_AND_SKILLS
+  PROXIMITY_ONLY
+  SKILLS_ONLY
+  ROUND_ROBIN
+  MANUAL
+
+  @@map("auto_assign_algorithm")
+}
+
+// --- Billing taxes and payment terms (Settings > Billing & Payments) ----------
+
+/// A configurable tax applied in the billing workflow (VAT on client invoices,
+/// WHT on contractor payouts). The rate is in basis points (750 = 7.5%). These are
+/// managed here; wiring them into invoice computation is a later step (invoices
+/// still use the single standardTaxRate on BillingSettings for now).
+model BillingTax {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @db.VarChar(80)
+  rateBasisPoints Int
+  scope           TaxScope
+  isActive        Boolean  @default(true)
+  description     String?  @db.VarChar(200)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("billing_taxes")
+}
+
+enum TaxScope {
+  CLIENT_INVOICE
+  CONTRACTOR_PAYOUT
+
+  @@map("tax_scope")
+}
+
+/// A configurable payment term (Net 15, Net 30, Custom). A custom term carries no
+/// fixed net days. Exactly one term is the default.
+model BillingPaymentTerm {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(80)
+  netDays     Int?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  isCustom    Boolean  @default(false)
+  description String?  @db.VarChar(200)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("billing_payment_terms")
+}
+
+// --- Admin Notifications (Settings > Notifications) ----------------------------
+
+/// The singleton global notification settings (one row, keyed on the literal id
+/// "notification_settings"): visit reminder timing rules, emergency alert routing,
+/// and the SMS provider integration status. Per type on/off toggles are stored in
+/// NotificationToggle against the notification catalog.
+model NotificationSettings {
+  id                        String                @id @db.VarChar(64)
+  caregiverReminderMinutes  Int                   @default(60)
+  familyNotificationMinutes Int                   @default(30)
+  coordinatorLateMinutes    Int                   @default(15)
+  emergencyRecipients       String[]
+  emergencyChannels         NotificationChannel[]
+  emergencyTriggers         String[]
+  smsProviderName           String?               @db.VarChar(80)
+  smsProviderConnected      Boolean               @default(false)
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+
+  @@map("notification_settings")
+}
+
+/// A saved on/off override for one notification type on one channel. A type with
+/// no row falls back to the catalog default.
+model NotificationToggle {
+  id        String              @id @default(uuid()) @db.Uuid
+  channel   NotificationChannel
+  key       String              @db.VarChar(80)
+  enabled   Boolean
+  updatedAt DateTime            @updatedAt
+
+  @@unique([channel, key])
+  @@map("notification_toggles")
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+
+  @@map("notification_channel")
+}
+
+// --- Admin Security & Integrations (Settings > Security & Integrations) --------
+
+/// The singleton security policy (one row, keyed on the literal id
+/// "security_settings"): the password policy, the MFA mandate and the session
+/// rules. Stored as the office's configured intent; enforcement in the auth flow
+/// is a later step.
+model SecuritySettings {
+  id                     String         @id @db.VarChar(64)
+  passwordMinLength      Int            @default(8)
+  requireUppercase       Boolean        @default(true)
+  requireNumber          Boolean        @default(true)
+  requireSpecialChar     Boolean        @default(true)
+  passwordExpiryDays     Int            @default(90)
+  passwordHistoryBlocked Int            @default(5)
+  mfaEnforcement         MfaEnforcement @default(ENABLED_FOR_ALL)
+  mfaMethods             MfaMethod[]
+  mfaEnforcedRoles       String[]
+  sessionTimeoutMinutes  Int            @default(30)
+  maxConcurrentSessions  Int            @default(3)
+  rememberDeviceDays     Int            @default(30)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  @@map("security_settings")
+}
+
+/// One admin authentication attempt (success or failure), feeding the Recent Login
+/// History and View All Logs. A failed attempt for an unknown email records the
+/// email but no admin id.
+model AdminLoginEvent {
+  id           String            @id @default(uuid()) @db.Uuid
+  adminUserId  String?           @db.Uuid
+  email        String            @db.VarChar(255)
+  operatorName String?           @db.VarChar(200)
+  outcome      LoginEventOutcome
+  ipAddress    String?           @db.VarChar(64)
+  deviceLabel  String?           @db.VarChar(200)
+  createdAt    DateTime          @default(now())
+
+  @@index([createdAt])
+  @@map("admin_login_events")
+}
+
+/// A third-party integration shown on the Integrations tab, with its connection
+/// status. Secrets live in configuration, never here; this is display state only.
+model Integration {
+  id          String              @id @default(uuid()) @db.Uuid
+  key         String              @unique @db.VarChar(80)
+  name        String              @db.VarChar(160)
+  category    IntegrationCategory
+  status      IntegrationStatus   @default(DISCONNECTED)
+  description String?             @db.VarChar(300)
+  // Opaque per integration configuration (the Configure drawer). Shape is validated
+  // at the API edge per integration; stored generically so each carries its own.
+  config      Json?
+  connectedAt DateTime?
+  lastSyncAt  DateTime?
+  sortOrder   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("integrations")
+}
+
+/// An audit trail entry for a back office action (the Audit Logs tab). Recorded by
+/// the admin-security actions today; other modules can record through the same port.
+model AdminAuditEvent {
+  id           String        @id @default(uuid()) @db.Uuid
+  actorAdminId String?       @db.Uuid
+  actorName    String?       @db.VarChar(200)
+  category     AuditCategory
+  action       String        @db.VarChar(120)
+  summary      String        @db.VarChar(400)
+  ipAddress    String?       @db.VarChar(64)
+  createdAt    DateTime      @default(now())
+
+  @@index([createdAt])
+  @@map("admin_audit_events")
+}
+
+enum MfaEnforcement {
+  ENABLED_FOR_ALL
+  OPTIONAL
+  DISABLED
+
+  @@map("mfa_enforcement")
+}
+
+enum MfaMethod {
+  AUTHENTICATOR
+  SMS
+  EMAIL
+
+  @@map("mfa_method")
+}
+
+enum LoginEventOutcome {
+  SUCCESS
+  FAILED
+
+  @@map("login_event_outcome")
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+
+  @@map("integration_status")
+}
+
+enum IntegrationCategory {
+  COMMUNICATIONS
+  PAYMENTS
+  IDENTITY
+  MAPS
+  OTHER
+
+  @@map("integration_category")
+}
+
+enum AuditCategory {
+  SECURITY
+  INTEGRATIONS
+  USERS
+  BILLING
+  OPERATIONS
+  OTHER
+
+  @@map("audit_category")
 }
