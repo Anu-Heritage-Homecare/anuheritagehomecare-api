@@ -62,6 +62,23 @@ import { GetBillingAccountUseCase } from './application/use-cases/get-billing-ac
 import { GetAccountPreviewUseCase } from './application/use-cases/get-account-preview.use-case';
 import { GetBillingDashboardUseCase } from './application/use-cases/get-billing-dashboard.use-case';
 import { GetBillingSettingsUseCase } from './application/use-cases/get-billing-settings.use-case';
+import { GetBillingAndPaymentsUseCase } from './application/use-cases/get-billing-and-payments.use-case';
+import {
+  CreateTaxUseCase,
+  DeleteTaxUseCase,
+  UpdateTaxUseCase,
+} from './application/use-cases/billing-tax.use-cases';
+import {
+  CreatePaymentTermUseCase,
+  DeletePaymentTermUseCase,
+  UpdatePaymentTermUseCase,
+} from './application/use-cases/billing-payment-term.use-cases';
+import { BILLING_TAX_REPOSITORY } from './domain/billing-tax.repository';
+import { BILLING_PAYMENT_TERM_REPOSITORY } from './domain/billing-payment-term.repository';
+import { INVOICE_NUMBER_PREVIEW_PORT } from './application/ports/invoice-number-preview.port';
+import { BillingTaxPrismaRepository } from './infrastructure/persistence/billing-tax-prisma.repository';
+import { BillingPaymentTermPrismaRepository } from './infrastructure/persistence/billing-payment-term-prisma.repository';
+import { InvoiceNumberPreviewPrisma } from './infrastructure/persistence/invoice-number-preview.prisma';
 import { GetFinancialReportUseCase } from './application/use-cases/get-financial-report.use-case';
 import { GetInvoiceAccountPreviewUseCase } from './application/use-cases/get-invoice-account-preview.use-case';
 import { GetRecipientServicePreviewUseCase } from './application/use-cases/get-recipient-service-preview.use-case';
@@ -160,8 +177,15 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     ReverseAccountAdjustmentUseCase,
     GetFinancialReportUseCase,
     GetBillingSettingsUseCase,
+    GetBillingAndPaymentsUseCase,
     UpdateBillingSettingsUseCase,
     UpdatePaymentMethodUseCase,
+    CreateTaxUseCase,
+    UpdateTaxUseCase,
+    DeleteTaxUseCase,
+    CreatePaymentTermUseCase,
+    UpdatePaymentTermUseCase,
+    DeletePaymentTermUseCase,
     GetInvoiceAccountPreviewUseCase,
     GetRecipientServicePreviewUseCase,
     ListBillableServicesUseCase,
@@ -180,6 +204,9 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     { provide: INVOICE_CREDIT_WRITER, useClass: InvoiceCreditWriterPrisma },
     { provide: FINANCIAL_REPORTS_READ_MODEL, useClass: FinancialReportsReadPrisma },
     { provide: BILLING_SETTINGS_REPOSITORY, useClass: BillingSettingsPrismaRepository },
+    { provide: BILLING_TAX_REPOSITORY, useClass: BillingTaxPrismaRepository },
+    { provide: BILLING_PAYMENT_TERM_REPOSITORY, useClass: BillingPaymentTermPrismaRepository },
+    { provide: INVOICE_NUMBER_PREVIEW_PORT, useClass: InvoiceNumberPreviewPrisma },
     { provide: INVOICE_WIZARD_READ_MODEL, useClass: InvoiceWizardReadPrisma },
     { provide: BILLABLE_SERVICES_READ_MODEL, useClass: BillableServicesReadPrisma },
     { provide: INVOICE_WRITE_REPOSITORY, useClass: InvoiceWritePrismaRepository },

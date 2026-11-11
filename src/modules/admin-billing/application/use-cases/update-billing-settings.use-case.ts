@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Currency } from '@shared/domain/currency.enum';
+import { BillingPaymentMethodKind } from '../../domain/billing-payment-method-kind.enum';
 import { BillingSettings, BillingSettingsPatch } from '../../domain/billing-settings.entity';
 import {
   BILLING_SETTINGS_REPOSITORY,
@@ -13,6 +14,8 @@ export interface UpdateBillingSettingsCommand {
   invoicePrefix?: string;
   defaultCurrency?: Currency;
   standardTaxRatePercent?: number;
+  includeVatInPricing?: boolean;
+  defaultPaymentMethod?: BillingPaymentMethodKind | null;
   autoNumbering?: boolean;
   autoSendInvoices?: boolean;
   paymentReminders?: boolean;

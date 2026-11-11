@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsEnum,
   IsIn,
   IsInt,
   IsNumber,
@@ -10,8 +11,10 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { Currency } from '@shared/domain/currency.enum';
+import { BillingPaymentMethodKind } from '../../domain/billing-payment-method-kind.enum';
 
 const CURRENCIES = [Currency.UnitedStatesDollar, Currency.NigerianNaira] as const;
 
@@ -42,6 +45,17 @@ export class UpdateBillingSettingsRequestDto {
   @Min(0)
   @Max(100)
   standardTaxRatePercent?: number;
+
+  @ApiPropertyOptional({ description: 'Whether listed prices already include VAT' })
+  @IsOptional()
+  @IsBoolean()
+  includeVatInPricing?: boolean;
+
+  @ApiPropertyOptional({ enum: BillingPaymentMethodKind, nullable: true })
+  @IsOptional()
+  @ValidateIf((object: { defaultPaymentMethod?: unknown }) => object.defaultPaymentMethod !== null)
+  @IsEnum(BillingPaymentMethodKind)
+  defaultPaymentMethod?: BillingPaymentMethodKind | null;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -21,6 +21,8 @@ export class BillingSettingsPrismaRepository implements BillingSettingsRepositor
       invoicePrefix: row.invoicePrefix,
       defaultCurrency: row.defaultCurrency as unknown as Currency,
       standardTaxRateBasisPoints: row.standardTaxRateBasisPoints,
+      includeVatInPricing: row.includeVatInPricing,
+      defaultPaymentMethod: row.defaultPaymentMethod as unknown as BillingPaymentMethodKind | null,
       autoNumbering: row.autoNumbering,
       autoSendInvoices: row.autoSendInvoices,
       paymentReminders: row.paymentReminders,
@@ -47,6 +49,8 @@ export class BillingSettingsPrismaRepository implements BillingSettingsRepositor
       // Domain and Prisma currency enums share the same string values.
       defaultCurrency: p.defaultCurrency,
       standardTaxRateBasisPoints: p.standardTaxRateBasisPoints,
+      includeVatInPricing: p.includeVatInPricing,
+      defaultPaymentMethod: p.defaultPaymentMethod,
       autoNumbering: p.autoNumbering,
       autoSendInvoices: p.autoSendInvoices,
       paymentReminders: p.paymentReminders,

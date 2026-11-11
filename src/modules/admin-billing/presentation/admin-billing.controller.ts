@@ -8,6 +8,7 @@ import {
   Param,
   ParseEnumPipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -41,7 +42,17 @@ import { GetBillingAccountActivityUseCase } from '../application/use-cases/get-b
 import { GetBillingAccountUseCase } from '../application/use-cases/get-billing-account.use-case';
 import { GetAccountPreviewUseCase } from '../application/use-cases/get-account-preview.use-case';
 import { GetBillingDashboardUseCase } from '../application/use-cases/get-billing-dashboard.use-case';
-import { GetBillingSettingsUseCase } from '../application/use-cases/get-billing-settings.use-case';
+import { GetBillingAndPaymentsUseCase } from '../application/use-cases/get-billing-and-payments.use-case';
+import {
+  CreateTaxUseCase,
+  DeleteTaxUseCase,
+  UpdateTaxUseCase,
+} from '../application/use-cases/billing-tax.use-cases';
+import {
+  CreatePaymentTermUseCase,
+  DeletePaymentTermUseCase,
+  UpdatePaymentTermUseCase,
+} from '../application/use-cases/billing-payment-term.use-cases';
 import {
   GetFinancialReportUseCase,
   GetFinancialReportCommand,
@@ -96,6 +107,13 @@ import {
 } from './dto/billing-settings-response.dto';
 import { UpdateBillingSettingsRequestDto } from './dto/update-billing-settings.dto';
 import { UpdatePaymentMethodRequestDto } from './dto/update-payment-method.dto';
+import { BillingAndPaymentsScreenResponseDto } from './dto/billing-and-payments-screen-response.dto';
+import {
+  CreatePaymentTermRequestDto,
+  CreateTaxRequestDto,
+  UpdatePaymentTermRequestDto,
+  UpdateTaxRequestDto,
+} from './dto/billing-tax-term-request.dto';
 import { InvoiceAccountPreviewResponseDto } from './dto/invoice-account-preview-response.dto';
 import { RecipientServicePreviewResponseDto } from './dto/recipient-service-preview-response.dto';
 import { BillableServicesResponseDto } from './dto/billable-services-response.dto';
@@ -221,9 +239,15 @@ export class AdminBillingController {
     private readonly rejectAdjustment: RejectAccountAdjustmentUseCase,
     private readonly reverseAdjustment: ReverseAccountAdjustmentUseCase,
     private readonly getFinancialReport: GetFinancialReportUseCase,
-    private readonly getSettings: GetBillingSettingsUseCase,
+    private readonly getBillingAndPayments: GetBillingAndPaymentsUseCase,
     private readonly updateSettings: UpdateBillingSettingsUseCase,
     private readonly updatePaymentMethod: UpdatePaymentMethodUseCase,
+    private readonly createTax: CreateTaxUseCase,
+    private readonly updateTax: UpdateTaxUseCase,
+    private readonly deleteTax: DeleteTaxUseCase,
+    private readonly createPaymentTerm: CreatePaymentTermUseCase,
+    private readonly updatePaymentTerm: UpdatePaymentTermUseCase,
+    private readonly deletePaymentTerm: DeletePaymentTermUseCase,
     private readonly getInvoiceAccountPreview: GetInvoiceAccountPreviewUseCase,
     private readonly getRecipientServicePreview: GetRecipientServicePreviewUseCase,
     private readonly listBillableServices: ListBillableServicesUseCase,
@@ -309,11 +333,14 @@ export class AdminBillingController {
 
   @Get('settings')
   @ApiOperation({
-    summary: 'The Billing Settings screen: invoice, automation, notifications, methods',
+    summary:
+      'The whole Billing & Payments screen: invoice, automation, notifications, methods, taxes, terms',
   })
-  @ApiOkResponse({ type: BillingSettingsResponseDto })
-  async settings(): Promise<BillingSettingsResponseDto> {
-    return BillingSettingsResponseDto.fromResult(await this.getSettings.execute());
+  @ApiOkResponse({ type: BillingAndPaymentsScreenResponseDto })
+  async settings(): Promise<BillingAndPaymentsScreenResponseDto> {
+    return BillingAndPaymentsScreenResponseDto.fromScreen(
+      await this.getBillingAndPayments.execute(),
+    );
   }
 
   @Put('settings')
@@ -338,6 +365,66 @@ export class AdminBillingController {
       description: body.description,
     });
     return BillingPaymentMethodResponseDto.fromResult(result);
+  }
+
+  @Post('settings/taxes')
+  @ApiOperation({ summary: 'Add a tax (the Add Tax action)' })
+  @ApiOkResponse({ type: BillingAndPaymentsScreenResponseDto })
+  async addTax(@Body() body: CreateTaxRequestDto): Promise<BillingAndPaymentsScreenResponseDto> {
+    return BillingAndPaymentsScreenResponseDto.fromScreen(await this.createTax.execute(body));
+  }
+
+  @Patch('settings/taxes/:id')
+  @ApiOperation({ summary: 'Edit a tax, including its active toggle' })
+  @ApiOkResponse({ type: BillingAndPaymentsScreenResponseDto })
+  async editTax(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateTaxRequestDto,
+  ): Promise<BillingAndPaymentsScreenResponseDto> {
+    return BillingAndPaymentsScreenResponseDto.fromScreen(
+      await this.updateTax.execute({ taxId: id, ...body }),
+    );
+  }
+
+  @Delete('settings/taxes/:id')
+  @ApiOperation({ summary: 'Remove a tax' })
+  @ApiOkResponse({ type: BillingAndPaymentsScreenResponseDto })
+  async removeTax(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<BillingAndPaymentsScreenResponseDto> {
+    return BillingAndPaymentsScreenResponseDto.fromScreen(await this.deleteTax.execute(id));
+  }
+
+  @Post('settings/payment-terms')
+  @ApiOperation({ summary: 'Add a payment term (the Add Term action)' })
+  @ApiOkResponse({ type: BillingAndPaymentsScreenResponseDto })
+  async addPaymentTerm(
+    @Body() body: CreatePaymentTermRequestDto,
+  ): Promise<BillingAndPaymentsScreenResponseDto> {
+    return BillingAndPaymentsScreenResponseDto.fromScreen(
+      await this.createPaymentTerm.execute(body),
+    );
+  }
+
+  @Patch('settings/payment-terms/:id')
+  @ApiOperation({ summary: 'Edit a payment term, including making it the default' })
+  @ApiOkResponse({ type: BillingAndPaymentsScreenResponseDto })
+  async editPaymentTerm(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdatePaymentTermRequestDto,
+  ): Promise<BillingAndPaymentsScreenResponseDto> {
+    return BillingAndPaymentsScreenResponseDto.fromScreen(
+      await this.updatePaymentTerm.execute({ termId: id, ...body }),
+    );
+  }
+
+  @Delete('settings/payment-terms/:id')
+  @ApiOperation({ summary: 'Remove a payment term' })
+  @ApiOkResponse({ type: BillingAndPaymentsScreenResponseDto })
+  async removePaymentTerm(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<BillingAndPaymentsScreenResponseDto> {
+    return BillingAndPaymentsScreenResponseDto.fromScreen(await this.deletePaymentTerm.execute(id));
   }
 
   @Get('invoice-wizard/accounts/:id')
