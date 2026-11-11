@@ -36,9 +36,17 @@ export class AdminUserMapper {
       firstName: admin.name.firstName,
       lastName: admin.name.lastName,
       email: admin.email.value,
+      // Contact fields are owned by the admin-access provisioning surface; this
+      // context (auth) does not manage them and leaves them untouched.
+      phoneNumber: null,
+      department: null,
       passwordHash: admin.passwordHash,
       role: AdminUserMapper.TO_PERSISTENCE_ROLE[admin.role],
       status: AdminUserMapper.TO_PERSISTENCE_STATUS[admin.status],
+      // The configurable role and branch are owned by the admin-access context and
+      // written there; this context leaves them untouched (null on first provision).
+      roleId: null,
+      branchId: null,
       photoKey: admin.photoKey,
       mustChangePassword: admin.mustChangePassword,
       passwordChangedAt: admin.passwordChangedAt,

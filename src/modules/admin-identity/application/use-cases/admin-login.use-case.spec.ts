@@ -13,20 +13,38 @@ import {
   fixedClock,
   sequentialIds,
 } from '../../test-support/doubles';
+import { LoginEventRecorder } from '../ports/login-event-recorder.port';
 import { AdminTokenIssuerService } from '../services/admin-token-issuer.service';
 import { AdminLoginUseCase } from './admin-login.use-case';
+import { LoginEventRecord } from '../ports/login-event-recorder.port';
+
+class CapturingRecorder implements LoginEventRecorder {
+  public readonly events: LoginEventRecord[] = [];
+  record(event: LoginEventRecord): Promise<void> {
+    this.events.push(event);
+    return Promise.resolve();
+  }
+}
 
 function make(): {
   admins: InMemoryAdminUserRepository;
   sessions: InMemoryAdminSessionRepository;
+  recorder: CapturingRecorder;
   useCase: AdminLoginUseCase;
 } {
   const admins = new InMemoryAdminUserRepository();
   const sessions = new InMemoryAdminSessionRepository();
   const tokens = new FakeAdminTokenService();
+  const recorder = new CapturingRecorder();
   const issuer = new AdminTokenIssuerService(tokens, sessions, fixedClock, sequentialIds('sess'));
-  const useCase = new AdminLoginUseCase(admins, new FakePasswordHasher(), fixedClock, issuer);
-  return { admins, sessions, useCase };
+  const useCase = new AdminLoginUseCase(
+    admins,
+    new FakePasswordHasher(),
+    fixedClock,
+    recorder,
+    issuer,
+  );
+  return { admins, sessions, recorder, useCase };
 }
 
 describe('AdminLoginUseCase', () => {
@@ -97,5 +115,29 @@ describe('AdminLoginUseCase', () => {
         device: FAKE_DEVICE,
       }),
     ).rejects.toBeInstanceOf(ForbiddenDomainException);
+  });
+
+  it('records a success login event', async () => {
+    const { admins, recorder, useCase } = make();
+    await admins.save(buildAdmin({ plainPassword: 'S3curePassw0rd' }));
+    await useCase.execute({
+      email: 'ops@anuheritagehomecare.com',
+      password: 'S3curePassw0rd',
+      device: FAKE_DEVICE,
+    });
+    expect(recorder.events).toHaveLength(1);
+    expect(recorder.events[0].outcome).toBe('SUCCESS');
+    expect(recorder.events[0].adminUserId).toBe('admin-1');
+  });
+
+  it('records a failed login event for an unknown email with no admin id', async () => {
+    const { recorder, useCase } = make();
+    await expect(
+      useCase.execute({ email: 'nobody@x.com', password: 'whatever1A', device: FAKE_DEVICE }),
+    ).rejects.toBeInstanceOf(UnauthorizedDomainException);
+    expect(recorder.events).toHaveLength(1);
+    expect(recorder.events[0].outcome).toBe('FAILED');
+    expect(recorder.events[0].adminUserId).toBeNull();
+    expect(recorder.events[0].email).toBe('nobody@x.com');
   });
 });

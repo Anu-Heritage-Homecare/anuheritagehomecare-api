@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ADMIN_PASSWORD_HASHER } from './application/ports/password-hasher.port';
+import { LOGIN_EVENT_RECORDER } from './application/ports/login-event-recorder.port';
 import { ADMIN_TOKEN_SERVICE } from './application/ports/token-service.port';
 import { AdminTokenIssuerService } from './application/services/admin-token-issuer.service';
 import { AdminLoginUseCase } from './application/use-cases/admin-login.use-case';
@@ -14,6 +15,7 @@ import { ADMIN_USER_REPOSITORY } from './domain/admin-user.repository';
 import { AdminSessionPrismaRepository } from './infrastructure/persistence/admin-session-prisma.repository';
 import { AdminUserPrismaRepository } from './infrastructure/persistence/admin-user-prisma.repository';
 import { AdminBcryptPasswordHasher } from './infrastructure/security/admin-bcrypt-password-hasher';
+import { LoginEventRecorderPrisma } from './infrastructure/persistence/login-event-recorder.prisma';
 import { AdminJwtAccessStrategy } from './infrastructure/security/admin-jwt-access.strategy';
 import { AdminJwtTokenService } from './infrastructure/security/admin-jwt-token.service';
 import { AdminAuthController } from './presentation/admin-auth.controller';
@@ -41,6 +43,7 @@ import { AdminAuthController } from './presentation/admin-auth.controller';
     { provide: ADMIN_SESSION_REPOSITORY, useClass: AdminSessionPrismaRepository },
     { provide: ADMIN_PASSWORD_HASHER, useClass: AdminBcryptPasswordHasher },
     { provide: ADMIN_TOKEN_SERVICE, useClass: AdminJwtTokenService },
+    { provide: LOGIN_EVENT_RECORDER, useClass: LoginEventRecorderPrisma },
   ],
   exports: [ADMIN_USER_REPOSITORY],
 })

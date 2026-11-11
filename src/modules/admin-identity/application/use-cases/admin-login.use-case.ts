@@ -10,6 +10,7 @@ import { EmailAddress } from '../../domain/value-objects/email-address.vo';
 import { AdminLoginCommand } from '../commands/admin-login.command';
 import { AdminAuthTokensResult } from '../dto/admin-auth-tokens.result';
 import { ADMIN_PASSWORD_HASHER, PasswordHasher } from '../ports/password-hasher.port';
+import { LOGIN_EVENT_RECORDER, LoginEventRecorder } from '../ports/login-event-recorder.port';
 import { AdminTokenIssuerService } from '../services/admin-token-issuer.service';
 
 /**
@@ -27,6 +28,7 @@ export class AdminLoginUseCase {
     @Inject(ADMIN_USER_REPOSITORY) private readonly admins: AdminUserRepository,
     @Inject(ADMIN_PASSWORD_HASHER) private readonly hasher: PasswordHasher,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(LOGIN_EVENT_RECORDER) private readonly loginEvents: LoginEventRecorder,
     private readonly tokenIssuer: AdminTokenIssuerService,
   ) {}
 
@@ -35,21 +37,41 @@ export class AdminLoginUseCase {
     const admin = await this.admins.findByEmail(email.value);
 
     if (admin === null) {
+      await this.recordAttempt(command, null, null, 'FAILED');
       throw new UnauthorizedDomainException();
     }
 
     const passwordMatches = await this.hasher.compare(command.password, admin.passwordHash);
     if (!passwordMatches) {
+      await this.recordAttempt(command, admin.id, admin.name.fullName, 'FAILED');
       throw new UnauthorizedDomainException();
     }
 
     if (admin.status === AdminStatus.Suspended) {
+      await this.recordAttempt(command, admin.id, admin.name.fullName, 'FAILED');
       throw new ForbiddenDomainException('This account is suspended');
     }
 
     admin.recordLogin(this.clock.now());
     await this.admins.save(admin);
+    await this.recordAttempt(command, admin.id, admin.name.fullName, 'SUCCESS');
 
     return this.tokenIssuer.issueForNewSession(admin, command.device);
+  }
+
+  private recordAttempt(
+    command: AdminLoginCommand,
+    adminUserId: string | null,
+    operatorName: string | null,
+    outcome: 'SUCCESS' | 'FAILED',
+  ): Promise<void> {
+    return this.loginEvents.record({
+      adminUserId,
+      email: command.email.trim().toLowerCase(),
+      operatorName,
+      outcome,
+      ipAddress: command.device.ipAddress,
+      deviceLabel: command.device.deviceLabel,
+    });
   }
 }
