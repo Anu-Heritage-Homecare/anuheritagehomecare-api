@@ -69,25 +69,18 @@ export const envSchema = z.object({
   OTP_LENGTH: z.coerce.number().int().min(4).max(10).default(6),
   OTP_TTL_MINUTES: z.coerce.number().int().positive().default(10),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
-  // TEMPORARY stopgap until real SMTP credentials exist: when true, OTP emails are
-  // NOT sent and every passcode is a fixed string of zeros that verification
-  // accepts. Must be false in any environment with real users. Remove once SMTP is
-  // configured.
+  // Escape hatch for environments without email: when true, OTP emails are NOT
+  // sent and every passcode is a fixed string of zeros that verification accepts.
+  // Must be false in any environment with real users (it is, by default).
   OTP_BYPASS_ENABLED: z
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
 
-  // Outbound email over SMTP (nodemailer). Host may be empty while SMTP is not yet
-  // provisioned; pair that with OTP_BYPASS_ENABLED=true so no send is attempted.
-  SMTP_HOST: z.string().default(''),
-  SMTP_PORT: z.coerce.number().int().positive().default(587),
-  SMTP_SECURE: z
-    .enum(['true', 'false'])
-    .default('false')
-    .transform((value) => value === 'true'),
-  SMTP_USER: z.string().default(''),
-  SMTP_PASSWORD: z.string().default(''),
+  // Outbound transactional email via Resend (REST API). May be empty in local and
+  // test environments; the adapter then logs the message instead of sending, and
+  // fails closed (throws) in production.
+  RESEND_API_KEY: z.string().default(''),
   MAIL_FROM: z.string().min(1).default('Anu Heritage Homecare <no-reply@anuheritagehomecare.com>'),
 
   // Bookable hours in a day (local), used to generate Flexible booking time

@@ -51,19 +51,15 @@ export interface OtpConfig {
   readonly ttlMinutes: number;
   readonly maxAttempts: number;
   /**
-   * TEMPORARY: when true, OTP emails are not sent and every passcode is a fixed
-   * string of zeros that verification accepts. Stopgap until SMTP is configured;
-   * must be false with real users.
+   * Escape hatch for environments without email: when true, OTP emails are not
+   * sent and every passcode is a fixed string of zeros that verification accepts.
+   * Must be false with real users (it is, by default).
    */
   readonly bypassEnabled: boolean;
 }
 
 export interface MailConfig {
-  readonly host: string;
-  readonly port: number;
-  readonly secure: boolean;
-  readonly user: string;
-  readonly password: string;
+  readonly resendApiKey: string;
   readonly from: string;
 }
 
@@ -171,11 +167,7 @@ export function buildConfig(env: Env): {
       bypassEnabled: env.OTP_BYPASS_ENABLED,
     },
     mail: {
-      host: env.SMTP_HOST,
-      port: env.SMTP_PORT,
-      secure: env.SMTP_SECURE,
-      user: env.SMTP_USER,
-      password: env.SMTP_PASSWORD,
+      resendApiKey: env.RESEND_API_KEY,
       from: env.MAIL_FROM,
     },
     booking: {
