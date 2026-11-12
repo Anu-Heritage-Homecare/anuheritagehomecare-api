@@ -204,7 +204,7 @@ describe('family Care reads', () => {
   });
 
   describe('GetRecipientVisitsUseCase', () => {
-    it('splits the current visit from past visits', async () => {
+    it('returns the current visit and a page of past visits', async () => {
       const inProgress = buildVisit({
         id: 'v2',
         careRecipientId: 'r1',
@@ -213,7 +213,9 @@ describe('family Care reads', () => {
         date: '2026-11-12',
       });
       const visits = {
-        listForCareRecipientsInRange: () => Promise.resolve([completed, inProgress]),
+        findCurrentForCareRecipient: () => Promise.resolve(inProgress),
+        listCompletedForCareRecipient: (_id: string, limit: number, offset: number) =>
+          Promise.resolve({ visits: [completed], total: 1, limit, offset }),
       } as unknown as VisitRepository;
       const useCase = new GetRecipientVisitsUseCase(
         recipientsRepo({ r1: recipient() }),
@@ -222,18 +224,49 @@ describe('family Care reads', () => {
         fakeCareAccess(),
       );
 
-      const result = await useCase.execute({ callerUserId: 'owner-1', careRecipientId: 'r1' });
+      const result = await useCase.execute({
+        callerUserId: 'owner-1',
+        careRecipientId: 'r1',
+        page: 2,
+        pageSize: 5,
+      });
 
       expect(result.currentVisit?.id).toBe('v2');
       expect(result.pastVisits.map((visit) => visit.id)).toEqual(['v1']);
       expect(result.pastVisits[0].caregiver?.name).toBe('Sarah Adams John');
       expect(result.currentVisit?.caregiver?.photoKey).toBe('caregivers/cg1.jpg');
+      expect(result.pagination).toEqual({ page: 2, pageSize: 5, total: 1 });
+    });
+
+    it('clamps the page size to the maximum', async () => {
+      let capturedLimit = 0;
+      const visits = {
+        findCurrentForCareRecipient: () => Promise.resolve(null),
+        listCompletedForCareRecipient: (_id: string, limit: number) => {
+          capturedLimit = limit;
+          return Promise.resolve({ visits: [], total: 0 });
+        },
+      } as unknown as VisitRepository;
+      const useCase = new GetRecipientVisitsUseCase(
+        recipientsRepo({ r1: recipient() }),
+        visits,
+        usersRepo(),
+        fakeCareAccess(),
+      );
+
+      const result = await useCase.execute({
+        callerUserId: 'owner-1',
+        careRecipientId: 'r1',
+        pageSize: 9999,
+      });
+
+      expect(capturedLimit).toBe(50);
+      expect(result.pagination.pageSize).toBe(50);
+      expect(result.currentVisit).toBeNull();
     });
 
     it('hides a recipient the owner does not own', async () => {
-      const visits = {
-        listForCareRecipientsInRange: () => Promise.resolve([]),
-      } as unknown as VisitRepository;
+      const visits = {} as unknown as VisitRepository;
       const useCase = new GetRecipientVisitsUseCase(
         recipientsRepo({ r1: recipient({ ownerId: 'someone-else' }) }),
         visits,

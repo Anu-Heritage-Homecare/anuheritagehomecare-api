@@ -13,6 +13,8 @@ export interface FamilyVisitSummaryResult {
 export interface FamilyVisitsResult {
   currentVisit: FamilyVisitSummaryResult | null;
   pastVisits: FamilyVisitSummaryResult[];
+  /** Paging over the past (completed) visits only; the current visit is separate. */
+  pagination: { page: number; pageSize: number; total: number };
 }
 
 export type FamilyTimelineKind =

@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Put,
+  Query,
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
@@ -28,6 +29,7 @@ import {
   RecipientHealthResponseDto,
 } from './dto/care-section-response.dto';
 import { ReviseScheduleRequestDto } from './dto/revise-schedule-request.dto';
+import { GetRecipientVisitsQueryDto } from './dto/visits-query.dto';
 import {
   FamilyVisitDetailResponseDto,
   FamilyVisitsResponseDto,
@@ -121,15 +123,18 @@ export class FamilyCareController {
   }
 
   @Get('care-recipients/:id/visits')
-  @ApiOperation({ summary: "A recipient's current and past visits" })
+  @ApiOperation({ summary: "A recipient's current visit and a page of past visits" })
   @ApiOkResponse({ type: FamilyVisitsResponseDto })
   async visits(
     @CurrentUser() principal: AuthenticatedPrincipal,
     @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: GetRecipientVisitsQueryDto,
   ): Promise<FamilyVisitsResponseDto> {
     const result = await this.getVisits.execute({
       callerUserId: principal.userId,
       careRecipientId: id,
+      page: query.page,
+      pageSize: query.pageSize,
     });
     return FamilyVisitsResponseDto.fromResult(result);
   }

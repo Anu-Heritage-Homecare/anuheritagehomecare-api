@@ -170,6 +170,8 @@ function visits(): VisitRepository {
     findById: () => Promise.resolve(null),
     listForCaregiverInRange: () => Promise.resolve([]),
     listForDateRange: () => Promise.resolve([]),
+    findCurrentForCareRecipient: () => Promise.resolve(null),
+    listCompletedForCareRecipient: () => Promise.resolve({ visits: [], total: 0 }),
     listForCareRecipientsInRange: (_ids, from) =>
       // This month starts 2026-07-01; the prior month starts 2026-06-01.
       Promise.resolve(
