@@ -60,5 +60,14 @@ export class ResendEmailSender implements EmailSender {
       const detail = await response.text().catch(() => '');
       throw new Error(`Resend rejected the email (${response.status}): ${detail}`);
     }
+
+    // Record the provider message id so an accepted send is traceable from our
+    // logs to the Resend dashboard (delivered, bounced, etc.) without a
+    // reproduction. The id and subject carry no recipient or message content.
+    const id = await response
+      .json()
+      .then((body: { id?: string }) => body.id)
+      .catch(() => undefined);
+    this.logger.log(`Email accepted by Resend (id ${id ?? 'unknown'}) [${message.subject}]`);
   }
 }
