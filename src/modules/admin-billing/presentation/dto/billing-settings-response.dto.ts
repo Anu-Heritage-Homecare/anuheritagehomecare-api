@@ -15,6 +15,7 @@ class BillingInvoiceSettingsDto implements BillingInvoiceSettingsResult {
   @ApiProperty({ example: 'NGN' }) defaultCurrency!: string;
   @ApiProperty({ example: 7.5 }) standardTaxRatePercent!: number;
   @ApiProperty() autoNumbering!: boolean;
+  @ApiProperty() includeVatInPricing!: boolean;
 }
 
 class BillingAutomationSettingsDto implements BillingAutomationSettingsResult {
@@ -58,6 +59,8 @@ export class BillingSettingsResponseDto implements BillingSettingsResult {
   notifications!: BillingNotificationSettingsDto;
   @ApiProperty({ type: BillingCompanyProfileDto }) company!: BillingCompanyProfileDto;
   @ApiProperty({ type: [BillingPaymentMethodDto] }) paymentMethods!: BillingPaymentMethodDto[];
+  @ApiProperty({ nullable: true, type: String, enum: ALL_BILLING_PAYMENT_METHOD_KINDS })
+  defaultPaymentMethod!: string | null;
 
   static fromResult(result: BillingSettingsResult): BillingSettingsResponseDto {
     return result;

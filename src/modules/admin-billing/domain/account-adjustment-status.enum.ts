@@ -9,6 +9,7 @@ export enum AccountAdjustmentStatus {
   PendingApproval = 'PENDING_APPROVAL',
   Processing = 'PROCESSING',
   Completed = 'COMPLETED',
+  Rejected = 'REJECTED',
   Reversed = 'REVERSED',
 }
 

@@ -11,21 +11,24 @@ import { CareAccessLevel } from '@modules/profile/domain/care-access-level.enum'
 import { CARE_ACCESS, CareAccessGuard } from '@modules/profile/application/ports/care-access.port';
 import { FamilyVisitsResult, FamilyVisitSummaryResult } from '../dto/family-visit.result';
 
+export const DEFAULT_PAST_VISITS_PAGE_SIZE = 20;
+export const MAX_PAST_VISITS_PAGE_SIZE = 50;
+
 export interface GetRecipientVisitsQuery {
   /** The authenticated caller: the owner, or a care circle member. */
   callerUserId: string;
   careRecipientId: string;
+  /** Page over the past (completed) visits; defaults to the first page. */
+  page?: number;
+  pageSize?: number;
 }
-
-// A wide window that covers a recipient's visit history and near future.
-const HISTORY_FROM = new Date('2000-01-01T00:00:00.000Z');
-const FUTURE_TO = new Date('2100-01-01T00:00:00.000Z');
-const ACTIVE = new Set(['IN_PROGRESS', 'ON_BREAK']);
 
 /**
  * Use case: the visits list a family owner sees for one of their recipients: the
  * current visit (in progress, or next scheduled) and the past visits. The
- * recipient must belong to the owner, otherwise it is reported as not found.
+ * recipient must belong to the owner, otherwise it is reported as not found. The
+ * past visits are paginated so the query is bounded instead of fetching the whole
+ * history.
  */
 @Injectable()
 export class GetRecipientVisitsUseCase {
@@ -43,15 +46,25 @@ export class GetRecipientVisitsUseCase {
     }
     await this.access.assertAccess(query.callerUserId, recipient.ownerId, CareAccessLevel.Limited);
 
-    const visits = await this.visits.listForCareRecipientsInRange(
-      [query.careRecipientId],
-      HISTORY_FROM,
-      FUTURE_TO,
+    const page = Math.max(1, query.page ?? 1);
+    const pageSize = Math.min(
+      MAX_PAST_VISITS_PAGE_SIZE,
+      Math.max(1, query.pageSize ?? DEFAULT_PAST_VISITS_PAGE_SIZE),
     );
 
+    const [current, past] = await Promise.all([
+      this.visits.findCurrentForCareRecipient(query.careRecipientId),
+      this.visits.listCompletedForCareRecipient(
+        query.careRecipientId,
+        pageSize,
+        (page - 1) * pageSize,
+      ),
+    ]);
+
+    const relevant = [current, ...past.visits].filter((visit): visit is Visit => visit !== null);
     const caregiverIds = [
       ...new Set(
-        visits.map((visit) => visit.caregiverId).filter((id): id is string => id !== null),
+        relevant.map((visit) => visit.caregiverId).filter((id): id is string => id !== null),
       ),
     ];
     const caregivers = await this.users.findByIds(caregiverIds);
@@ -62,16 +75,11 @@ export class GetRecipientVisitsUseCase {
       ]),
     );
 
-    const summaries = visits.map((visit) => this.toSummary(visit, caregiverById));
-    const current =
-      summaries.find((visit) => ACTIVE.has(visit.status)) ??
-      summaries.find((visit) => visit.status === 'SCHEDULED') ??
-      null;
-    const pastVisits = summaries
-      .filter((visit) => visit.status === 'COMPLETED')
-      .sort((a, b) => this.chronologyKey(b) - this.chronologyKey(a));
-
-    return { currentVisit: current, pastVisits };
+    return {
+      currentVisit: current === null ? null : this.toSummary(current, caregiverById),
+      pastVisits: past.visits.map((visit) => this.toSummary(visit, caregiverById)),
+      pagination: { page, pageSize, total: past.total },
+    };
   }
 
   private toSummary(
@@ -93,9 +101,5 @@ export class GetRecipientVisitsUseCase {
           ? null
           : { id: caregiverId, name: caregiver.name, photoKey: caregiver.photoKey },
     };
-  }
-
-  private chronologyKey(visit: FamilyVisitSummaryResult): number {
-    return new Date(visit.date).getTime() + visit.startMinute * 60_000;
   }
 }

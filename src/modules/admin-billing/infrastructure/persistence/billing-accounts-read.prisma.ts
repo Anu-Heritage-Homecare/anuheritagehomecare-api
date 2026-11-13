@@ -153,7 +153,8 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
               },
             }),
             this.prisma.recipientInvoicePayment.findMany({
-              where: { careRecipientId: { in: recipientIds } },
+              // Cash only: total paid and last payment exclude credit settlements.
+              where: { careRecipientId: { in: recipientIds }, creditAdjustmentId: null },
               select: {
                 amountMinor: true,
                 refundedAmountMinor: true,
@@ -169,7 +170,10 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
     const outstandingMinor = invoices
       .filter((invoice) => invoice.status === 'PENDING')
       .reduce((sum, invoice) => sum + patientDue(invoice), 0);
-    const totalBilledMinor = invoices.reduce((sum, invoice) => sum + patientDue(invoice), 0);
+    // Billed excludes cancelled (voided) and written off (bad debt) invoices.
+    const totalBilledMinor = invoices
+      .filter((invoice) => invoice.status !== 'CANCELLED' && invoice.status !== 'WRITTEN_OFF')
+      .reduce((sum, invoice) => sum + patientDue(invoice), 0);
     const totalPaidMinor = payments.reduce(
       (sum, payment) => sum + (payment.amountMinor - payment.refundedAmountMinor),
       0,
@@ -384,7 +388,8 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
     }
 
     const payments = await this.prisma.recipientInvoicePayment.findMany({
-      where: { careRecipientId: { in: recipientIds } },
+      // The Payments tab lists cash payments; credit settlements are shown on Credits.
+      where: { careRecipientId: { in: recipientIds }, creditAdjustmentId: null },
       orderBy: { receivedAt: 'desc' },
       select: {
         id: true,
@@ -460,7 +465,8 @@ export class BillingAccountsReadPrisma implements BillingAccountsReadModel {
         },
       }),
       this.prisma.recipientInvoicePayment.findMany({
-        where: { careRecipientId: { in: recipientIds } },
+        // Cash payments only on the activity timeline; credits appear on Credits.
+        where: { careRecipientId: { in: recipientIds }, creditAdjustmentId: null },
         select: {
           amountMinor: true,
           methodLabel: true,
@@ -825,10 +831,13 @@ function nameFor(adminId: string | null, names: Map<string, string>): string | n
 
 /** The Invoices tab status: paid, else overdue past its due date, else awaiting payment. */
 function invoiceDisplayStatus(
-  status: 'PENDING' | 'PAID',
+  status: 'PENDING' | 'PAID' | 'CANCELLED' | 'WRITTEN_OFF',
   dueDate: Date | null,
   now: Date,
 ): BillingAccountInvoiceRowView['status'] {
+  if (status === 'CANCELLED' || status === 'WRITTEN_OFF') {
+    return status;
+  }
   if (status === 'PAID') {
     return 'PAID';
   }

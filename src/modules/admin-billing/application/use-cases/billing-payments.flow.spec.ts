@@ -15,6 +15,8 @@ function row(overrides: Partial<PaymentListRowView> = {}): PaymentListRowView {
     billingAccountId: 'a1',
     billingAccountName: 'Adeyemi Family Account',
     amountMinor: 45_000_000,
+    refundedAmountMinor: 0,
+    refundableRemainingMinor: 45_000_000,
     currency: 'NGN',
     methodLabel: 'Bank Transfer',
     status: 'COMPLETED',
@@ -98,5 +100,38 @@ describe('ListBillingPaymentsUseCase', () => {
     });
     expect(result.payments[0].invoiceNumber).toBeNull();
     expect(result.payments[0].billingAccountName).toBeNull();
+  });
+
+  it('carries the refunded and remaining refundable amounts for the refund selector', async () => {
+    const reads: BillingPaymentsReadModel = {
+      list: () =>
+        Promise.resolve({
+          rows: [
+            row({
+              amountMinor: 45_000_000,
+              refundedAmountMinor: 20_000_000,
+              refundableRemainingMinor: 25_000_000,
+            }),
+          ],
+          total: 1,
+          counts: { all: 1, pending: 0, completed: 1, failed: 0, refunded: 0 },
+          methods: [],
+        }),
+      detail: () => Promise.resolve(null),
+    };
+    const result = await new ListBillingPaymentsUseCase(reads).execute({
+      status: 'COMPLETED',
+      search: null,
+      billingAccountId: null,
+      method: null,
+      receivedFrom: null,
+      receivedTo: null,
+      minAmountMinor: null,
+      maxAmountMinor: null,
+      page: 1,
+      pageSize: 7,
+    });
+    expect(result.payments[0].refundedAmountMinor).toBe(20_000_000);
+    expect(result.payments[0].refundableRemainingMinor).toBe(25_000_000);
   });
 });

@@ -5,7 +5,11 @@ import { NotFoundDomainException, ValidationException } from '@shared/domain/dom
 import { AccountAdjustmentCategory } from '../../domain/account-adjustment-category.enum';
 import { AccountAdjustmentStatus } from '../../domain/account-adjustment-status.enum';
 import { AccountAdjustment } from '../../domain/account-adjustment.entity';
-import { AccountAdjustmentRepository } from '../../domain/account-adjustment.repository';
+import {
+  AccountAdjustmentRepository,
+  CreditableInvoice,
+} from '../../domain/account-adjustment.repository';
+import { ApplyCreditCommand, InvoiceCreditWriter } from '../../domain/invoice-credit-writer';
 import {
   AccountAdjustmentRowView,
   AccountAdjustmentsFilter,
@@ -15,6 +19,7 @@ import {
 import { ApproveAccountAdjustmentUseCase } from './approve-account-adjustment.use-case';
 import { CreateAccountAdjustmentUseCase } from './create-account-adjustment.use-case';
 import { ListAccountAdjustmentsUseCase } from './list-account-adjustments.use-case';
+import { RejectAccountAdjustmentUseCase } from './reject-account-adjustment.use-case';
 import { ReverseAccountAdjustmentUseCase } from './reverse-account-adjustment.use-case';
 
 const NOW = new Date('2026-08-12T10:00:00.000Z');
@@ -124,7 +129,11 @@ describe('AccountAdjustment entity', () => {
 });
 
 function repo(
-  options: { exists?: boolean; stored?: AccountAdjustment | null } = {},
+  options: {
+    exists?: boolean;
+    stored?: AccountAdjustment | null;
+    creditable?: CreditableInvoice | null;
+  } = {},
 ): AccountAdjustmentRepository & { saved: AccountAdjustment[]; updated: AccountAdjustment[] } {
   const saved: AccountAdjustment[] = [];
   const updated: AccountAdjustment[] = [];
@@ -141,6 +150,27 @@ function repo(
     },
     findById: () => Promise.resolve(options.stored ?? null),
     billingAccountExists: () => Promise.resolve(options.exists ?? true),
+    loadCreditableInvoice: () => Promise.resolve(options.creditable ?? null),
+  };
+}
+
+function creditWriter(): InvoiceCreditWriter & {
+  applied: ApplyCreditCommand[];
+  removed: string[];
+} {
+  const applied: ApplyCreditCommand[] = [];
+  const removed: string[] = [];
+  return {
+    applied,
+    removed,
+    applyCredit: (command) => {
+      applied.push(command);
+      return Promise.resolve();
+    },
+    removeCredit: (adjustmentId) => {
+      removed.push(adjustmentId);
+      return Promise.resolve();
+    },
   };
 }
 
@@ -151,9 +181,11 @@ describe('CreateAccountAdjustmentUseCase', () => {
       category: AccountAdjustmentCategory.Credit,
       type: 'Account Credit',
       billingAccountId: 'acc1',
+      invoiceId: null,
       amountMinor: 15_000_000,
       currency: Currency.NigerianNaira,
       reason: 'Goodwill credit',
+      notes: null,
       createdById: 'admin1',
     });
 
@@ -163,6 +195,74 @@ describe('CreateAccountAdjustmentUseCase', () => {
     expect(r.saved[0].createdById).toBe('admin1');
   });
 
+  it('applies a credit to an invoice on this account within its outstanding balance', async () => {
+    const r = repo({
+      exists: true,
+      creditable: {
+        careRecipientId: 'rec1',
+        currency: Currency.NigerianNaira,
+        outstandingMinor: 45_000_000,
+      },
+    });
+    const result = await new CreateAccountAdjustmentUseCase(r, ids, clock).execute({
+      category: AccountAdjustmentCategory.Credit,
+      type: 'Account Credit',
+      billingAccountId: 'acc1',
+      invoiceId: 'inv1',
+      amountMinor: 15_000_000,
+      currency: Currency.NigerianNaira,
+      reason: 'Service Resolution / Goodwill',
+      notes: 'Agreed with family',
+      createdById: 'admin1',
+    });
+    expect(result.id).toBe('adj-1');
+    expect(r.saved[0].invoiceId).toBe('inv1');
+    expect(r.saved[0].notes).toBe('Agreed with family');
+  });
+
+  it('rejects a credit whose invoice is not on the billing account', async () => {
+    const r = repo({ exists: true, creditable: null });
+    await expect(
+      new CreateAccountAdjustmentUseCase(r, ids, clock).execute({
+        category: AccountAdjustmentCategory.Credit,
+        type: 'Account Credit',
+        billingAccountId: 'acc1',
+        invoiceId: 'inv-elsewhere',
+        amountMinor: 15_000_000,
+        currency: Currency.NigerianNaira,
+        reason: 'Goodwill',
+        notes: null,
+        createdById: 'admin1',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+    expect(r.saved).toHaveLength(0);
+  });
+
+  it('rejects a credit that exceeds the invoice outstanding balance', async () => {
+    const r = repo({
+      exists: true,
+      creditable: {
+        careRecipientId: 'rec1',
+        currency: Currency.NigerianNaira,
+        outstandingMinor: 10_000_000,
+      },
+    });
+    await expect(
+      new CreateAccountAdjustmentUseCase(r, ids, clock).execute({
+        category: AccountAdjustmentCategory.Credit,
+        type: 'Account Credit',
+        billingAccountId: 'acc1',
+        invoiceId: 'inv1',
+        amountMinor: 15_000_000,
+        currency: Currency.NigerianNaira,
+        reason: 'Goodwill',
+        notes: null,
+        createdById: 'admin1',
+      }),
+    ).rejects.toBeInstanceOf(ValidationException);
+    expect(r.saved).toHaveLength(0);
+  });
+
   it('throws when the billing account is missing, without saving', async () => {
     const r = repo({ exists: false });
     await expect(
@@ -170,9 +270,11 @@ describe('CreateAccountAdjustmentUseCase', () => {
         category: AccountAdjustmentCategory.Refund,
         type: 'Overpayment',
         billingAccountId: 'missing',
+        invoiceId: null,
         amountMinor: 100,
         currency: Currency.NigerianNaira,
         reason: 'x',
+        notes: null,
         createdById: 'admin1',
       }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
@@ -180,21 +282,104 @@ describe('CreateAccountAdjustmentUseCase', () => {
   });
 });
 
+function creditForInvoice(): AccountAdjustment {
+  return AccountAdjustment.create({
+    id: 'a1',
+    category: AccountAdjustmentCategory.Credit,
+    type: 'Account Credit',
+    billingAccountId: 'acc1',
+    invoiceId: 'inv1',
+    amountMinor: 15_000_000,
+    currency: Currency.NigerianNaira,
+    reason: 'Goodwill',
+    notes: null,
+    createdById: 'admin1',
+    now: NOW,
+  });
+}
+
 describe('ApproveAccountAdjustmentUseCase', () => {
   it('approves a stored adjustment and persists the new status', async () => {
     const r = repo({ stored: newAdjustment(AccountAdjustmentCategory.Refund) });
-    const result = await new ApproveAccountAdjustmentUseCase(r, clock).execute({
+    const credits = creditWriter();
+    const result = await new ApproveAccountAdjustmentUseCase(r, credits, clock).execute({
       id: 'a1',
       approvedById: 'admin2',
+      approverNotes: 'Verified against the roster',
     });
     expect(result.status).toBe(AccountAdjustmentStatus.Processing);
     expect(r.updated[0].approvedById).toBe('admin2');
+    expect(r.updated[0].approverNotes).toBe('Verified against the roster');
+    expect(credits.applied).toHaveLength(0);
+  });
+
+  it('applies the credit to its invoice when a credit is approved', async () => {
+    const r = repo({ stored: creditForInvoice() });
+    const credits = creditWriter();
+    const result = await new ApproveAccountAdjustmentUseCase(r, credits, clock).execute({
+      id: 'a1',
+      approvedById: 'admin2',
+      approverNotes: null,
+    });
+    expect(result.status).toBe(AccountAdjustmentStatus.Completed);
+    expect(credits.applied).toEqual([
+      {
+        adjustmentId: 'a1',
+        invoiceId: 'inv1',
+        amountMinor: 15_000_000,
+        currency: Currency.NigerianNaira,
+        now: NOW,
+      },
+    ]);
   });
 
   it('throws when the adjustment does not exist', async () => {
     const r = repo({ stored: null });
     await expect(
-      new ApproveAccountAdjustmentUseCase(r, clock).execute({ id: 'missing', approvedById: 'a2' }),
+      new ApproveAccountAdjustmentUseCase(r, creditWriter(), clock).execute({
+        id: 'missing',
+        approvedById: 'a2',
+        approverNotes: null,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+    expect(r.updated).toHaveLength(0);
+  });
+});
+
+describe('RejectAccountAdjustmentUseCase', () => {
+  it('rejects a pending adjustment and records the approver notes', async () => {
+    const r = repo({ stored: newAdjustment(AccountAdjustmentCategory.Credit) });
+    const result = await new RejectAccountAdjustmentUseCase(r, clock).execute({
+      id: 'a1',
+      rejectedById: 'admin9',
+      approverNotes: 'Rate was actually correct',
+    });
+    expect(result.status).toBe(AccountAdjustmentStatus.Rejected);
+    expect(r.updated[0].rejectedById).toBe('admin9');
+    expect(r.updated[0].approverNotes).toBe('Rate was actually correct');
+  });
+
+  it('refuses to reject an adjustment that is not awaiting approval', async () => {
+    const approved = newAdjustment(AccountAdjustmentCategory.Credit);
+    approved.approve({ approvedById: 'admin2', now: NOW });
+    const r = repo({ stored: approved });
+    await expect(
+      new RejectAccountAdjustmentUseCase(r, clock).execute({
+        id: 'a1',
+        rejectedById: 'admin9',
+        approverNotes: null,
+      }),
+    ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('throws when the adjustment does not exist', async () => {
+    const r = repo({ stored: null });
+    await expect(
+      new RejectAccountAdjustmentUseCase(r, clock).execute({
+        id: 'missing',
+        rejectedById: 'admin9',
+        approverNotes: null,
+      }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
     expect(r.updated).toHaveLength(0);
   });
@@ -203,18 +388,35 @@ describe('ApproveAccountAdjustmentUseCase', () => {
 describe('ReverseAccountAdjustmentUseCase', () => {
   it('reverses a stored adjustment and persists the reverser', async () => {
     const r = repo({ stored: newAdjustment(AccountAdjustmentCategory.Adjustment) });
-    const result = await new ReverseAccountAdjustmentUseCase(r, clock).execute({
+    const credits = creditWriter();
+    const result = await new ReverseAccountAdjustmentUseCase(r, credits, clock).execute({
       id: 'a1',
       reversedById: 'admin3',
     });
     expect(result.status).toBe(AccountAdjustmentStatus.Reversed);
     expect(r.updated[0].reversedById).toBe('admin3');
+    expect(credits.removed).toHaveLength(0);
+  });
+
+  it('removes the invoice settlement when an applied credit is reversed', async () => {
+    const applied = creditForInvoice();
+    applied.approve({ approvedById: 'admin2', now: NOW });
+    const r = repo({ stored: applied });
+    const credits = creditWriter();
+    await new ReverseAccountAdjustmentUseCase(r, credits, clock).execute({
+      id: 'a1',
+      reversedById: 'admin3',
+    });
+    expect(credits.removed).toEqual(['a1']);
   });
 
   it('throws when the adjustment does not exist', async () => {
     const r = repo({ stored: null });
     await expect(
-      new ReverseAccountAdjustmentUseCase(r, clock).execute({ id: 'missing', reversedById: 'a3' }),
+      new ReverseAccountAdjustmentUseCase(r, creditWriter(), clock).execute({
+        id: 'missing',
+        reversedById: 'a3',
+      }),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
     expect(r.updated).toHaveLength(0);
   });

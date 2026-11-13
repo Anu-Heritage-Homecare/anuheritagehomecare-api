@@ -103,6 +103,12 @@ class VisitStore implements VisitRepository {
   listForDateRange(): Promise<Visit[]> {
     return Promise.resolve([]);
   }
+  findCurrentForCareRecipient(): Promise<Visit | null> {
+    return Promise.resolve(null);
+  }
+  listCompletedForCareRecipient(): Promise<{ visits: Visit[]; total: number }> {
+    return Promise.resolve({ visits: [], total: 0 });
+  }
 }
 
 function assignmentStub(id: string, caregiverId: string): CareTeamAssignment {

@@ -289,6 +289,9 @@ export class VisitMapper {
       clockOutAt: visit.clockOutAt,
       arrivalLatitude: visit.arrivalLocation?.latitude ?? null,
       arrivalLongitude: visit.arrivalLocation?.longitude ?? null,
+      // The cancellation reason is set by the (deferred) cancel with reason action and
+      // is not modelled in the domain yet, so it persists as null for now.
+      cancellationReason: null,
       createdAt: visit.createdAt,
       updatedAt: visit.updatedAt,
     };

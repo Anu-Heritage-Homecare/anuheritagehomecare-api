@@ -7,6 +7,7 @@ export interface BillingInvoiceSettingsResult {
   defaultCurrency: string;
   standardTaxRatePercent: number;
   autoNumbering: boolean;
+  includeVatInPricing: boolean;
 }
 
 export interface BillingAutomationSettingsResult {
@@ -45,6 +46,8 @@ export interface BillingSettingsResult {
   notifications: BillingNotificationSettingsResult;
   company: BillingCompanyProfileResult;
   paymentMethods: BillingPaymentMethodResult[];
+  /** Which payment avenue is presented as the default, or null when none is. */
+  defaultPaymentMethod: string | null;
 }
 
 /** The stored tax rate is in basis points; the screen works in whole percent. */
@@ -70,6 +73,7 @@ export function toBillingSettingsResult(
       defaultCurrency: p.defaultCurrency,
       standardTaxRatePercent: basisPointsToPercent(p.standardTaxRateBasisPoints),
       autoNumbering: p.autoNumbering,
+      includeVatInPricing: p.includeVatInPricing,
     },
     automation: {
       autoSendInvoices: p.autoSendInvoices,
@@ -92,5 +96,6 @@ export function toBillingSettingsResult(
       bankAccountName: p.bankAccountName,
     },
     paymentMethods: paymentMethods.map(toPaymentMethodResult),
+    defaultPaymentMethod: p.defaultPaymentMethod,
   };
 }

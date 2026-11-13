@@ -128,6 +128,8 @@ const visitsRepo: VisitRepository = {
   listForCaregiverInRange: () => Promise.resolve([]),
   listForCareRecipientsInRange: () => Promise.resolve([pastVisit, upcomingVisit]),
   listForDateRange: () => Promise.resolve([]),
+  findCurrentForCareRecipient: () => Promise.resolve(null),
+  listCompletedForCareRecipient: () => Promise.resolve({ visits: [], total: 0 }),
 };
 
 const alert = OperationalAlert.raise({

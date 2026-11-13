@@ -30,7 +30,17 @@ class BillingInvoiceIssuerDto implements BillingInvoiceIssuerResult {
 export class BillingInvoiceDetailResponseDto implements BillingInvoiceDetailResult {
   @ApiProperty() id!: string;
   @ApiProperty({ example: 'INV-2026-451' }) number!: string;
-  @ApiProperty({ enum: ['DRAFT', 'AWAITING_PAYMENT', 'PARTIALLY_PAID', 'OVERDUE', 'PAID'] })
+  @ApiProperty({
+    enum: [
+      'DRAFT',
+      'AWAITING_PAYMENT',
+      'PARTIALLY_PAID',
+      'OVERDUE',
+      'PAID',
+      'CANCELLED',
+      'WRITTEN_OFF',
+    ],
+  })
   status!: InvoiceListStatus;
   @ApiProperty({ nullable: true, type: String }) billingAccountId!: string | null;
   @ApiProperty({ nullable: true, type: String }) billingAccountName!: string | null;

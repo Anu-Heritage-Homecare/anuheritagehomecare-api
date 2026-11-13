@@ -35,6 +35,9 @@ import { INVOICE_PAYMENT_WRITE_REPOSITORY } from './domain/invoice-payment-write
 import { InvoicePaymentWritePrismaRepository } from './infrastructure/persistence/invoice-payment-write-prisma.repository';
 import { ApproveInvoiceUseCase } from './application/use-cases/approve-invoice.use-case';
 import { SendInvoiceReminderUseCase } from './application/use-cases/send-invoice-reminder.use-case';
+import { GetInvoiceReminderPreviewUseCase } from './application/use-cases/get-invoice-reminder-preview.use-case';
+import { INVOICE_REMINDER_GATEWAY } from './domain/invoice-reminder.gateway';
+import { InvoiceReminderGatewayPrisma } from './infrastructure/persistence/invoice-reminder-gateway.prisma';
 import { INVOICE_EVENT_RECORDER } from './domain/invoice-event.recorder';
 import { InvoiceEventPrismaRecorder } from './infrastructure/persistence/invoice-event-prisma.recorder';
 import { PAYMENT_EVENT_RECORDER } from './domain/payment-event.recorder';
@@ -43,6 +46,15 @@ import { GetPaymentDetailUseCase } from './application/use-cases/get-payment-det
 import { DeleteInvoiceAttachmentUseCase } from './application/use-cases/delete-invoice-attachment.use-case';
 import { DeleteAccountDocumentUseCase } from './application/use-cases/delete-account-document.use-case';
 import { RefundInvoicePaymentUseCase } from './application/use-cases/refund-invoice-payment.use-case';
+import { CancelInvoiceUseCase } from './application/use-cases/cancel-invoice.use-case';
+import { INVOICE_CANCEL_REPOSITORY } from './domain/invoice-cancel.repository';
+import { InvoiceCancelPrismaRepository } from './infrastructure/persistence/invoice-cancel-prisma.repository';
+import { WriteOffInvoiceUseCase } from './application/use-cases/write-off-invoice.use-case';
+import { INVOICE_WRITEOFF_REPOSITORY } from './domain/invoice-writeoff.repository';
+import { InvoiceWriteOffPrismaRepository } from './infrastructure/persistence/invoice-writeoff-prisma.repository';
+import { DeleteDraftInvoiceUseCase } from './application/use-cases/delete-draft-invoice.use-case';
+import { INVOICE_DELETE_REPOSITORY } from './domain/invoice-delete.repository';
+import { InvoiceDeletePrismaRepository } from './infrastructure/persistence/invoice-delete-prisma.repository';
 import { ADMIN_DIRECTORY } from './application/ports/admin-directory.port';
 import { PrismaAdminDirectory } from './infrastructure/persistence/prisma-admin-directory';
 import { GetBillingAccountActivityUseCase } from './application/use-cases/get-billing-account-activity.use-case';
@@ -50,6 +62,23 @@ import { GetBillingAccountUseCase } from './application/use-cases/get-billing-ac
 import { GetAccountPreviewUseCase } from './application/use-cases/get-account-preview.use-case';
 import { GetBillingDashboardUseCase } from './application/use-cases/get-billing-dashboard.use-case';
 import { GetBillingSettingsUseCase } from './application/use-cases/get-billing-settings.use-case';
+import { GetBillingAndPaymentsUseCase } from './application/use-cases/get-billing-and-payments.use-case';
+import {
+  CreateTaxUseCase,
+  DeleteTaxUseCase,
+  UpdateTaxUseCase,
+} from './application/use-cases/billing-tax.use-cases';
+import {
+  CreatePaymentTermUseCase,
+  DeletePaymentTermUseCase,
+  UpdatePaymentTermUseCase,
+} from './application/use-cases/billing-payment-term.use-cases';
+import { BILLING_TAX_REPOSITORY } from './domain/billing-tax.repository';
+import { BILLING_PAYMENT_TERM_REPOSITORY } from './domain/billing-payment-term.repository';
+import { INVOICE_NUMBER_PREVIEW_PORT } from './application/ports/invoice-number-preview.port';
+import { BillingTaxPrismaRepository } from './infrastructure/persistence/billing-tax-prisma.repository';
+import { BillingPaymentTermPrismaRepository } from './infrastructure/persistence/billing-payment-term-prisma.repository';
+import { InvoiceNumberPreviewPrisma } from './infrastructure/persistence/invoice-number-preview.prisma';
 import { GetFinancialReportUseCase } from './application/use-cases/get-financial-report.use-case';
 import { GetInvoiceAccountPreviewUseCase } from './application/use-cases/get-invoice-account-preview.use-case';
 import { GetRecipientServicePreviewUseCase } from './application/use-cases/get-recipient-service-preview.use-case';
@@ -71,9 +100,12 @@ import { ListBillingInvoicePaymentsUseCase } from './application/use-cases/list-
 import { ListBillingInvoicesUseCase } from './application/use-cases/list-billing-invoices.use-case';
 import { ListAccountAdjustmentsUseCase } from './application/use-cases/list-account-adjustments.use-case';
 import { ReverseAccountAdjustmentUseCase } from './application/use-cases/reverse-account-adjustment.use-case';
+import { RejectAccountAdjustmentUseCase } from './application/use-cases/reject-account-adjustment.use-case';
 import { ListBillingPaymentsUseCase } from './application/use-cases/list-billing-payments.use-case';
 import { ListInvoiceNotesUseCase } from './application/use-cases/list-invoice-notes.use-case';
 import { ACCOUNT_ADJUSTMENT_REPOSITORY } from './domain/account-adjustment.repository';
+import { INVOICE_CREDIT_WRITER } from './domain/invoice-credit-writer';
+import { InvoiceCreditWriterPrisma } from './infrastructure/persistence/invoice-credit-writer-prisma';
 import { BILLING_SETTINGS_REPOSITORY } from './domain/billing-settings.repository';
 import { INVOICE_NOTE_REPOSITORY } from './domain/invoice-note.repository';
 import { AccountAdjustmentPrismaRepository } from './infrastructure/persistence/account-adjustment-prisma.repository';
@@ -130,18 +162,30 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     RequestInvoiceOnlinePaymentUseCase,
     ApproveInvoiceUseCase,
     SendInvoiceReminderUseCase,
+    GetInvoiceReminderPreviewUseCase,
     DeleteInvoiceAttachmentUseCase,
     DeleteAccountDocumentUseCase,
     RefundInvoicePaymentUseCase,
     GetPaymentDetailUseCase,
+    CancelInvoiceUseCase,
+    WriteOffInvoiceUseCase,
+    DeleteDraftInvoiceUseCase,
     ListAccountAdjustmentsUseCase,
     CreateAccountAdjustmentUseCase,
     ApproveAccountAdjustmentUseCase,
+    RejectAccountAdjustmentUseCase,
     ReverseAccountAdjustmentUseCase,
     GetFinancialReportUseCase,
     GetBillingSettingsUseCase,
+    GetBillingAndPaymentsUseCase,
     UpdateBillingSettingsUseCase,
     UpdatePaymentMethodUseCase,
+    CreateTaxUseCase,
+    UpdateTaxUseCase,
+    DeleteTaxUseCase,
+    CreatePaymentTermUseCase,
+    UpdatePaymentTermUseCase,
+    DeletePaymentTermUseCase,
     GetInvoiceAccountPreviewUseCase,
     GetRecipientServicePreviewUseCase,
     ListBillableServicesUseCase,
@@ -157,16 +201,24 @@ import { AdminBillingController } from './presentation/admin-billing.controller'
     { provide: INVOICE_NOTE_REPOSITORY, useClass: InvoiceNotePrismaRepository },
     { provide: ACCOUNT_ADJUSTMENTS_READ_MODEL, useClass: AccountAdjustmentsReadPrisma },
     { provide: ACCOUNT_ADJUSTMENT_REPOSITORY, useClass: AccountAdjustmentPrismaRepository },
+    { provide: INVOICE_CREDIT_WRITER, useClass: InvoiceCreditWriterPrisma },
     { provide: FINANCIAL_REPORTS_READ_MODEL, useClass: FinancialReportsReadPrisma },
     { provide: BILLING_SETTINGS_REPOSITORY, useClass: BillingSettingsPrismaRepository },
+    { provide: BILLING_TAX_REPOSITORY, useClass: BillingTaxPrismaRepository },
+    { provide: BILLING_PAYMENT_TERM_REPOSITORY, useClass: BillingPaymentTermPrismaRepository },
+    { provide: INVOICE_NUMBER_PREVIEW_PORT, useClass: InvoiceNumberPreviewPrisma },
     { provide: INVOICE_WIZARD_READ_MODEL, useClass: InvoiceWizardReadPrisma },
     { provide: BILLABLE_SERVICES_READ_MODEL, useClass: BillableServicesReadPrisma },
     { provide: INVOICE_WRITE_REPOSITORY, useClass: InvoiceWritePrismaRepository },
     { provide: INVOICE_SEND_REPOSITORY, useClass: InvoiceSendPrismaRepository },
+    { provide: INVOICE_REMINDER_GATEWAY, useClass: InvoiceReminderGatewayPrisma },
     { provide: ACCOUNT_DOCUMENT_REPOSITORY, useClass: AccountDocumentPrismaRepository },
     { provide: INVOICE_ATTACHMENT_REPOSITORY, useClass: InvoiceAttachmentPrismaRepository },
     { provide: INVOICE_PAYMENT_WRITE_REPOSITORY, useClass: InvoicePaymentWritePrismaRepository },
     { provide: INVOICE_EVENT_RECORDER, useClass: InvoiceEventPrismaRecorder },
+    { provide: INVOICE_CANCEL_REPOSITORY, useClass: InvoiceCancelPrismaRepository },
+    { provide: INVOICE_WRITEOFF_REPOSITORY, useClass: InvoiceWriteOffPrismaRepository },
+    { provide: INVOICE_DELETE_REPOSITORY, useClass: InvoiceDeletePrismaRepository },
     { provide: PAYMENT_EVENT_RECORDER, useClass: PaymentEventPrismaRecorder },
     { provide: ADMIN_DIRECTORY, useClass: PrismaAdminDirectory },
   ],

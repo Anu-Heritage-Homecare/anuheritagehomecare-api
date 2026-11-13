@@ -199,6 +199,40 @@ export class InMemoryVisitRepository implements VisitRepository {
       });
     return Promise.resolve(matches);
   }
+
+  findCurrentForCareRecipient(careRecipientId: string): Promise<Visit | null> {
+    const forRecipient = [...this.store.values()]
+      .filter((visit) => visit.careRecipientId === careRecipientId)
+      .sort((a, b) => {
+        const byDate = a.scheduledDate.getTime() - b.scheduledDate.getTime();
+        return byDate !== 0 ? byDate : a.window.startMinute - b.window.startMinute;
+      });
+    const active = forRecipient.find(
+      (visit) => visit.status === VisitStatus.InProgress || visit.status === VisitStatus.OnBreak,
+    );
+    const scheduled = forRecipient.find((visit) => visit.status === VisitStatus.Scheduled);
+    return Promise.resolve(active ?? scheduled ?? null);
+  }
+
+  listCompletedForCareRecipient(
+    careRecipientId: string,
+    limit: number,
+    offset: number,
+  ): Promise<{ visits: Visit[]; total: number }> {
+    const completed = [...this.store.values()]
+      .filter(
+        (visit) =>
+          visit.careRecipientId === careRecipientId && visit.status === VisitStatus.Completed,
+      )
+      .sort((a, b) => {
+        const byDate = b.scheduledDate.getTime() - a.scheduledDate.getTime();
+        return byDate !== 0 ? byDate : b.window.startMinute - a.window.startMinute;
+      });
+    return Promise.resolve({
+      visits: completed.slice(offset, offset + limit),
+      total: completed.length,
+    });
+  }
 }
 
 export class FakeCareRecipientDirectory implements CareRecipientDirectory {

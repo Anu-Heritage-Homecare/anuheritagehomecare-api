@@ -1,11 +1,16 @@
 import { Currency } from '@shared/domain/currency.enum';
 import { ValidationException } from '@shared/domain/domain-exception';
+import { BillingPaymentMethodKind } from './billing-payment-method-kind.enum';
 
 export interface BillingSettingsProps {
   defaultPaymentTermsDays: number;
   invoicePrefix: string;
   defaultCurrency: Currency;
   standardTaxRateBasisPoints: number;
+  /** Whether listed prices already include VAT (the Include VAT in Pricing toggle). */
+  includeVatInPricing: boolean;
+  /** Which payment avenue is presented as the default, or null when none is. */
+  defaultPaymentMethod: BillingPaymentMethodKind | null;
   autoNumbering: boolean;
   autoSendInvoices: boolean;
   paymentReminders: boolean;
@@ -51,6 +56,8 @@ export class BillingSettings {
       invoicePrefix: 'INV-',
       defaultCurrency: Currency.NigerianNaira,
       standardTaxRateBasisPoints: 750,
+      includeVatInPricing: true,
+      defaultPaymentMethod: null,
       autoNumbering: true,
       autoSendInvoices: true,
       paymentReminders: true,

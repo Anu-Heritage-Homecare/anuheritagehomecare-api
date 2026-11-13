@@ -49,7 +49,7 @@ export interface BillingAccountInvoiceView {
   /** Patient due on the invoice, in minor units. */
   amountMinor: number;
   dueDate: Date | null;
-  status: 'PENDING' | 'PAID';
+  status: 'PENDING' | 'PAID' | 'CANCELLED' | 'WRITTEN_OFF';
 }
 
 export type BillingAccountEventType =
@@ -103,7 +103,8 @@ export interface BillingAccountDetailView {
 }
 
 /** The display status of an invoice on the Invoices tab. */
-export type InvoiceDisplayStatus = 'PAID' | 'AWAITING_PAYMENT' | 'OVERDUE';
+export type InvoiceDisplayStatus =
+  'PAID' | 'AWAITING_PAYMENT' | 'OVERDUE' | 'CANCELLED' | 'WRITTEN_OFF';
 
 /** One invoice row on the account Invoices tab (the full list, not just recent). */
 export interface BillingAccountInvoiceRowView {

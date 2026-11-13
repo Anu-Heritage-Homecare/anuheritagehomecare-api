@@ -46,18 +46,32 @@ export class FamilyVisitSummaryDto {
   }
 }
 
+class PastVisitsPaginationDto {
+  @ApiProperty({ example: 1 }) page!: number;
+  @ApiProperty({ example: 20 }) pageSize!: number;
+  @ApiProperty({ example: 137, description: 'Total completed visits for this recipient' })
+  total!: number;
+}
+
 export class FamilyVisitsResponseDto {
   @ApiProperty({ type: FamilyVisitSummaryDto, nullable: true })
   currentVisit!: FamilyVisitSummaryDto | null;
 
-  @ApiProperty({ type: [FamilyVisitSummaryDto] })
+  @ApiProperty({
+    type: [FamilyVisitSummaryDto],
+    description: 'One page of past visits, newest first',
+  })
   pastVisits!: FamilyVisitSummaryDto[];
+
+  @ApiProperty({ type: PastVisitsPaginationDto, description: 'Paging over the past visits' })
+  pagination!: PastVisitsPaginationDto;
 
   static fromResult(result: FamilyVisitsResult): FamilyVisitsResponseDto {
     const dto = new FamilyVisitsResponseDto();
     dto.currentVisit =
       result.currentVisit === null ? null : FamilyVisitSummaryDto.from(result.currentVisit);
     dto.pastVisits = result.pastVisits.map((visit) => FamilyVisitSummaryDto.from(visit));
+    dto.pagination = { ...result.pagination };
     return dto;
   }
 }

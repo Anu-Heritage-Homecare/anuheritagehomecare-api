@@ -50,11 +50,17 @@ export class FinancialReportsReadPrisma implements FinancialReportsReadModel {
 
     const [invoices, payments, writeOffs] = await Promise.all([
       this.prisma.recipientInvoice.findMany({
-        where: { currency: filter.currency, ...recipientWhere },
+        // Cancelled (voided) and written off (bad debt) invoices are neither revenue nor receivable.
+        where: {
+          currency: filter.currency,
+          status: { notIn: ['CANCELLED', 'WRITTEN_OFF'] },
+          ...recipientWhere,
+        },
         select: { amountMinor: true, insuranceCoveredMinor: true, issuedAt: true, status: true },
       }),
       this.prisma.recipientInvoicePayment.findMany({
-        where: { currency: filter.currency, ...recipientWhere },
+        // Exclude non cash credit settlements from collections and the method split.
+        where: { currency: filter.currency, creditAdjustmentId: null, ...recipientWhere },
         select: {
           amountMinor: true,
           refundedAmountMinor: true,

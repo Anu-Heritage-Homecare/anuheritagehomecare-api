@@ -59,6 +59,8 @@ describe('ListBillingInvoicesUseCase', () => {
         partiallyPaid: 8,
         overdue: 12,
         paid: 247,
+        cancelled: 5,
+        writtenOff: 2,
       },
     };
     const reads: BillingInvoicesReadModel = {
@@ -105,7 +107,16 @@ describe('ListBillingInvoicesUseCase', () => {
         Promise.resolve({
           rows: [row({ billingAccountId: null, billingAccountName: null, status: 'OVERDUE' })],
           total: 1,
-          counts: { all: 1, draft: 0, awaitingPayment: 0, partiallyPaid: 0, overdue: 1, paid: 0 },
+          counts: {
+            all: 1,
+            draft: 0,
+            awaitingPayment: 0,
+            partiallyPaid: 0,
+            overdue: 1,
+            paid: 0,
+            cancelled: 0,
+            writtenOff: 0,
+          },
         }),
       detail: () => Promise.resolve(null),
       services: () => Promise.resolve(null),

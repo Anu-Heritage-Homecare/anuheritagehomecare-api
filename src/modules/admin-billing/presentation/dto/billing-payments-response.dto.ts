@@ -24,6 +24,10 @@ class BillingPaymentRowDto implements BillingPaymentRowResult {
   @ApiProperty({ nullable: true, type: String }) billingAccountId!: string | null;
   @ApiProperty({ nullable: true, type: String }) billingAccountName!: string | null;
   @ApiProperty() amountMinor!: number;
+  @ApiProperty({ description: 'Cumulative amount already refunded (0 when none)' })
+  refundedAmountMinor!: number;
+  @ApiProperty({ description: 'Still refundable (amount minus refunded); 0 for non refundable' })
+  refundableRemainingMinor!: number;
   @ApiProperty() currency!: string;
   @ApiProperty({ nullable: true, type: String }) method!: string | null;
   @ApiProperty() receivedAt!: string;

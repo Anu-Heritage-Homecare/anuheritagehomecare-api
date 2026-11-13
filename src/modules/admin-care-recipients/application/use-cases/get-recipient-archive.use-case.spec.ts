@@ -62,6 +62,8 @@ function visits(): VisitRepository {
     listForCaregiverInRange: () => Promise.resolve([]),
     listForCareRecipientsInRange: () => Promise.resolve(items),
     listForDateRange: () => Promise.resolve([]),
+    findCurrentForCareRecipient: () => Promise.resolve(null),
+    listCompletedForCareRecipient: () => Promise.resolve({ visits: [], total: 0 }),
   };
 }
 

@@ -10,8 +10,11 @@ import {
   fixedClock,
   sequentialIds,
 } from '../../test-support/doubles';
+import { LoginEventRecorder } from '../ports/login-event-recorder.port';
 import { AdminTokenIssuerService } from '../services/admin-token-issuer.service';
 import { AdminLoginUseCase } from './admin-login.use-case';
+
+const noopRecorder: LoginEventRecorder = { record: () => Promise.resolve() };
 import { AdminLogoutUseCase } from './admin-logout.use-case';
 import { ChangeAdminPasswordUseCase } from './change-admin-password.use-case';
 import { RefreshAdminTokenUseCase } from './refresh-admin-token.use-case';
@@ -34,7 +37,7 @@ function make(): {
     admins,
     sessions,
     tokens,
-    login: new AdminLoginUseCase(admins, hasher, fixedClock, issuer),
+    login: new AdminLoginUseCase(admins, hasher, fixedClock, noopRecorder, issuer),
     refresh: new RefreshAdminTokenUseCase(admins, sessions, tokens, fixedClock, issuer),
     logout: new AdminLogoutUseCase(sessions, tokens, fixedClock),
     changePassword: new ChangeAdminPasswordUseCase(admins, hasher, sessions, fixedClock, issuer),

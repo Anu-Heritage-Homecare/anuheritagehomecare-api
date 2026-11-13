@@ -1,5 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsString, IsUUID, MaxLength, Min, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { Currency } from '@shared/domain/currency.enum';
 import {
   ALL_ACCOUNT_ADJUSTMENT_CATEGORIES,
@@ -11,6 +20,7 @@ import {
 } from '../../domain/account-adjustment-status.enum';
 import { AccountAdjustmentCreatedResult } from '../../application/dto/account-adjustments.result';
 import { ApproveAccountAdjustmentResult } from '../../application/use-cases/approve-account-adjustment.use-case';
+import { RejectAccountAdjustmentResult } from '../../application/use-cases/reject-account-adjustment.use-case';
 import { ReverseAccountAdjustmentResult } from '../../application/use-cases/reverse-account-adjustment.use-case';
 
 /** The Create Adjustment drawer: a new financial correction against a billing account. */
@@ -29,6 +39,14 @@ export class CreateAccountAdjustmentRequestDto {
   @IsUUID()
   billingAccountId!: string;
 
+  @ApiPropertyOptional({
+    description:
+      'The invoice a credit applies to (Apply Credit modal); omit for an account level correction',
+  })
+  @IsOptional()
+  @IsUUID()
+  invoiceId?: string;
+
   @ApiProperty({ minimum: 1, description: 'Amount in the currency minor units' })
   @IsInt()
   @Min(1)
@@ -43,6 +61,12 @@ export class CreateAccountAdjustmentRequestDto {
   @MinLength(1)
   @MaxLength(500)
   reason!: string;
+
+  @ApiPropertyOptional({ maxLength: 2000, description: 'Auditing notes for the correction' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
 }
 
 export class AccountAdjustmentCreatedDto implements AccountAdjustmentCreatedResult {
@@ -51,8 +75,23 @@ export class AccountAdjustmentCreatedDto implements AccountAdjustmentCreatedResu
   @ApiProperty() createdAt!: string;
 }
 
+/** Optional approver feedback sent when approving or rejecting an adjustment. */
+export class AdjustmentDecisionRequestDto {
+  @ApiPropertyOptional({ maxLength: 2000, description: 'Optional approver notes for the decision' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  approverNotes?: string;
+}
+
 /** The outcome of approving an adjustment: its new status. */
 export class AccountAdjustmentApprovedDto implements ApproveAccountAdjustmentResult {
+  @ApiProperty() id!: string;
+  @ApiProperty({ enum: ALL_ACCOUNT_ADJUSTMENT_STATUSES }) status!: AccountAdjustmentStatus;
+}
+
+/** The outcome of rejecting an adjustment: its new status. */
+export class AccountAdjustmentRejectedDto implements RejectAccountAdjustmentResult {
   @ApiProperty() id!: string;
   @ApiProperty({ enum: ALL_ACCOUNT_ADJUSTMENT_STATUSES }) status!: AccountAdjustmentStatus;
 }

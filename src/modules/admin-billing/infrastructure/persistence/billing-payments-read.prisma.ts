@@ -36,12 +36,15 @@ export class BillingPaymentsReadPrisma implements BillingPaymentsReadModel {
   async list(filter: PaymentListFilter): Promise<PaymentListView> {
     const [recorded, gateway, entries] = await Promise.all([
       this.prisma.recipientInvoicePayment.findMany({
+        // Credit settlements are not cash payments; they never appear on the list.
+        where: { creditAdjustmentId: null },
         orderBy: { receivedAt: 'desc' },
         select: {
           id: true,
           sequence: true,
           invoiceId: true,
           amountMinor: true,
+          refundedAmountMinor: true,
           currency: true,
           methodLabel: true,
           receivedAt: true,
@@ -121,6 +124,8 @@ export class BillingPaymentsReadPrisma implements BillingPaymentsReadModel {
           billingAccountId: account?.id ?? null,
           billingAccountName: account === null ? null : (account.accountName ?? account.fullName),
           amountMinor: payment.amountMinor,
+          refundedAmountMinor: payment.refundedAmountMinor,
+          refundableRemainingMinor: Math.max(0, payment.amountMinor - payment.refundedAmountMinor),
           currency: payment.currency,
           methodLabel: payment.methodLabel,
           status: payment.refundedAt === null ? 'COMPLETED' : 'REFUNDED',
@@ -141,6 +146,8 @@ export class BillingPaymentsReadPrisma implements BillingPaymentsReadModel {
           billingAccountId: account?.id ?? null,
           billingAccountName: account === null ? null : (account.accountName ?? account.fullName),
           amountMinor: payment.amountMinor,
+          refundedAmountMinor: 0,
+          refundableRemainingMinor: 0,
           currency: payment.currency,
           methodLabel: 'Online Payment',
           status: payment.status === 'PENDING' ? 'PENDING' : 'FAILED',

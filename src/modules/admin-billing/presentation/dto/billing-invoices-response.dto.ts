@@ -15,6 +15,8 @@ class InvoiceListCountsDto implements InvoiceListCounts {
   @ApiProperty() partiallyPaid!: number;
   @ApiProperty() overdue!: number;
   @ApiProperty() paid!: number;
+  @ApiProperty() cancelled!: number;
+  @ApiProperty() writtenOff!: number;
 }
 
 class BillingInvoiceRowDto implements BillingInvoiceRowResult {
@@ -26,7 +28,17 @@ class BillingInvoiceRowDto implements BillingInvoiceRowResult {
   @ApiProperty() amountMinor!: number;
   @ApiProperty() currency!: string;
   @ApiProperty({ nullable: true, type: String }) dueDate!: string | null;
-  @ApiProperty({ enum: ['DRAFT', 'AWAITING_PAYMENT', 'PARTIALLY_PAID', 'OVERDUE', 'PAID'] })
+  @ApiProperty({
+    enum: [
+      'DRAFT',
+      'AWAITING_PAYMENT',
+      'PARTIALLY_PAID',
+      'OVERDUE',
+      'PAID',
+      'CANCELLED',
+      'WRITTEN_OFF',
+    ],
+  })
   status!: InvoiceListStatus;
 }
 

@@ -23,6 +23,9 @@ const TO_DOMAIN_CURRENCY: Record<PrismaCurrency, Currency> = {
 const TO_DOMAIN_STATUS: Record<PrismaInvoiceStatus, InvoiceStatus> = {
   PENDING: InvoiceStatus.Pending,
   PAID: InvoiceStatus.Paid,
+  CANCELLED: InvoiceStatus.Cancelled,
+  // A written off (bad debt) invoice is closed to the payer, like a cancelled one.
+  WRITTEN_OFF: InvoiceStatus.Cancelled,
 };
 
 /** Prisma read model over the recipient billing tables for the admin Billing screen. */
@@ -58,11 +61,20 @@ export class RecipientBillingReadPrisma implements RecipientBillingReadModel {
     const [thisMonth, lastMonth, pending, earliest, lastPayment, overdueCount, anyInvoice] =
       await Promise.all([
         this.prisma.recipientInvoice.aggregate({
-          where: { ...scoped, issuedAt: { gte: monthStart } },
+          // Billed excludes cancelled (voided) and written off (bad debt) invoices.
+          where: {
+            ...scoped,
+            status: { notIn: [PrismaInvoiceStatus.CANCELLED, PrismaInvoiceStatus.WRITTEN_OFF] },
+            issuedAt: { gte: monthStart },
+          },
           _sum: { amountMinor: true },
         }),
         this.prisma.recipientInvoice.aggregate({
-          where: { ...scoped, issuedAt: { gte: lastMonthStart, lt: monthStart } },
+          where: {
+            ...scoped,
+            status: { notIn: [PrismaInvoiceStatus.CANCELLED, PrismaInvoiceStatus.WRITTEN_OFF] },
+            issuedAt: { gte: lastMonthStart, lt: monthStart },
+          },
           _sum: { amountMinor: true },
         }),
         this.prisma.recipientInvoice.aggregate({

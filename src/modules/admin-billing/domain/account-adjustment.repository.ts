@@ -1,4 +1,13 @@
+import { Currency } from '@shared/domain/currency.enum';
 import { AccountAdjustment } from './account-adjustment.entity';
+
+/** An invoice that a credit can be applied to, with its remaining outstanding balance. */
+export interface CreditableInvoice {
+  careRecipientId: string;
+  currency: Currency;
+  /** Patient due net of what has been paid or already credited, in minor units. */
+  outstandingMinor: number;
+}
 
 /**
  * Persistence port for the AccountAdjustment aggregate. Declared in the domain;
@@ -13,6 +22,14 @@ export interface AccountAdjustmentRepository {
   findById(id: string): Promise<AccountAdjustment | null>;
   /** Whether the target billing account exists, so an adjustment is never orphaned. */
   billingAccountExists(billingAccountId: string): Promise<boolean>;
+  /**
+   * The invoice for the Apply Credit modal, scoped to the billing account, with its
+   * outstanding balance; null when the invoice is unknown or not on that account.
+   */
+  loadCreditableInvoice(
+    billingAccountId: string,
+    invoiceId: string,
+  ): Promise<CreditableInvoice | null>;
 }
 
 export const ACCOUNT_ADJUSTMENT_REPOSITORY = Symbol('ACCOUNT_ADJUSTMENT_REPOSITORY');

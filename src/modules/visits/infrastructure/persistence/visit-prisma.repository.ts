@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { VisitStatus as PrismaVisitStatus } from '@prisma/client';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import { Visit } from '../../domain/visit.entity';
 import { VisitRepository } from '../../domain/visit.repository';
@@ -118,5 +119,44 @@ export class VisitPrismaRepository implements VisitRepository {
       orderBy: [{ scheduledDate: 'asc' }, { startMinute: 'asc' }],
     });
     return rows.map((row) => VisitMapper.toDomain(row));
+  }
+
+  async findCurrentForCareRecipient(careRecipientId: string): Promise<Visit | null> {
+    const orderBy = [{ scheduledDate: 'asc' as const }, { startMinute: 'asc' as const }];
+    const active = await this.prisma.visit.findFirst({
+      where: {
+        careRecipientId,
+        status: { in: [PrismaVisitStatus.IN_PROGRESS, PrismaVisitStatus.ON_BREAK] },
+      },
+      include: VISIT_INCLUDE,
+      orderBy,
+    });
+    const row =
+      active ??
+      (await this.prisma.visit.findFirst({
+        where: { careRecipientId, status: PrismaVisitStatus.SCHEDULED },
+        include: VISIT_INCLUDE,
+        orderBy,
+      }));
+    return row ? VisitMapper.toDomain(row) : null;
+  }
+
+  async listCompletedForCareRecipient(
+    careRecipientId: string,
+    limit: number,
+    offset: number,
+  ): Promise<{ visits: Visit[]; total: number }> {
+    const where = { careRecipientId, status: PrismaVisitStatus.COMPLETED };
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.visit.findMany({
+        where,
+        include: VISIT_INCLUDE,
+        orderBy: [{ scheduledDate: 'desc' }, { startMinute: 'desc' }],
+        skip: offset,
+        take: limit,
+      }),
+      this.prisma.visit.count({ where }),
+    ]);
+    return { visits: rows.map((row) => VisitMapper.toDomain(row)), total };
   }
 }

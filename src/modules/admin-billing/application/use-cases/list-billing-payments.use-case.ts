@@ -69,6 +69,8 @@ function toResult(row: PaymentListRowView): BillingPaymentRowResult {
     billingAccountId: row.billingAccountId,
     billingAccountName: row.billingAccountName,
     amountMinor: row.amountMinor,
+    refundedAmountMinor: row.refundedAmountMinor,
+    refundableRemainingMinor: row.refundableRemainingMinor,
     currency: row.currency,
     method: row.methodLabel,
     receivedAt: row.receivedAt.toISOString(),

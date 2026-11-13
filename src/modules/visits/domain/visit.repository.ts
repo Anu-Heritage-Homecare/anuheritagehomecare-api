@@ -21,6 +21,22 @@ export interface VisitRepository {
    * day's schedule in one query.
    */
   listForDateRange(from: Date, to: Date): Promise<Visit[]>;
+  /**
+   * The current visit for one care recipient: an active visit (in progress or on
+   * break) if any, otherwise the earliest scheduled one, or null. Backs the current
+   * visit card in the family Care section without loading the whole history.
+   */
+  findCurrentForCareRecipient(careRecipientId: string): Promise<Visit | null>;
+  /**
+   * A page of a recipient's completed visits, newest first, with the total count.
+   * Backs the paginated past visits list in the family Care section so the query is
+   * bounded instead of fetching every visit.
+   */
+  listCompletedForCareRecipient(
+    careRecipientId: string,
+    limit: number,
+    offset: number,
+  ): Promise<{ visits: Visit[]; total: number }>;
 }
 
 /** Injection token, since TypeScript interfaces do not exist at runtime. */
