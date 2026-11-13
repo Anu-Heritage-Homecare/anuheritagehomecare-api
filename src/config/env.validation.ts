@@ -81,7 +81,7 @@ export const envSchema = z.object({
   // test environments; the adapter then logs the message instead of sending, and
   // fails closed (throws) in production.
   RESEND_API_KEY: z.string().default(''),
-  MAIL_FROM: z.string().min(1).default('Anu Heritage Homecare <no-reply@anuheritagehomecare.com>'),
+  MAIL_FROM: z.string().min(1).default('Anu Heritage Homecare <no-reply@careprofs.org>'),
 
   // Bookable hours in a day (local), used to generate Flexible booking time
   // slots until real caregiver availability exists.
