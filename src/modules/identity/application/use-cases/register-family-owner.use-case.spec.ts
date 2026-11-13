@@ -82,6 +82,17 @@ describe('RegisterFamilyOwnerUseCase', () => {
     expect(activeCode).not.toBeNull();
   });
 
+  it('still creates the account when the verification email fails to send', async () => {
+    jest.spyOn(email, 'send').mockRejectedValueOnce(new Error('resend unavailable'));
+
+    const result = await useCase.execute(command);
+
+    expect(result.emailVerificationRequired).toBe(true);
+    const saved = await users.findByEmail('ada.obi@example.com');
+    expect(saved).not.toBeNull();
+    expect(saved?.status).toBe(UserStatus.PendingVerification);
+  });
+
   it('rejects a duplicate email', async () => {
     await useCase.execute(command);
     await expect(useCase.execute(command)).rejects.toBeInstanceOf(ConflictDomainException);

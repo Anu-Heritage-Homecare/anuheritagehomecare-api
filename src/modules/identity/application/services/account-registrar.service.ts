@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generator.port';
 import {
@@ -30,6 +30,8 @@ import { OtpService } from './otp.service';
  */
 @Injectable()
 export class AccountRegistrar {
+  private readonly logger = new Logger(AccountRegistrar.name);
+
   constructor(
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
@@ -77,7 +79,19 @@ export class AccountRegistrar {
     // Domain events would be published here once persistence succeeds.
     user.clearDomainEvents();
 
-    await this.otp.issueAndSend(user, VerificationPurpose.EmailVerification);
+    // The account is already persisted, so a failure to dispatch the verification
+    // email must not fail registration and leave an orphaned unverified account
+    // that blocks retry with a 409. Keep the send non fatal; the user verifies
+    // later through the resend endpoint. Log the failure (user id only, no PII) so
+    // a mail outage is visible without a 500.
+    try {
+      await this.otp.issueAndSend(user, VerificationPurpose.EmailVerification);
+    } catch (error) {
+      this.logger.error(
+        `Verification email dispatch failed for user ${user.id}; account created, awaiting resend`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
 
     return {
       userId: user.id,
