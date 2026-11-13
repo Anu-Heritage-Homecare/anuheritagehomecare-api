@@ -35,6 +35,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
         `Unhandled error at ${request.method} ${request.url}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
+    } else {
+      // Record client errors (validation rejections, business 4xx) so a reported
+      // failure can be traced from the logs without a reproduction. The message
+      // for a ValidationPipe rejection is the list of constraint strings (field
+      // names and rules), never the submitted values, so it carries no personal
+      // data.
+      this.logger.warn(
+        `${status} at ${request.method} ${request.url}: ${this.describe(clientMessage)}`,
+      );
     }
 
     response.status(status).json({
@@ -43,5 +52,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       timestamp: new Date().toISOString(),
     });
+  }
+
+  /** Flatten an HttpException response (string, or { message } object) to one log line. */
+  private describe(clientMessage: unknown): string {
+    if (typeof clientMessage === 'string') {
+      return clientMessage;
+    }
+    const message = (clientMessage as { message?: unknown }).message;
+    if (Array.isArray(message)) {
+      return message.join('; ');
+    }
+    if (typeof message === 'string') {
+      return message;
+    }
+    return JSON.stringify(clientMessage);
   }
 }
