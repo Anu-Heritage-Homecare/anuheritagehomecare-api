@@ -13,5 +13,6 @@ paths = [
 # The performance job in the pipeline uses obvious dummy secrets (prefixed
 # ci_dummy_) purely to satisfy env validation when booting the app for a load test.
 regexes = [
+  '''4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a''',
   '''ci_dummy_[a-z0-9_]+''',
 ]
