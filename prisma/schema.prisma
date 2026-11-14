@@ -2241,6 +2241,9 @@ model CaregiverAvailability {
   id          String   @id @default(uuid()) @db.Uuid
   caregiverId String   @db.Uuid
   date        DateTime @db.Date
+  // Optimistic concurrency version: bumped on every change so a client can detect
+  // that a day was edited on another device before overwriting it.
+  revision    Int      @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

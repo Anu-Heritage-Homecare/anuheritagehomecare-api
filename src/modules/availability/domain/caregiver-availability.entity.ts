@@ -6,6 +6,8 @@ interface CaregiverAvailabilityProps {
   caregiverId: string;
   date: Date;
   slots: AvailabilitySlot[];
+  /** Optimistic concurrency version; bumped on every change, starts at 1. */
+  revision: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,6 +41,8 @@ export class CaregiverAvailability extends AggregateRoot<string> {
       caregiverId: params.caregiverId,
       date: CaregiverAvailability.assertValidDate(params.date),
       slots: [],
+      // setSlots below bumps this to the first saved revision, 1.
+      revision: 0,
       createdAt: params.now,
       updatedAt: params.now,
     });
@@ -66,6 +70,7 @@ export class CaregiverAvailability extends AggregateRoot<string> {
       }
     }
     this.props.slots = ordered;
+    this.props.revision += 1;
     this.props.updatedAt = now;
   }
 
@@ -90,6 +95,10 @@ export class CaregiverAvailability extends AggregateRoot<string> {
 
   public get slots(): AvailabilitySlot[] {
     return [...this.props.slots];
+  }
+
+  public get revision(): number {
+    return this.props.revision;
   }
 
   public get createdAt(): Date {

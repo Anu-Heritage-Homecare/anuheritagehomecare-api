@@ -19,6 +19,7 @@ export class CaregiverAvailabilityMapper {
       caregiverId: row.caregiverId,
       date: row.date,
       slots: row.slots.map((slot) => AvailabilitySlot.create(slot.startMinute, slot.endMinute)),
+      revision: row.revision,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -28,6 +29,7 @@ export class CaregiverAvailabilityMapper {
     id: string;
     caregiverId: string;
     date: Date;
+    revision: number;
     createdAt: Date;
     updatedAt: Date;
   } {
@@ -35,6 +37,7 @@ export class CaregiverAvailabilityMapper {
       id: availability.id,
       caregiverId: availability.caregiverId,
       date: availability.date,
+      revision: availability.revision,
       createdAt: availability.createdAt,
       updatedAt: availability.updatedAt,
     };

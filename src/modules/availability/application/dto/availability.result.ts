@@ -11,6 +11,8 @@ export interface AvailabilitySlotResult {
 export interface AvailabilityResult {
   caregiverId: string;
   date: string;
+  /** Optimistic concurrency version to send back on the next edit of this day. */
+  revision: number;
   slots: AvailabilitySlotResult[];
 }
 
@@ -29,6 +31,7 @@ export function toAvailabilityResult(availability: CaregiverAvailability): Avail
   return {
     caregiverId: availability.caregiverId,
     date: toIsoDate(availability.date),
+    revision: availability.revision,
     slots: availability.slots.map((slot) => ({
       startMinute: slot.startMinute,
       endMinute: slot.endMinute,

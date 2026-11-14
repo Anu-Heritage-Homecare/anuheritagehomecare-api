@@ -48,7 +48,7 @@ export class CaregiverAvailabilityPrismaRepository implements CaregiverAvailabil
       this.prisma.caregiverAvailability.upsert({
         where: { id: row.id },
         create: row,
-        update: { updatedAt: row.updatedAt },
+        update: { revision: row.revision, updatedAt: row.updatedAt },
       }),
       this.prisma.caregiverAvailabilitySlot.deleteMany({ where: { availabilityId: row.id } }),
       this.prisma.caregiverAvailabilitySlot.createMany({

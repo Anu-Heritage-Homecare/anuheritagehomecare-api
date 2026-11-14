@@ -84,6 +84,7 @@ export class CaregiverAvailabilityController {
     const result = await this.setAvailability.execute({
       caregiverId: principal.userId,
       date: new Date(body.date),
+      expectedRevision: body.expectedRevision,
       slots: body.slots.map((slot) => ({
         startMinute: slot.startMinute,
         endMinute: slot.endMinute,

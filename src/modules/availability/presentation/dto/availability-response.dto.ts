@@ -29,6 +29,12 @@ export class AvailabilityDayResponseDto {
   @ApiProperty({ example: '2026-07-11' })
   date!: string;
 
+  @ApiProperty({
+    example: 3,
+    description: 'Current revision of this day; send it back as expectedRevision on the next edit',
+  })
+  revision!: number;
+
   @ApiProperty({ type: [AvailabilitySlotResponseDto] })
   slots!: AvailabilitySlotResponseDto[];
 
@@ -36,6 +42,7 @@ export class AvailabilityDayResponseDto {
     const dto = new AvailabilityDayResponseDto();
     dto.caregiverId = result.caregiverId;
     dto.date = result.date;
+    dto.revision = result.revision;
     dto.slots = result.slots.map((slot) => AvailabilitySlotResponseDto.fromResult(slot));
     return dto;
   }
