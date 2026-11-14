@@ -18,12 +18,15 @@ import {
   RegenerateCalendarFeedUseCase,
 } from './application/use-cases/calendar-feed.use-cases';
 import {
+  ApproveCareCircleMemberUseCase,
   GetCareCircleUseCase,
   GetCareCodeUseCase,
+  ListPendingCareRequestsUseCase,
   PreviewCareCodeUseCase,
   RedeemCareCodeUseCase,
   RegenerateCareCodeUseCase,
   RegisterAndLinkUseCase,
+  RejectCareCircleMemberUseCase,
   RemoveCareCircleMemberUseCase,
   SetCareCircleMemberAccessUseCase,
 } from './application/use-cases/care-circle.use-cases';
@@ -83,6 +86,9 @@ import { ProfileController } from './presentation/profile.controller';
     RedeemCareCodeUseCase,
     PreviewCareCodeUseCase,
     RegisterAndLinkUseCase,
+    ListPendingCareRequestsUseCase,
+    ApproveCareCircleMemberUseCase,
+    RejectCareCircleMemberUseCase,
     SetCareCircleMemberAccessUseCase,
     RemoveCareCircleMemberUseCase,
     { provide: MEMBER_ACCOUNT_REGISTRAR, useClass: IdentityMemberAccountRegistrar },

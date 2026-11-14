@@ -5,6 +5,7 @@ import {
   ValidationException,
 } from '@shared/domain/domain-exception';
 import { CareAccessLevel } from '../../domain/care-access-level.enum';
+import { CareCircleMemberStatus } from '../../domain/care-circle-member-status.enum';
 import { CareCode, CareCodeStatus } from '../../domain/care-code.entity';
 import { CareCodeRepository } from '../../domain/care-code.repository';
 import { CareCircleMember } from '../../domain/care-circle-member.entity';
@@ -71,7 +72,14 @@ class InMemoryCareCodeRepository implements CareCodeRepository {
 class InMemoryMemberRepository implements CareCircleRepository {
   public store = new Map<string, CareCircleMember>();
   listForOwner(ownerId: string): Promise<CareCircleMember[]> {
-    return Promise.resolve([...this.store.values()].filter((m) => m.ownerId === ownerId));
+    return Promise.resolve(
+      [...this.store.values()].filter((m) => m.ownerId === ownerId && m.isActive),
+    );
+  }
+  listPendingForOwner(ownerId: string): Promise<CareCircleMember[]> {
+    return Promise.resolve(
+      [...this.store.values()].filter((m) => m.ownerId === ownerId && m.isPending),
+    );
   }
   findById(id: string): Promise<CareCircleMember | null> {
     return Promise.resolve(this.store.get(id) ?? null);
@@ -133,7 +141,7 @@ describe('RegisterAndLinkUseCase', () => {
     );
   });
 
-  it('registers a member and joins the circle at limited access with the chosen relationship', async () => {
+  it('registers a member and raises a pending request at limited access with the chosen relationship', async () => {
     const registrar = new FakeMemberRegistrar({ userId: 'u1', emailVerificationRequired: true });
     const useCase = new RegisterAndLinkUseCase(registrar, codes, members, users, ids('m'), clock);
 
@@ -157,6 +165,7 @@ describe('RegisterAndLinkUseCase', () => {
     expect(saved[0].ownerId).toBe('owner-1');
     expect(saved[0].relationship).toBe('Daughter');
     expect(saved[0].accessLevel).toBe(CareAccessLevel.Limited);
+    expect(saved[0].status).toBe(CareCircleMemberStatus.Pending);
   });
 
   it('validates the code before creating an account, so a bad code never orphans a user', async () => {

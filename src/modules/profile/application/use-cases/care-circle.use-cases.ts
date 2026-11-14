@@ -5,6 +5,7 @@ import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generato
 import { PHOTO_STORAGE, PhotoStorage } from '@shared/application/ports/photo-storage.port';
 import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
 import { CareAccessLevel, toCareAccessLevel } from '../../domain/care-access-level.enum';
+import { CareCircleMemberStatus } from '../../domain/care-circle-member-status.enum';
 import { CareCode } from '../../domain/care-code.entity';
 import { CARE_CODE_REPOSITORY, CareCodeRepository } from '../../domain/care-code.repository';
 import { CareCircleMember } from '../../domain/care-circle-member.entity';
@@ -40,6 +41,20 @@ export interface CareCodeView {
 export interface RedeemCareCodeResult {
   ownerName: string;
   alreadyMember: boolean;
+  /** True while the membership is awaiting the owner's approval (no access yet). */
+  pending: boolean;
+}
+
+export interface PendingCareRequestView {
+  id: string;
+  name: string;
+  relationship: string;
+  photoUrl: string | null;
+  requestedAt: string;
+}
+
+export interface PendingCareRequestsView {
+  requests: PendingCareRequestView[];
 }
 
 export interface CareCodePreviewResult {
@@ -188,10 +203,12 @@ export class RegenerateCareCodeUseCase {
 }
 
 /**
- * Use case: redeem a care code, joining the authenticated user to the owner's
- * circle at the least privileged level. The code is a bearer credential, so no
- * email match is required; it must simply be active and unexpired. Reusable: the
- * code is not consumed. Idempotent for a user who is already a member.
+ * Use case: redeem a care code, raising a join request on the owner's circle. The
+ * code is a bearer credential, so no email match is required; it must simply be
+ * active and unexpired. Because a code can leak, redeeming does NOT grant access:
+ * it creates a PENDING membership the owner must approve before the person can see
+ * any care information. Reusable: the code is not consumed. Idempotent for a user
+ * who already has a membership, pending or active.
  */
 @Injectable()
 export class RedeemCareCodeUseCase {
@@ -224,7 +241,7 @@ export class RedeemCareCodeUseCase {
 
     const existing = await this.members.findMembership(found.ownerId, command.userId);
     if (existing !== null) {
-      return { ownerName, alreadyMember: true };
+      return { ownerName, alreadyMember: true, pending: existing.isPending };
     }
 
     const member = CareCircleMember.create({
@@ -233,10 +250,11 @@ export class RedeemCareCodeUseCase {
       memberUserId: command.userId,
       relationship: resolveRelationship(command.relationship),
       accessLevel: CareAccessLevel.Limited,
+      status: CareCircleMemberStatus.Pending,
       createdAt: now,
     });
     await this.members.save(member);
-    return { ownerName, alreadyMember: false };
+    return { ownerName, alreadyMember: false, pending: true };
   }
 }
 
@@ -310,13 +328,15 @@ export class RegisterAndLinkUseCase {
     const ownerName =
       owner === null ? 'your family' : `${owner.firstName} ${owner.lastName}`.trim();
 
-    // A brand new user can neither own this circle nor already be a member.
+    // A brand new user can neither own this circle nor already be a member. The
+    // membership is PENDING: the owner approves it after the person verifies.
     const member = CareCircleMember.create({
       id: this.ids.generate(),
       ownerId: found.ownerId,
       memberUserId: userId,
       relationship: resolveRelationship(command.relationship),
       accessLevel: CareAccessLevel.Limited,
+      status: CareCircleMemberStatus.Pending,
       createdAt: now,
     });
     await this.members.save(member);
@@ -407,6 +427,110 @@ export class RemoveCareCircleMemberUseCase {
     const member = await this.members.findById(command.memberId);
     if (member === null || member.ownerId !== command.ownerId) {
       throw new NotFoundDomainException('Care circle member not found');
+    }
+    await this.members.delete(command.ownerId, command.memberId);
+  }
+}
+
+/**
+ * Use case: list the owner's pending join requests, for the Pending Invitations
+ * screen. Each request shows the requester's name and avatar (from identity), the
+ * relationship they entered and when they requested. Owner scoped.
+ */
+@Injectable()
+export class ListPendingCareRequestsUseCase {
+  constructor(
+    @Inject(CARE_CIRCLE_REPOSITORY) private readonly members: CareCircleRepository,
+    @Inject(PROFILE_USER_DIRECTORY) private readonly users: ProfileUserDirectory,
+    @Inject(PHOTO_STORAGE) private readonly photos: PhotoStorage,
+  ) {}
+
+  async execute(query: { ownerId: string }): Promise<PendingCareRequestsView> {
+    const pending = await this.members.listPendingForOwner(query.ownerId);
+    const memberUsers = await this.users.findByIds(pending.map((m) => m.memberUserId));
+    const usersById = new Map(memberUsers.map((user) => [user.id, user]));
+
+    const requests = pending.map((member) => {
+      const user = usersById.get(member.memberUserId) ?? null;
+      return {
+        id: member.id,
+        name: user === null ? 'Unknown' : `${user.firstName} ${user.lastName}`.trim(),
+        relationship: member.relationship,
+        photoUrl: this.photoUrl(user?.photoKey ?? null),
+        requestedAt: member.createdAt.toISOString(),
+      };
+    });
+    return { requests };
+  }
+
+  private photoUrl(photoKey: string | null): string | null {
+    if (photoKey === null) {
+      return null;
+    }
+    const url = this.photos.urlFor(photoKey);
+    return url.length === 0 ? null : url;
+  }
+}
+
+/**
+ * Use case: approve a pending join request, activating the membership. The owner
+ * may set the access level and correct the relationship in the same step; omitting
+ * the level keeps the least privileged default. Owner scoped; rejects a request
+ * that is not the owner's or is not pending.
+ */
+@Injectable()
+export class ApproveCareCircleMemberUseCase {
+  constructor(@Inject(CARE_CIRCLE_REPOSITORY) private readonly members: CareCircleRepository) {}
+
+  async execute(command: {
+    ownerId: string;
+    memberId: string;
+    accessLevel?: string;
+    relationship?: string;
+  }): Promise<MemberAccessResult> {
+    let accessLevel: CareAccessLevel | undefined;
+    if (command.accessLevel !== undefined) {
+      accessLevel = toCareAccessLevel(command.accessLevel);
+      if (accessLevel === undefined) {
+        throw new ValidationException('Access level must be LIMITED, VIEW_ONLY or FULL');
+      }
+    }
+
+    const member = await this.members.findById(command.memberId);
+    if (member === null || member.ownerId !== command.ownerId) {
+      throw new NotFoundDomainException('Care circle request not found');
+    }
+
+    member.approve(accessLevel);
+    if (command.relationship !== undefined) {
+      member.changeRelationship(command.relationship);
+    }
+    await this.members.save(member);
+
+    return {
+      id: member.id,
+      relationship: member.relationship,
+      accessLevel: member.accessLevel,
+    };
+  }
+}
+
+/**
+ * Use case: reject a pending join request, removing it. Only a pending request can
+ * be rejected; removing an active member is the separate remove action. Owner
+ * scoped.
+ */
+@Injectable()
+export class RejectCareCircleMemberUseCase {
+  constructor(@Inject(CARE_CIRCLE_REPOSITORY) private readonly members: CareCircleRepository) {}
+
+  async execute(command: { ownerId: string; memberId: string }): Promise<void> {
+    const member = await this.members.findById(command.memberId);
+    if (member === null || member.ownerId !== command.ownerId) {
+      throw new NotFoundDomainException('Care circle request not found');
+    }
+    if (!member.isPending) {
+      throw new ValidationException('Only a pending request can be rejected');
     }
     await this.members.delete(command.ownerId, command.memberId);
   }

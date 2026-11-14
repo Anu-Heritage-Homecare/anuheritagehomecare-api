@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import {
   CareAccessLevel as PrismaAccessLevel,
+  CareCircleMemberStatus as PrismaMemberStatus,
   CareCircleMember as PrismaCareCircleMember,
 } from '@prisma/client';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import { CareAccessLevel } from '../../domain/care-access-level.enum';
+import { CareCircleMemberStatus } from '../../domain/care-circle-member-status.enum';
 import { CareCircleMember } from '../../domain/care-circle-member.entity';
 import { CareCircleRepository } from '../../domain/care-circle.repository';
 
@@ -20,6 +22,16 @@ const TO_PERSISTENCE_LEVEL: Record<CareAccessLevel, PrismaAccessLevel> = {
   [CareAccessLevel.Full]: 'FULL',
 };
 
+const TO_DOMAIN_STATUS: Record<PrismaMemberStatus, CareCircleMemberStatus> = {
+  PENDING: CareCircleMemberStatus.Pending,
+  ACTIVE: CareCircleMemberStatus.Active,
+};
+
+const TO_PERSISTENCE_STATUS: Record<CareCircleMemberStatus, PrismaMemberStatus> = {
+  [CareCircleMemberStatus.Pending]: 'PENDING',
+  [CareCircleMemberStatus.Active]: 'ACTIVE',
+};
+
 /** Prisma backed adapter for the CareCircleRepository port. */
 @Injectable()
 export class CareCirclePrismaRepository implements CareCircleRepository {
@@ -27,7 +39,15 @@ export class CareCirclePrismaRepository implements CareCircleRepository {
 
   async listForOwner(ownerId: string): Promise<CareCircleMember[]> {
     const rows = await this.prisma.careCircleMember.findMany({
-      where: { ownerId },
+      where: { ownerId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map((row) => CareCirclePrismaRepository.toDomain(row));
+  }
+
+  async listPendingForOwner(ownerId: string): Promise<CareCircleMember[]> {
+    const rows = await this.prisma.careCircleMember.findMany({
+      where: { ownerId, status: 'PENDING' },
       orderBy: { createdAt: 'asc' },
     });
     return rows.map((row) => CareCirclePrismaRepository.toDomain(row));
@@ -51,6 +71,7 @@ export class CareCirclePrismaRepository implements CareCircleRepository {
       memberUserId: member.memberUserId,
       relationship: member.relationship,
       accessLevel: TO_PERSISTENCE_LEVEL[member.accessLevel],
+      status: TO_PERSISTENCE_STATUS[member.status],
     };
     await this.prisma.careCircleMember.upsert({
       where: { id: member.id },
@@ -69,6 +90,7 @@ export class CareCirclePrismaRepository implements CareCircleRepository {
       memberUserId: row.memberUserId,
       relationship: row.relationship,
       accessLevel: TO_DOMAIN_LEVEL[row.accessLevel],
+      status: TO_DOMAIN_STATUS[row.status],
       createdAt: row.createdAt,
     });
   }

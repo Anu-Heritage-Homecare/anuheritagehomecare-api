@@ -28,10 +28,13 @@ import {
   RegenerateCalendarFeedUseCase,
 } from '../application/use-cases/calendar-feed.use-cases';
 import {
+  ApproveCareCircleMemberUseCase,
   GetCareCircleUseCase,
   GetCareCodeUseCase,
+  ListPendingCareRequestsUseCase,
   RedeemCareCodeUseCase,
   RegenerateCareCodeUseCase,
+  RejectCareCircleMemberUseCase,
   RemoveCareCircleMemberUseCase,
   SetCareCircleMemberAccessUseCase,
 } from '../application/use-cases/care-circle.use-cases';
@@ -50,8 +53,10 @@ import {
   UpdatePreferencesRequestDto,
 } from './dto/preferences.dto';
 import {
+  ApproveMemberRequestDto,
   CareCircleResponseDto,
   CareCodeResponseDto,
+  PendingCareRequestsResponseDto,
   RedeemCareCodeRequestDto,
   RedeemCareCodeResponseDto,
   SetMemberAccessRequestDto,
@@ -82,6 +87,9 @@ export class ProfileController {
     private readonly getCareCode: GetCareCodeUseCase,
     private readonly regenerateCareCode: RegenerateCareCodeUseCase,
     private readonly redeemCareCode: RedeemCareCodeUseCase,
+    private readonly listPendingRequests: ListPendingCareRequestsUseCase,
+    private readonly approveCareCircleMember: ApproveCareCircleMemberUseCase,
+    private readonly rejectCareCircleMember: RejectCareCircleMemberUseCase,
     private readonly setMemberAccess: SetCareCircleMemberAccessUseCase,
     private readonly removeCareCircleMember: RemoveCareCircleMemberUseCase,
     private readonly getCalendarFeed: GetCalendarFeedUseCase,
@@ -215,6 +223,44 @@ export class ProfileController {
       relationship: body.relationship,
     });
     return RedeemCareCodeResponseDto.fromResult(result);
+  }
+
+  @Get('care-circle/requests')
+  @ApiOperation({ summary: 'List pending care circle join requests awaiting approval' })
+  @ApiOkResponse({ type: PendingCareRequestsResponseDto })
+  async pendingRequests(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): Promise<PendingCareRequestsResponseDto> {
+    const view = await this.listPendingRequests.execute({ ownerId: principal.userId });
+    return PendingCareRequestsResponseDto.fromView(view);
+  }
+
+  @Post('care-circle/requests/:id/approve')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Approve a pending join request, activating the membership' })
+  @ApiNoContentResponse()
+  async approveRequest(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ApproveMemberRequestDto,
+  ): Promise<void> {
+    await this.approveCareCircleMember.execute({
+      ownerId: principal.userId,
+      memberId: id,
+      accessLevel: body.accessLevel,
+      relationship: body.relationship,
+    });
+  }
+
+  @Post('care-circle/requests/:id/reject')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Reject and remove a pending join request' })
+  @ApiNoContentResponse()
+  async rejectRequest(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    await this.rejectCareCircleMember.execute({ ownerId: principal.userId, memberId: id });
   }
 
   @Patch('care-circle/members/:id')

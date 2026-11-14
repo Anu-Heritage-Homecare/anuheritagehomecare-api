@@ -5,6 +5,8 @@ import {
   CareCircleView,
   CareCodePreviewResult,
   CareCodeView,
+  PendingCareRequestView,
+  PendingCareRequestsView,
   RedeemCareCodeResult,
   RegisterAndLinkResult,
 } from '../../application/use-cases/care-circle.use-cases';
@@ -128,6 +130,25 @@ export class SetMemberAccessRequestDto {
   relationship?: string;
 }
 
+/**
+ * Request to approve a pending join request. Both fields are optional: omitting
+ * the access level keeps the least privileged default, which the owner can raise
+ * later from the member's permissions.
+ */
+export class ApproveMemberRequestDto {
+  @ApiProperty({ required: false, enum: ACCESS_LEVELS, example: 'LIMITED' })
+  @IsOptional()
+  @IsIn(ACCESS_LEVELS)
+  accessLevel?: string;
+
+  @ApiProperty({ required: false, example: 'Daughter', maxLength: 120 })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(120)
+  relationship?: string;
+}
+
 class CareCircleMemberDto {
   @ApiProperty() id!: string;
   @ApiProperty() name!: string;
@@ -179,16 +200,49 @@ export class CareCirclePreviewResponseDto {
   }
 }
 
-/** HTTP response after redeeming a code: whose circle was joined. */
+/** HTTP response after redeeming a code: whose circle the request was sent to. */
 export class RedeemCareCodeResponseDto {
   @ApiProperty({ example: 'Joseph Simon' })
   ownerName!: string;
 
-  @ApiProperty({ description: 'True when the caller was already a member (idempotent redeem)' })
+  @ApiProperty({
+    description: 'True when the caller already had a membership or request (idempotent redeem)',
+  })
   alreadyMember!: boolean;
+
+  @ApiProperty({
+    description:
+      'True while the request is awaiting the owner approval; the member has no access yet',
+  })
+  pending!: boolean;
 
   static fromResult(result: RedeemCareCodeResult): RedeemCareCodeResponseDto {
     return Object.assign(new RedeemCareCodeResponseDto(), result);
+  }
+}
+
+/** One pending join request shown on the owner's Pending Invitations screen. */
+class PendingCareRequestDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() relationship!: string;
+  @ApiProperty({ nullable: true }) photoUrl!: string | null;
+  @ApiProperty({ example: '2026-09-13T00:00:00.000Z' }) requestedAt!: string;
+
+  static from(view: PendingCareRequestView): PendingCareRequestDto {
+    return Object.assign(new PendingCareRequestDto(), view);
+  }
+}
+
+/** HTTP response listing the owner's pending care circle join requests. */
+export class PendingCareRequestsResponseDto {
+  @ApiProperty({ type: [PendingCareRequestDto] })
+  requests!: PendingCareRequestDto[];
+
+  static fromView(view: PendingCareRequestsView): PendingCareRequestsResponseDto {
+    const dto = new PendingCareRequestsResponseDto();
+    dto.requests = view.requests.map((r) => PendingCareRequestDto.from(r));
+    return dto;
   }
 }
 

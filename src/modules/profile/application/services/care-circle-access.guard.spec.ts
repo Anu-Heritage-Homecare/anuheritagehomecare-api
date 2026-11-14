@@ -1,5 +1,6 @@
 import { ForbiddenDomainException, NotFoundDomainException } from '@shared/domain/domain-exception';
 import { CareAccessLevel } from '../../domain/care-access-level.enum';
+import { CareCircleMemberStatus } from '../../domain/care-circle-member-status.enum';
 import { CareCircleMember } from '../../domain/care-circle-member.entity';
 import { CareCircleRepository } from '../../domain/care-circle.repository';
 import { CareCircleAccessGuard } from './care-circle-access.guard';
@@ -7,6 +8,7 @@ import { CareCircleAccessGuard } from './care-circle-access.guard';
 function repo(member: CareCircleMember | null): CareCircleRepository {
   return {
     listForOwner: () => Promise.resolve([]),
+    listPendingForOwner: () => Promise.resolve([]),
     findById: () => Promise.resolve(null),
     findMembership: () => Promise.resolve(member),
     save: () => Promise.resolve(),
@@ -14,13 +16,17 @@ function repo(member: CareCircleMember | null): CareCircleRepository {
   };
 }
 
-function member(level: CareAccessLevel): CareCircleMember {
+function member(
+  level: CareAccessLevel,
+  status: CareCircleMemberStatus = CareCircleMemberStatus.Active,
+): CareCircleMember {
   return CareCircleMember.create({
     id: 'm1',
     ownerId: 'owner-1',
     memberUserId: 'member-1',
     relationship: 'Brother',
     accessLevel: level,
+    status,
     createdAt: new Date('2026-09-05T00:00:00.000Z'),
   });
 }
@@ -52,6 +58,15 @@ describe('CareCircleAccessGuard', () => {
     expect(await guard.resolveLevel('stranger', 'owner-1')).toBeNull();
     await expect(
       guard.assertAccess('stranger', 'owner-1', CareAccessLevel.Limited),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+  });
+
+  it('gives a pending member no access until approved', async () => {
+    const pending = member(CareAccessLevel.ViewOnly, CareCircleMemberStatus.Pending);
+    const guard = new CareCircleAccessGuard(repo(pending));
+    expect(await guard.resolveLevel('member-1', 'owner-1')).toBeNull();
+    await expect(
+      guard.assertAccess('member-1', 'owner-1', CareAccessLevel.Limited),
     ).rejects.toBeInstanceOf(NotFoundDomainException);
   });
 });
