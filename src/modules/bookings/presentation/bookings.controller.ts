@@ -68,6 +68,7 @@ export class BookingsController {
   ): Promise<BookingQuoteResponseDto> {
     const result = await this.quoteBooking.execute({
       currency: currencyForCountryCode(principal.country),
+      planType: query.planType,
       hours: query.hours,
     });
     return BookingQuoteResponseDto.fromResult(result);
@@ -84,6 +85,7 @@ export class BookingsController {
     const result = await this.createBooking.execute({
       ownerId: principal.userId,
       currency: currencyForCountryCode(principal.country),
+      planType: body.planType,
       careRecipientId: body.careRecipientId,
       hours: body.hours,
       serviceDate: body.serviceDate,

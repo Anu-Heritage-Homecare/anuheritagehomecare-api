@@ -11,28 +11,35 @@ import { BookingQuoteResult, toBookingQuoteResult } from '../dto/booking-quote.r
 
 export interface QuoteFlexibleBookingQuery {
   currency: Currency;
+  planType: CarePlanType;
   hours: number;
 }
 
 /**
- * Use case: price a Flexible booking for the owner's market without persisting
- * anything. Powers the booking summary screen so the price breakdown stays
- * server authoritative, computed identically to creating the booking.
+ * Use case: price the selected hourly plan for the owner's market without
+ * persisting anything. Powers the booking summary screen, pricing the same plan
+ * the booking would, so the price the user sees matches the booking that is
+ * created. Server authoritative; rejects a monthly plan.
  */
 @Injectable()
 export class QuoteFlexibleBookingUseCase {
   constructor(@Inject(CARE_PLAN_REPOSITORY) private readonly plans: CarePlanRepository) {}
 
   async execute(query: QuoteFlexibleBookingQuery): Promise<BookingQuoteResult> {
-    const plan = await this.plans.findByType(CarePlanType.Flexible);
+    const plan = await this.plans.findByType(query.planType);
     if (plan === null || !plan.active) {
-      throw new NotFoundDomainException('The Flexible plan is not available');
+      throw new NotFoundDomainException('The selected plan is not available');
+    }
+    if (!plan.isHourly) {
+      throw new ValidationException(
+        'That plan is a monthly subscription; subscribe to it instead of booking hourly',
+      );
     }
     plan.assertHoursAllowed(query.hours);
 
     const price = plan.priceFor(query.currency);
     if (price === null) {
-      throw new ValidationException('The Flexible plan is not offered in your currency');
+      throw new ValidationException('The selected plan is not offered in your currency');
     }
 
     return toBookingQuoteResult(

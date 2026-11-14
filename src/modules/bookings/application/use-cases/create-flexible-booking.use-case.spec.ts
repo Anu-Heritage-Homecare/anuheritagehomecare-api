@@ -1,5 +1,6 @@
 import { Currency } from '@shared/domain/currency.enum';
 import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
+import { CarePlanType } from '@modules/care-plans/domain/care-plan-type.enum';
 import { BookingStatus } from '../../domain/booking-status.enum';
 import {
   FakeCarePlanRepository,
@@ -19,6 +20,7 @@ describe('CreateFlexibleBookingUseCase', () => {
   const command: CreateFlexibleBookingCommand = {
     ownerId: 'owner-1',
     currency: Currency.UnitedStatesDollar,
+    planType: CarePlanType.Flexible,
     careRecipientId: 'recipient-1',
     hours: 6,
     serviceDate: '2026-07-28',
@@ -46,7 +48,15 @@ describe('CreateFlexibleBookingUseCase', () => {
     expect(result.price.serviceFeeMinor).toBe(1000);
     expect(result.price.totalMinor).toBe(19000);
     expect(result.endTime).toBe('15:00');
+    expect(result.planType).toBe(CarePlanType.Flexible);
     expect(bookings.store.size).toBe(1);
+  });
+
+  it('rejects a monthly plan selection (that is the subscription flow)', async () => {
+    await expect(
+      useCase.execute({ ...command, planType: CarePlanType.StandardMonthly }),
+    ).rejects.toBeInstanceOf(ValidationException);
+    expect(bookings.store.size).toBe(0);
   });
 
   it('rejects an hours choice the plan does not offer', async () => {
