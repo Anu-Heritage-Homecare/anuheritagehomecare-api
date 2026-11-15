@@ -2081,6 +2081,9 @@ enum HolidayPolicy {
 model LocationPing {
   id             String       @id @default(uuid()) @db.Uuid
   caregiverId    String       @db.Uuid
+  // Client generated id for the point. Unique per caregiver so a replayed offline
+  // batch is idempotent: the same point is stored once however often it is pushed.
+  clientId       String       @db.Uuid
   visitId        String?      @db.Uuid
   // Set on points streamed at high frequency while an SOS alert is active, so the
   // emergency path can be replayed. A tag only; not a foreign key.
@@ -2092,6 +2095,7 @@ model LocationPing {
   recordedAt     DateTime
   receivedAt     DateTime     @default(now())
 
+  @@unique([caregiverId, clientId])
   @@index([caregiverId, recordedAt])
   @@index([visitId])
   @@index([sosAlertId])

@@ -9,7 +9,7 @@ import {
 } from '../../domain/location-ping.repository';
 import { IngestLocationsCommand } from '../commands/ingest-locations.command';
 
-/** Result of an ingestion: how many points were accepted and stored. */
+/** Result of an ingestion: how many points were newly stored (a replay stores fewer). */
 export interface IngestLocationsResult {
   accepted: number;
 }
@@ -19,7 +19,9 @@ export interface IngestLocationsResult {
  * caregiver. Each point is validated (coordinates, accuracy, device time) and
  * stamped with a single server receive time for the batch, then written in one
  * bulk insert. The caregiver id is trusted from the token; a visit id is only a
- * tag and is not verified here, keeping this high volume path cheap.
+ * tag and is not verified here, keeping this high volume path cheap. The write is
+ * idempotent on each point's client id, so a replayed offline batch stores only
+ * the points not already saved.
  */
 @Injectable()
 export class IngestLocationsUseCase {
@@ -36,6 +38,7 @@ export class IngestLocationsUseCase {
       LocationPing.record({
         id: this.ids.generate(),
         caregiverId: command.caregiverId,
+        clientId: point.clientId,
         visitId: point.visitId ?? null,
         sosAlertId: point.sosAlertId ?? null,
         position: Coordinates.create(point.latitude, point.longitude),
@@ -46,7 +49,7 @@ export class IngestLocationsUseCase {
       }),
     );
 
-    await this.pings.saveMany(pings);
-    return { accepted: pings.length };
+    const accepted = await this.pings.saveMany(pings);
+    return { accepted };
   }
 }

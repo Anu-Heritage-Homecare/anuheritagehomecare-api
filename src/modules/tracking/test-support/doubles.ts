@@ -18,9 +18,20 @@ export function sequentialIds(prefix = 'ping'): IdGenerator {
 
 export class InMemoryLocationPingRepository implements LocationPingRepository {
   public readonly saved: LocationPing[] = [];
+  private readonly keys = new Set<string>();
 
-  saveMany(pings: LocationPing[]): Promise<void> {
-    this.saved.push(...pings);
-    return Promise.resolve();
+  saveMany(pings: LocationPing[]): Promise<number> {
+    let stored = 0;
+    for (const ping of pings) {
+      // Mirror the unique (caregiverId, clientId) idempotency of the database.
+      const key = `${ping.caregiverId}:${ping.clientId}`;
+      if (this.keys.has(key)) {
+        continue;
+      }
+      this.keys.add(key);
+      this.saved.push(ping);
+      stored += 1;
+    }
+    return Promise.resolve(stored);
   }
 }

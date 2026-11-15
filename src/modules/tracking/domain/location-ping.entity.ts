@@ -5,6 +5,11 @@ import { LocationMode } from './location-mode.enum';
 
 interface LocationPingProps {
   caregiverId: string;
+  /**
+   * Client generated id for this point, unique per caregiver, so a replayed batch
+   * is idempotent: the same point is stored once however many times it is pushed.
+   */
+  clientId: string;
   visitId: string | null;
   sosAlertId: string | null;
   position: Coordinates;
@@ -31,6 +36,7 @@ export class LocationPing extends Entity<string> {
   public static record(params: {
     id: string;
     caregiverId: string;
+    clientId: string;
     visitId?: string | null;
     sosAlertId?: string | null;
     position: Coordinates;
@@ -52,6 +58,7 @@ export class LocationPing extends Entity<string> {
 
     return new LocationPing(params.id, {
       caregiverId: params.caregiverId,
+      clientId: params.clientId,
       visitId: params.visitId ?? null,
       sosAlertId: params.sosAlertId ?? null,
       position: params.position,
@@ -64,6 +71,10 @@ export class LocationPing extends Entity<string> {
 
   public get caregiverId(): string {
     return this.props.caregiverId;
+  }
+
+  public get clientId(): string {
+    return this.props.clientId;
   }
 
   public get visitId(): string | null {

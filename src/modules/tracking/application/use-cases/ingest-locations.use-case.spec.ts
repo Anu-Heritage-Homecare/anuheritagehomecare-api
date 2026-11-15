@@ -22,6 +22,7 @@ describe('IngestLocationsUseCase', () => {
       caregiverId: 'caregiver-1',
       points: [
         {
+          clientId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
           latitude: 37.3861,
           longitude: -122.0839,
           mode: LocationMode.Navigation,
@@ -30,6 +31,7 @@ describe('IngestLocationsUseCase', () => {
           visitId: '11111111-1111-1111-1111-111111111111',
         },
         {
+          clientId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
           latitude: 37.3871,
           longitude: -122.084,
           mode: LocationMode.Background,
@@ -53,6 +55,7 @@ describe('IngestLocationsUseCase', () => {
       caregiverId: 'caregiver-1',
       points: [
         {
+          clientId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
           latitude: 37.3861,
           longitude: -122.0839,
           mode: LocationMode.Emergency,
@@ -73,6 +76,7 @@ describe('IngestLocationsUseCase', () => {
         caregiverId: 'caregiver-1',
         points: [
           {
+            clientId: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
             latitude: 999,
             longitude: 0,
             mode: LocationMode.Navigation,
@@ -82,5 +86,67 @@ describe('IngestLocationsUseCase', () => {
       }),
     ).rejects.toBeInstanceOf(ValidationException);
     expect(repo.saved).toHaveLength(0);
+  });
+
+  it('is idempotent: re-pushing points with the same client ids stores them once', async () => {
+    const batch = {
+      caregiverId: 'caregiver-1',
+      points: [
+        {
+          clientId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          latitude: 37.3861,
+          longitude: -122.0839,
+          mode: LocationMode.Background,
+          recordedAt: '2026-07-12T09:12:00.000Z',
+        },
+        {
+          clientId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          latitude: 37.3871,
+          longitude: -122.084,
+          mode: LocationMode.Background,
+          recordedAt: '2026-07-12T09:14:00.000Z',
+        },
+      ],
+    };
+
+    const first = await useCase.execute(batch);
+    expect(first.accepted).toBe(2);
+
+    // A replay of the same batch stores nothing new.
+    const replay = await useCase.execute(batch);
+    expect(replay.accepted).toBe(0);
+    expect(repo.saved).toHaveLength(2);
+
+    // A batch mixing one seen and one new point stores only the new one.
+    const mixed = await useCase.execute({
+      caregiverId: 'caregiver-1',
+      points: [
+        batch.points[0],
+        {
+          clientId: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+          latitude: 37.3881,
+          longitude: -122.085,
+          mode: LocationMode.Background,
+          recordedAt: '2026-07-12T09:16:00.000Z',
+        },
+      ],
+    });
+    expect(mixed.accepted).toBe(1);
+    expect(repo.saved).toHaveLength(3);
+  });
+
+  it('scopes idempotency to the caregiver: the same client id for another caregiver is stored', async () => {
+    const point = {
+      clientId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      latitude: 37.3861,
+      longitude: -122.0839,
+      mode: LocationMode.Background,
+      recordedAt: '2026-07-12T09:12:00.000Z',
+    };
+    await useCase.execute({ caregiverId: 'caregiver-1', points: [point] });
+    const other = await useCase.execute({ caregiverId: 'caregiver-2', points: [point] });
+
+    expect(other.accepted).toBe(1);
+    expect(repo.saved).toHaveLength(2);
   });
 });
