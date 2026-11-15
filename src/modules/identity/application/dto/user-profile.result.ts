@@ -34,6 +34,8 @@ export interface UserProfileResult {
   dateOfBirth: string | null;
   /** The owner's relationship to the care recipient, or null when not set. */
   relationshipToRecipient: string | null;
+  /** When the user accepted the consent terms (ISO 8601), or null if never. */
+  consentAcceptedAt: string | null;
   /** Opaque object store key for the avatar; null when none is set. */
   photoKey: string | null;
   /** Signed delivery URL for the avatar, resolved by the reads that have storage. */
@@ -63,6 +65,8 @@ export function toUserProfile(user: User): UserProfileResult {
     status: user.status,
     dateOfBirth: user.dateOfBirth === null ? null : user.dateOfBirth.toISOString().slice(0, 10),
     relationshipToRecipient: user.relationshipToRecipient,
+    consentAcceptedAt:
+      user.consentAcceptedAt === null ? null : user.consentAcceptedAt.toISOString(),
     photoKey: user.photoKey,
     photoUrl: null,
   };

@@ -82,6 +82,13 @@ export class UserProfileResponseDto {
   @ApiProperty({ nullable: true, example: 'Son' })
   relationshipToRecipient!: string | null;
 
+  @ApiProperty({
+    nullable: true,
+    example: '2026-11-15T09:30:00.000Z',
+    description: 'When the user accepted the consent terms; null if they never have',
+  })
+  consentAcceptedAt!: string | null;
+
   @ApiProperty({ nullable: true, description: 'Signed avatar URL, or null when none is set' })
   photoUrl!: string | null;
 
@@ -101,6 +108,7 @@ export class UserProfileResponseDto {
     dto.status = result.status;
     dto.dateOfBirth = result.dateOfBirth;
     dto.relationshipToRecipient = result.relationshipToRecipient;
+    dto.consentAcceptedAt = result.consentAcceptedAt;
     dto.photoUrl = result.photoUrl;
     return dto;
   }

@@ -79,6 +79,8 @@ model User {
   passwordChangedAt     DateTime @default(now())
   biometricEnabled      Boolean  @default(false)
   sessionTimeoutMinutes Int      @default(15)
+  // When the user accepted the consent terms; null until they do.
+  consentAcceptedAt     DateTime?
   status        UserStatus @default(PENDING_VERIFICATION)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
