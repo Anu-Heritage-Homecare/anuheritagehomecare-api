@@ -79,6 +79,7 @@ export function buildUser(options: BuildUserOptions = {}): User {
     passwordChangedAt: user.passwordChangedAt,
     biometricEnabled: user.biometricEnabled,
     sessionTimeoutMinutes: user.sessionTimeoutMinutes,
+    consentAcceptedAt: user.consentAcceptedAt,
     status: user.status,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

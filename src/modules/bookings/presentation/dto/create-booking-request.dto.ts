@@ -1,8 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsInt, IsUUID, Matches, Max, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsUUID, Matches, Max, Min } from 'class-validator';
+import { CarePlanType } from '@modules/care-plans/domain/care-plan-type.enum';
 
 /** Request contract to create a Flexible hourly booking. */
 export class CreateBookingRequestDto {
+  @ApiProperty({
+    enum: CarePlanType,
+    enumName: 'CarePlanType',
+    description: 'The plan the user selected; must be an hourly (pay as you go) plan',
+  })
+  @IsEnum(CarePlanType)
+  planType!: CarePlanType;
+
   @ApiProperty({ format: 'uuid', description: 'The care recipient to book care for' })
   @IsUUID('4')
   careRecipientId!: string;

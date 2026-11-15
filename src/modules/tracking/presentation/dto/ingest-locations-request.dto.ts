@@ -19,6 +19,14 @@ import { LocationMode } from '../../domain/location-mode.enum';
 const MAX_POINTS_PER_BATCH = 500;
 
 class LocationPointDto {
+  @ApiProperty({
+    format: 'uuid',
+    example: '9f1d2c3b-4a5e-6789-0abc-def012345678',
+    description: 'Client generated id for this point; re-pushing the same id is a no-op',
+  })
+  @IsUUID()
+  clientId!: string;
+
   @ApiProperty({ example: 37.3861 })
   @IsNumber()
   @Min(-90)

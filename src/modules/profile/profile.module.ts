@@ -6,7 +6,6 @@ import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.m
 import { IdentityModule } from '@modules/identity/identity.module';
 import { VisitsModule } from '@modules/visits/visits.module';
 import { CARE_ACCESS } from './application/ports/care-access.port';
-import { MEMBER_ACCOUNT_REGISTRAR } from './application/ports/member-account-registrar.port';
 import {
   PROFILE_PLAN_DIRECTORY,
   PROFILE_USER_DIRECTORY,
@@ -18,12 +17,14 @@ import {
   RegenerateCalendarFeedUseCase,
 } from './application/use-cases/calendar-feed.use-cases';
 import {
+  ApproveCareCircleMemberUseCase,
   GetCareCircleUseCase,
   GetCareCodeUseCase,
+  ListPendingCareRequestsUseCase,
   PreviewCareCodeUseCase,
   RedeemCareCodeUseCase,
   RegenerateCareCodeUseCase,
-  RegisterAndLinkUseCase,
+  RejectCareCircleMemberUseCase,
   RemoveCareCircleMemberUseCase,
   SetCareCircleMemberAccessUseCase,
 } from './application/use-cases/care-circle.use-cases';
@@ -41,7 +42,6 @@ import { CARE_CIRCLE_REPOSITORY } from './domain/care-circle.repository';
 import { EMERGENCY_CONTACT_REPOSITORY } from './domain/emergency-contact.repository';
 import { PROFILE_PREFERENCES_REPOSITORY } from './domain/profile-preferences.repository';
 import { BookingsProfilePlanDirectory } from './infrastructure/access/bookings-profile-plan-directory';
-import { IdentityMemberAccountRegistrar } from './infrastructure/access/identity-member-account-registrar';
 import { IdentityProfileUserDirectory } from './infrastructure/access/identity-profile-user-directory';
 import { CalendarFeedPrismaRepository } from './infrastructure/persistence/calendar-feed-prisma.repository';
 import { CareCodePrismaRepository } from './infrastructure/persistence/care-code-prisma.repository';
@@ -82,10 +82,11 @@ import { ProfileController } from './presentation/profile.controller';
     RegenerateCareCodeUseCase,
     RedeemCareCodeUseCase,
     PreviewCareCodeUseCase,
-    RegisterAndLinkUseCase,
+    ListPendingCareRequestsUseCase,
+    ApproveCareCircleMemberUseCase,
+    RejectCareCircleMemberUseCase,
     SetCareCircleMemberAccessUseCase,
     RemoveCareCircleMemberUseCase,
-    { provide: MEMBER_ACCOUNT_REGISTRAR, useClass: IdentityMemberAccountRegistrar },
     { provide: PROFILE_USER_DIRECTORY, useClass: IdentityProfileUserDirectory },
     { provide: PROFILE_PLAN_DIRECTORY, useClass: BookingsProfilePlanDirectory },
     { provide: PROFILE_PREFERENCES_REPOSITORY, useClass: ProfilePreferencesPrismaRepository },

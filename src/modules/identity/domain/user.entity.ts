@@ -28,6 +28,8 @@ interface UserProps {
   passwordChangedAt: Date;
   biometricEnabled: boolean;
   sessionTimeoutMinutes: number;
+  /** When the user accepted the consent terms, or null if they never have. */
+  consentAcceptedAt: Date | null;
   status: UserStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -85,6 +87,7 @@ export class User extends AggregateRoot<string> {
       passwordChangedAt: params.now,
       biometricEnabled: false,
       sessionTimeoutMinutes: DEFAULT_SESSION_TIMEOUT_MINUTES,
+      consentAcceptedAt: null,
       status: UserStatus.PendingVerification,
       createdAt: params.now,
       updatedAt: params.now,
@@ -236,6 +239,18 @@ export class User extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
+  /**
+   * Record that the user accepted the consent terms. Idempotent: the first
+   * acceptance timestamp is kept, so re-accepting does not move it.
+   */
+  public acceptConsent(now: Date): void {
+    if (this.props.consentAcceptedAt !== null) {
+      return;
+    }
+    this.props.consentAcceptedAt = now;
+    this.props.updatedAt = now;
+  }
+
   public get userType(): UserType {
     return this.props.userType;
   }
@@ -303,6 +318,11 @@ export class User extends AggregateRoot<string> {
   /** When the password was last set (registration, reset or change). */
   public get passwordChangedAt(): Date {
     return this.props.passwordChangedAt;
+  }
+
+  /** When the user accepted the consent terms, or null if they never have. */
+  public get consentAcceptedAt(): Date | null {
+    return this.props.consentAcceptedAt;
   }
 
   /** Whether biometric (Face ID) sign in is enabled on the account. */

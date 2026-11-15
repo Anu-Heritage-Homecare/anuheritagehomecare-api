@@ -12,12 +12,16 @@ import { LocationPingMapper } from './location-ping.mapper';
 export class LocationPingPrismaRepository implements LocationPingRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async saveMany(pings: LocationPing[]): Promise<void> {
+  async saveMany(pings: LocationPing[]): Promise<number> {
     if (pings.length === 0) {
-      return;
+      return 0;
     }
-    await this.prisma.locationPing.createMany({
+    // skipDuplicates makes a replayed batch idempotent: a point whose
+    // (caregiverId, clientId) is already stored is ignored, never duplicated.
+    const { count } = await this.prisma.locationPing.createMany({
       data: pings.map((ping) => LocationPingMapper.toPersistence(ping)),
+      skipDuplicates: true,
     });
+    return count;
   }
 }

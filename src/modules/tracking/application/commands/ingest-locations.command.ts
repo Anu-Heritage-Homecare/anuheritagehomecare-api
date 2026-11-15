@@ -2,6 +2,8 @@ import { LocationMode } from '../../domain/location-mode.enum';
 
 /** One reported location point. `recordedAt` is the device clock (ISO string). */
 export interface LocationPointInput {
+  /** Client generated id for this point; dedupes a replayed batch. */
+  clientId: string;
   latitude: number;
   longitude: number;
   accuracyMeters?: number | null;

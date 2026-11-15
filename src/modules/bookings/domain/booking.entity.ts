@@ -36,6 +36,7 @@ export class Booking extends AggregateRoot<string> {
     id: string;
     ownerId: string;
     careRecipientId: string;
+    planType: CarePlanType;
     hours: number;
     serviceDate: Date;
     startTime: TimeOfDay;
@@ -48,7 +49,7 @@ export class Booking extends AggregateRoot<string> {
     const booking = new Booking(params.id, {
       ownerId: params.ownerId,
       careRecipientId: params.careRecipientId,
-      planType: CarePlanType.Flexible,
+      planType: params.planType,
       hours: params.hours,
       serviceDate: params.serviceDate,
       startTime: params.startTime,

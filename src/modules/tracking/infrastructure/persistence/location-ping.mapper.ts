@@ -15,6 +15,7 @@ export class LocationPingMapper {
     return {
       id: ping.id,
       caregiverId: ping.caregiverId,
+      clientId: ping.clientId,
       visitId: ping.visitId,
       sosAlertId: ping.sosAlertId,
       latitude: ping.position.latitude,

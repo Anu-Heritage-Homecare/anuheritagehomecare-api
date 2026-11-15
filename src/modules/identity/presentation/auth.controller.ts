@@ -37,6 +37,7 @@ import {
 } from '../application/use-cases/security.use-cases';
 import { CreateProfilePhotoTicketUseCase } from '../application/use-cases/create-profile-photo-ticket.use-case';
 import { DeleteAccountUseCase } from '../application/use-cases/delete-account.use-case';
+import { AcceptConsentUseCase } from '../application/use-cases/accept-consent.use-case';
 import { GetMyProfileUseCase } from '../application/use-cases/get-my-profile.use-case';
 import { LoginUseCase } from '../application/use-cases/login.use-case';
 import { SetProfilePhotoUseCase } from '../application/use-cases/set-profile-photo.use-case';
@@ -113,6 +114,7 @@ export class AuthController {
     private readonly resetPassword: ResetPasswordUseCase,
     private readonly changePassword: ChangePasswordUseCase,
     private readonly getMyProfile: GetMyProfileUseCase,
+    private readonly acceptConsentUseCase: AcceptConsentUseCase,
     private readonly updateMyProfile: UpdateMyProfileUseCase,
     private readonly createProfilePhotoTicket: CreateProfilePhotoTicketUseCase,
     private readonly setProfilePhoto: SetProfilePhotoUseCase,
@@ -138,6 +140,18 @@ export class AuthController {
     @CurrentUser() principal: AuthenticatedPrincipal,
   ): Promise<UserProfileResponseDto> {
     const result = await this.getMyProfile.execute({ userId: principal.userId });
+    return UserProfileResponseDto.fromResult(result);
+  }
+
+  @Post('consent')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Record that the authenticated user accepted the consent terms' })
+  @ApiOkResponse({ type: UserProfileResponseDto })
+  async acceptConsent(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+  ): Promise<UserProfileResponseDto> {
+    const result = await this.acceptConsentUseCase.execute({ userId: principal.userId });
     return UserProfileResponseDto.fromResult(result);
   }
 

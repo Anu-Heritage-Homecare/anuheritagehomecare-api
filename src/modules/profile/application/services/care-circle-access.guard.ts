@@ -18,7 +18,11 @@ export class CareCircleAccessGuard implements CareAccessGuard {
       return CareAccessLevel.Full;
     }
     const membership = await this.members.findMembership(ownerId, callerUserId);
-    return membership === null ? null : membership.accessLevel;
+    // A pending join request carries no access until the owner approves it.
+    if (membership === null || membership.isPending) {
+      return null;
+    }
+    return membership.accessLevel;
   }
 
   async assertAccess(

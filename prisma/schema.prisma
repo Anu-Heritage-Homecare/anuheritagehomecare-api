@@ -79,6 +79,8 @@ model User {
   passwordChangedAt     DateTime @default(now())
   biometricEnabled      Boolean  @default(false)
   sessionTimeoutMinutes Int      @default(15)
+  // When the user accepted the consent terms; null until they do.
+  consentAcceptedAt     DateTime?
   status        UserStatus @default(PENDING_VERIFICATION)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -1802,15 +1804,17 @@ model EmergencyContact {
 // owner's care information at a level. Name and avatar come from the linked user
 // (identity). One membership per (owner, user). Owned by the profile context.
 model CareCircleMember {
-  id           String          @id @default(uuid()) @db.Uuid
-  ownerId      String          @db.Uuid
-  memberUserId String          @db.Uuid
-  relationship String          @db.VarChar(120)
+  id           String                 @id @default(uuid()) @db.Uuid
+  ownerId      String                 @db.Uuid
+  memberUserId String                 @db.Uuid
+  relationship String                 @db.VarChar(120)
   accessLevel  CareAccessLevel
-  createdAt    DateTime        @default(now())
+  status       CareCircleMemberStatus  @default(ACTIVE)
+  createdAt    DateTime               @default(now())
 
   @@unique([ownerId, memberUserId])
   @@index([memberUserId])
+  @@index([ownerId, status])
   @@map("care_circle_members")
 }
 
@@ -1836,6 +1840,16 @@ enum CareAccessLevel {
   FULL
 
   @@map("care_access_level")
+}
+
+// Where a care circle membership sits in the join flow. A PENDING member redeemed
+// a care code and awaits the owner's approval (no access until then); an ACTIVE
+// member has been approved. A rejected request is deleted, not a status.
+enum CareCircleMemberStatus {
+  PENDING
+  ACTIVE
+
+  @@map("care_circle_member_status")
 }
 
 enum CareCodeStatus {
@@ -2067,6 +2081,9 @@ enum HolidayPolicy {
 model LocationPing {
   id             String       @id @default(uuid()) @db.Uuid
   caregiverId    String       @db.Uuid
+  // Client generated id for the point. Unique per caregiver so a replayed offline
+  // batch is idempotent: the same point is stored once however often it is pushed.
+  clientId       String       @db.Uuid
   visitId        String?      @db.Uuid
   // Set on points streamed at high frequency while an SOS alert is active, so the
   // emergency path can be replayed. A tag only; not a foreign key.
@@ -2078,6 +2095,7 @@ model LocationPing {
   recordedAt     DateTime
   receivedAt     DateTime     @default(now())
 
+  @@unique([caregiverId, clientId])
   @@index([caregiverId, recordedAt])
   @@index([visitId])
   @@index([sosAlertId])
@@ -2229,6 +2247,9 @@ model CaregiverAvailability {
   id          String   @id @default(uuid()) @db.Uuid
   caregiverId String   @db.Uuid
   date        DateTime @db.Date
+  // Optimistic concurrency version: bumped on every change so a client can detect
+  // that a day was edited on another device before overwriting it.
+  revision    Int      @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

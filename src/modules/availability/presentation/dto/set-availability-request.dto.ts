@@ -1,6 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsInt, IsISO8601, Max, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
 const MINUTES_IN_DAY = 24 * 60;
 const MAX_SLOTS = 48;
@@ -38,6 +47,18 @@ export class SetAvailabilityRequestDto {
   @ApiProperty({ example: '2026-07-11', description: 'The calendar day (YYYY-MM-DD)' })
   @IsISO8601()
   date!: string;
+
+  @ApiProperty({
+    required: false,
+    minimum: 1,
+    example: 3,
+    description:
+      'The revision this day was last fetched at. Send it to detect a conflicting edit from another device (409 on mismatch); omit it to overwrite unconditionally.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  expectedRevision?: number;
 
   @ApiProperty({ type: [AvailabilitySlotDto] })
   @IsArray()
