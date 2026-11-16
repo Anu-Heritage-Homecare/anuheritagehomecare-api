@@ -126,6 +126,19 @@ export class CareRecipient extends AggregateRoot<string> {
     this.props.updatedAt = now;
   }
 
+  /**
+   * Correct the identity profile from the back office after provisioning. Unlike
+   * updateProfile (the draft only onboarding step), this revises a live record; a
+   * discharged recipient is archived and can no longer be edited.
+   */
+  public reviseProfile(profile: RecipientProfile, now: Date): void {
+    if (this.props.status === CareRecipientStatus.Discharged) {
+      throw new ValidationException('A discharged care recipient can no longer be edited');
+    }
+    this.props.profile = profile;
+    this.props.updatedAt = now;
+  }
+
   /** Record the selected care needs (step two). Duplicates are collapsed. */
   public setCareNeeds(needs: CareNeed[], now: Date): void {
     this.assertMutable();

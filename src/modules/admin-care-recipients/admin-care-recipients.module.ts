@@ -12,6 +12,7 @@ import { VisitsModule } from '@modules/visits/visits.module';
 import { AcknowledgeCareNoteUseCase } from './application/use-cases/acknowledge-care-note.use-case';
 import { AddCareNoteUseCase } from './application/use-cases/add-care-note.use-case';
 import { AddCareRecipientUseCase } from './application/use-cases/add-care-recipient.use-case';
+import { UpdateCareRecipientProfileUseCase } from './application/use-cases/update-care-recipient-profile.use-case';
 import { AddFamilyContactUseCase } from './application/use-cases/add-family-contact.use-case';
 import { AddHealthEventUseCase } from './application/use-cases/add-health-event.use-case';
 import { AddMedicationUseCase } from './application/use-cases/add-medication.use-case';
@@ -141,6 +142,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     SetCarePlanScheduleUseCase,
     SetCarePlanInstructionsUseCase,
     AddCareRecipientUseCase,
+    UpdateCareRecipientProfileUseCase,
     ChangeCareRecipientStatusUseCase,
     SetCareRecipientPriorityUseCase,
     SetPrimaryCaregiverUseCase,
