@@ -12,6 +12,7 @@ import { Clock } from '@shared/application/ports/clock.port';
 import { IdGenerator } from '@shared/application/ports/id-generator.port';
 import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
 import { AddCareRecipientUseCase } from './add-care-recipient.use-case';
+import { UpdateCareRecipientProfileUseCase } from './update-care-recipient-profile.use-case';
 import { ChangeCareRecipientStatusUseCase } from './change-care-recipient-status.use-case';
 import { SetPrimaryCaregiverUseCase } from './set-primary-caregiver.use-case';
 
@@ -127,6 +128,66 @@ describe('care recipient admin writes', () => {
         state: 'S',
         fullAddress: 'A',
         relationship: 'Father',
+        livingSituation: 'Alone',
+      }),
+    ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('revises the identity profile of a live recipient', async () => {
+    const repo = new InMemoryCareRecipientRepository();
+    await activeRecipient(repo);
+    const useCase = new UpdateCareRecipientProfileUseCase(repo, clock);
+
+    await useCase.execute({
+      recipientId: 'care-1',
+      name: 'Margaret A. Johnson',
+      gender: 'FEMALE',
+      dateOfBirth: new Date('1947-05-01'),
+      city: 'Oakland',
+      state: 'CA',
+      fullAddress: '2 Oak Ave, Oakland, CA',
+      relationship: 'Mother',
+      livingSituation: 'Lives with family',
+    });
+
+    const stored = await repo.findById('care-1');
+    expect(stored?.profile.name).toBe('Margaret A. Johnson');
+    expect(stored?.profile.city).toBe('Oakland');
+  });
+
+  it('rejects a profile revision on an unknown recipient', async () => {
+    const repo = new InMemoryCareRecipientRepository();
+    await expect(
+      new UpdateCareRecipientProfileUseCase(repo, clock).execute({
+        recipientId: 'nope',
+        name: 'X',
+        gender: 'MALE',
+        dateOfBirth: new Date('1950-01-01'),
+        city: 'C',
+        state: 'S',
+        fullAddress: 'A',
+        relationship: 'Father',
+        livingSituation: 'Alone',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundDomainException);
+  });
+
+  it('refuses to revise a discharged recipient', async () => {
+    const repo = new InMemoryCareRecipientRepository();
+    const recipient = await activeRecipient(repo);
+    recipient.discharge(NOW);
+    await repo.save(recipient);
+
+    await expect(
+      new UpdateCareRecipientProfileUseCase(repo, clock).execute({
+        recipientId: 'care-1',
+        name: 'Y',
+        gender: 'FEMALE',
+        dateOfBirth: new Date('1947-05-01'),
+        city: 'C',
+        state: 'S',
+        fullAddress: 'A',
+        relationship: 'Mother',
         livingSituation: 'Alone',
       }),
     ).rejects.toBeInstanceOf(ValidationException);

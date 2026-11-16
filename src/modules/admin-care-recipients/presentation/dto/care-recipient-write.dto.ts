@@ -59,6 +59,44 @@ export class AddCareRecipientRequestDto {
   priority?: CareRecipientPriority;
 }
 
+export class UpdateCareRecipientProfileRequestDto {
+  @ApiProperty({ example: 'Margaret Johnson' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  name!: string;
+
+  @ApiProperty({ enum: ['MALE', 'FEMALE'] })
+  @IsIn(['MALE', 'FEMALE'])
+  gender!: string;
+
+  @ApiProperty({ example: '1947-05-01' })
+  @IsISO8601()
+  dateOfBirth!: string;
+
+  @ApiProperty() @IsString() @MinLength(1) @MaxLength(120) city!: string;
+  @ApiProperty() @IsString() @MinLength(1) @MaxLength(120) state!: string;
+  @ApiProperty() @IsString() @MinLength(1) @MaxLength(300) fullAddress!: string;
+  @ApiProperty() @IsString() @MinLength(1) @MaxLength(120) relationship!: string;
+  @ApiProperty() @IsString() @MinLength(1) @MaxLength(120) livingSituation!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  photoKey?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsLatitude()
+  latitude?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsLongitude()
+  longitude?: number;
+}
+
 export class ChangeStatusRequestDto {
   @ApiProperty({ enum: ['HOLD', 'DISCHARGE', 'REACTIVATE'] })
   @IsIn(['HOLD', 'DISCHARGE', 'REACTIVATE'])
