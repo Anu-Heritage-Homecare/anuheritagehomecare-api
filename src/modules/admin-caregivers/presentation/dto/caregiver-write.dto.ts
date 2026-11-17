@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CaregiverEmploymentType, CaregiverStatus, Gender } from '@prisma/client';
+import { Country } from '@modules/identity/domain/country.enum';
 import { CaregiverDocumentCategory } from '@modules/caregiver-documents/domain/caregiver-document-category.enum';
 import { CaregiverDocumentStatus } from '@modules/caregiver-documents/domain/caregiver-document-status.enum';
 import { CaregiverNoteKind } from '@modules/caregiver-profile/domain/caregiver-note-kind.enum';
@@ -25,7 +26,41 @@ import {
 const EMPLOYMENT_TYPES = Object.values(CaregiverEmploymentType);
 const STATUSES = Object.values(CaregiverStatus);
 const GENDERS = Object.values(Gender);
+const COUNTRIES = Object.values(Country);
 const CAREGIVER_NOTE_KINDS = Object.values(CaregiverNoteKind);
+
+/** Provision a brand new caregiver: the identity account plus the admin overlay. */
+export class ProvisionCaregiverDto {
+  @ApiProperty() @IsString() @MaxLength(80) firstName!: string;
+  @ApiProperty() @IsString() @MaxLength(80) lastName!: string;
+  @ApiProperty() @IsEmail() @MaxLength(255) email!: string;
+  @ApiProperty() @IsString() @MaxLength(40) phone!: string;
+  @ApiProperty() @IsString() @MaxLength(200) addressLine1!: string;
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  addressLine2?: string | null;
+  @ApiProperty() @IsString() @MaxLength(120) city!: string;
+  @ApiProperty() @IsString() @MaxLength(120) state!: string;
+  @ApiProperty() @IsString() @MaxLength(20) postalCode!: string;
+  @ApiProperty({ enum: COUNTRIES }) @IsIn(COUNTRIES) country!: Country;
+  @ApiPropertyOptional({ enum: GENDERS }) @IsOptional() @IsIn(GENDERS) gender?: Gender;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) title?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) branch?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) supervisorName?: string;
+  @ApiPropertyOptional({ enum: EMPLOYMENT_TYPES })
+  @IsOptional()
+  @IsIn(EMPLOYMENT_TYPES)
+  employmentType?: CaregiverEmploymentType;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) @Max(80) experienceYears?: number;
+  @ApiPropertyOptional({ type: String, format: 'date' })
+  @IsOptional()
+  @IsISO8601()
+  joinedAt?: string;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) @Max(168) maxHoursPerWeek?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40) preferredShift?: string;
+}
 
 /** Edit the general profile and employment fields of a caregiver. */
 export class EditCaregiverProfileDto {

@@ -11,6 +11,18 @@ import {
   CaregiverTodayVisitResult,
 } from '../../application/dto/caregiver.result';
 
+/**
+ * The result of provisioning a caregiver. The temporary password is returned
+ * exactly once here so the office can relay it to the caregiver; it is never
+ * retrievable again.
+ */
+export class ProvisionedCaregiverResponseDto {
+  @ApiProperty() profileId!: string;
+  @ApiProperty() userId!: string;
+  @ApiProperty({ description: 'One time temporary password; shown once, not stored in plaintext' })
+  temporaryPassword!: string;
+}
+
 class CaregiverRowDto implements CaregiverRowResult {
   @ApiProperty() id!: string;
   @ApiProperty() reference!: string;
