@@ -4,6 +4,8 @@ import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.m
 import { IdentityModule } from '@modules/identity/identity.module';
 import { CARE_RECIPIENT_DIRECTORY } from './application/ports/care-recipient-directory.port';
 import { OWNER_CONTACT_DIRECTORY } from './application/ports/owner-contact-directory.port';
+import { VISIT_SCHEDULER } from './application/ports/visit-scheduler.port';
+import { VisitSchedulerService } from './application/services/visit-scheduler.service';
 import { CancelSosUseCase } from './application/use-cases/cancel-sos.use-case';
 import { ClockInVisitUseCase } from './application/use-cases/clock-in-visit.use-case';
 import { ClockOutVisitUseCase } from './application/use-cases/clock-out-visit.use-case';
@@ -68,9 +70,11 @@ import { CaregiverVisitCareController } from './presentation/caregiver-visit-car
     { provide: SOS_ALERT_REPOSITORY, useClass: SosAlertPrismaRepository },
     { provide: CARE_RECIPIENT_DIRECTORY, useClass: PrismaCareRecipientDirectory },
     { provide: OWNER_CONTACT_DIRECTORY, useClass: IdentityOwnerContactDirectory },
+    { provide: VISIT_SCHEDULER, useClass: VisitSchedulerService },
   ],
   // Exported so the earnings context can read a caregiver's visits through the
-  // same repository port, projecting them into a timesheet.
-  exports: [VISIT_REPOSITORY, SOS_ALERT_REPOSITORY],
+  // same repository port, projecting them into a timesheet, and so the payments
+  // context can generate visits when a booking or subscription is paid.
+  exports: [VISIT_REPOSITORY, SOS_ALERT_REPOSITORY, VISIT_SCHEDULER],
 })
 export class VisitsModule {}
