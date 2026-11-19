@@ -58,8 +58,8 @@ function schedule(frequency: string, days: string[]): CareSchedule {
 const MONDAY_START = new Date('2026-01-05T00:00:00.000Z');
 
 describe('VisitSchedulerService', () => {
-  describe('scheduleForBooking', () => {
-    it('creates one unassigned scheduled visit on the service date and window', async () => {
+  describe('scheduleOneOff', () => {
+    it('creates one unassigned scheduled visit on the given date and window', async () => {
       const visits = visitRepo();
       const service = new VisitSchedulerService(
         visits,
@@ -68,9 +68,9 @@ describe('VisitSchedulerService', () => {
         sequentialIds(),
       );
 
-      await service.scheduleForBooking({
+      await service.scheduleOneOff({
         careRecipientId: 'care-1',
-        serviceDate: MONDAY_START,
+        date: MONDAY_START,
         startMinute: 540,
         endMinute: 900,
       });
@@ -93,9 +93,9 @@ describe('VisitSchedulerService', () => {
         sequentialIds(),
       );
 
-      await service.scheduleForBooking({
+      await service.scheduleOneOff({
         careRecipientId: 'care-1',
-        serviceDate: MONDAY_START,
+        date: MONDAY_START,
         startMinute: 1380,
         endMinute: 1620,
       });

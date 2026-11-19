@@ -14,16 +14,16 @@ const NOW = new Date('2026-02-01T00:00:00.000Z');
 const clock: Clock = { now: () => NOW };
 
 interface RecordingScheduler extends VisitScheduler {
-  bookingCalls: number;
+  oneOffCalls: number;
   subscriptionCalls: number;
 }
 
 function recordingScheduler(): RecordingScheduler {
   const scheduler: RecordingScheduler = {
-    bookingCalls: 0,
+    oneOffCalls: 0,
     subscriptionCalls: 0,
-    scheduleForBooking: () => {
-      scheduler.bookingCalls += 1;
+    scheduleOneOff: () => {
+      scheduler.oneOffCalls += 1;
       return Promise.resolve();
     },
     scheduleForSubscription: () => {
@@ -103,7 +103,7 @@ describe('BookingsPayableService visit generation', () => {
       PayableType.Booking,
       'booking-1',
     );
-    expect(scheduler.bookingCalls).toBe(1);
+    expect(scheduler.oneOffCalls).toBe(1);
   });
 
   it('does not regenerate when a webhook replays on an already confirmed booking', async () => {
@@ -112,7 +112,7 @@ describe('BookingsPayableService visit generation', () => {
       PayableType.Booking,
       'booking-1',
     );
-    expect(scheduler.bookingCalls).toBe(0);
+    expect(scheduler.oneOffCalls).toBe(0);
   });
 
   it('generates recurring visits the first time a subscription is activated', async () => {

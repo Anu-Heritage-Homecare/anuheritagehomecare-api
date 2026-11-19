@@ -1,6 +1,6 @@
-export interface BookingVisitDetails {
+export interface OneOffVisitDetails {
   careRecipientId: string;
-  serviceDate: Date;
+  date: Date;
   startMinute: number;
   endMinute: number;
 }
@@ -11,14 +11,14 @@ export interface SubscriptionVisitDetails {
 }
 
 /**
- * Generates the Unassigned visits a paid booking or an activated subscription
- * implies, so the office only has to assign a caregiver. Implemented in the
- * visits context and called from the payments confirmation path when a booking
- * is first confirmed or a subscription is first activated.
+ * Generates the Unassigned visits an office action implies, so the office only
+ * has to assign a caregiver. Implemented in the visits context and called when a
+ * booking is confirmed, a subscription is activated, or an additional care
+ * request is approved.
  */
 export interface VisitScheduler {
-  /** One visit for a paid pay as you go booking, on its service date and window. */
-  scheduleForBooking(details: BookingVisitDetails): Promise<void>;
+  /** One visit for a single session, on a date and window (a booking or an approved care request). */
+  scheduleOneOff(details: OneOffVisitDetails): Promise<void>;
   /** The recurring visits a newly active monthly subscription implies, from the recipient's care schedule. */
   scheduleForSubscription(details: SubscriptionVisitDetails): Promise<void>;
 }

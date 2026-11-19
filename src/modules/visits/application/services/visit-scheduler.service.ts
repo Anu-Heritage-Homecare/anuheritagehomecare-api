@@ -12,7 +12,7 @@ import { Visit } from '../../domain/visit.entity';
 import { VISIT_REPOSITORY, VisitRepository } from '../../domain/visit.repository';
 import { VisitType } from '../../domain/visit-type.enum';
 import {
-  BookingVisitDetails,
+  OneOffVisitDetails,
   SubscriptionVisitDetails,
   VisitScheduler,
 } from '../ports/visit-scheduler.port';
@@ -62,14 +62,12 @@ export class VisitSchedulerService implements VisitScheduler {
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
   ) {}
 
-  async scheduleForBooking(details: BookingVisitDetails): Promise<void> {
+  async scheduleOneOff(details: OneOffVisitDetails): Promise<void> {
     const window = this.windowFrom(details.startMinute, details.endMinute);
     if (window === null) {
       return;
     }
-    await this.visits.save(
-      this.unassignedVisit(details.careRecipientId, details.serviceDate, window),
-    );
+    await this.visits.save(this.unassignedVisit(details.careRecipientId, details.date, window));
   }
 
   async scheduleForSubscription(details: SubscriptionVisitDetails): Promise<void> {

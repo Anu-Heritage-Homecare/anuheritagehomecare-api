@@ -88,9 +88,9 @@ export class BookingsPayableService implements PayableService {
       booking.confirm(this.clock.now());
       await this.bookings.save(booking);
       if (firstConfirmation) {
-        await this.visitScheduler.scheduleForBooking({
+        await this.visitScheduler.scheduleOneOff({
           careRecipientId: booking.careRecipientId,
-          serviceDate: booking.serviceDate,
+          date: booking.serviceDate,
           startMinute: booking.startTime.minutes,
           endMinute: booking.endMinute,
         });
