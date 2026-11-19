@@ -28,6 +28,7 @@ import { CurrentAdmin } from '@shared/presentation/current-admin.decorator';
 import { AcknowledgeCareNoteUseCase } from '../application/use-cases/acknowledge-care-note.use-case';
 import { AddCareNoteUseCase } from '../application/use-cases/add-care-note.use-case';
 import { AddCareRecipientUseCase } from '../application/use-cases/add-care-recipient.use-case';
+import { UpdateCareRecipientProfileUseCase } from '../application/use-cases/update-care-recipient-profile.use-case';
 import { AddFamilyContactUseCase } from '../application/use-cases/add-family-contact.use-case';
 import { AddHealthEventUseCase } from '../application/use-cases/add-health-event.use-case';
 import { AddMedicationUseCase } from '../application/use-cases/add-medication.use-case';
@@ -124,6 +125,7 @@ import {
   ChangeStatusRequestDto,
   SetPriorityRequestDto,
   SetPrimaryCaregiverRequestDto,
+  UpdateCareRecipientProfileRequestDto,
 } from './dto/care-recipient-write.dto';
 
 /**
@@ -179,6 +181,7 @@ export class AdminCareRecipientsController {
     private readonly setSchedule: SetCarePlanScheduleUseCase,
     private readonly setInstructions: SetCarePlanInstructionsUseCase,
     private readonly addRecipient: AddCareRecipientUseCase,
+    private readonly updateRecipientProfile: UpdateCareRecipientProfileUseCase,
     private readonly changeStatus: ChangeCareRecipientStatusUseCase,
     private readonly setPriority: SetCareRecipientPriorityUseCase,
     private readonly setPrimaryCaregiver: SetPrimaryCaregiverUseCase,
@@ -860,6 +863,29 @@ export class AdminCareRecipientsController {
       latitude: body.latitude ?? null,
       longitude: body.longitude ?? null,
       priority: body.priority,
+    });
+  }
+
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Revise a care recipient's identity profile" })
+  async updateProfile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateCareRecipientProfileRequestDto,
+  ): Promise<{ id: string }> {
+    return this.updateRecipientProfile.execute({
+      recipientId: id,
+      name: body.name,
+      gender: body.gender,
+      dateOfBirth: new Date(body.dateOfBirth),
+      city: body.city,
+      state: body.state,
+      fullAddress: body.fullAddress,
+      relationship: body.relationship,
+      livingSituation: body.livingSituation,
+      photoKey: body.photoKey ?? null,
+      latitude: body.latitude ?? null,
+      longitude: body.longitude ?? null,
     });
   }
 
