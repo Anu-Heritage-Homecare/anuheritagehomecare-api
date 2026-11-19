@@ -3,6 +3,8 @@ import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.en
 import { CareGoal } from '@modules/care-recipients/domain/care-goal.entity';
 import { CareGoalStatus } from '@modules/care-recipients/domain/care-goal-status.enum';
 import { CareGoalRepository } from '@modules/care-recipients/domain/care-goal.repository';
+import { CareInstruction } from '@modules/care-recipients/domain/care-instruction.entity';
+import { CareInstructionRepository } from '@modules/care-recipients/domain/care-instruction.repository';
 import { UserRepository } from '@modules/identity/domain/user.repository';
 import { VisitRepository } from '@modules/visits/domain/visit.repository';
 import { Clock } from '@shared/application/ports/clock.port';
@@ -27,6 +29,7 @@ function recipientStub(overrides: Record<string, unknown> = {}): CareRecipient {
       { id: 'm1', name: 'Metformin' },
       { id: 'm2', name: 'Amlodipine' },
     ],
+    primaryCaregiverId: null,
     schedule: {
       frequency: 'WEEKLY',
       estimatedStartDate: new Date('2026-11-01T00:00:00.000Z'),
@@ -58,6 +61,14 @@ const plans: FamilyPlanDirectory = {
 function goalsRepo(goals: CareGoal[]): CareGoalRepository {
   return {
     listForRecipient: () => Promise.resolve(goals),
+    replaceForRecipient: () => Promise.resolve(),
+  };
+}
+
+function instructionsRepo(texts: string[]): CareInstructionRepository {
+  return {
+    listForRecipient: () =>
+      Promise.resolve(texts.map((text) => ({ text }) as unknown as CareInstruction)),
     replaceForRecipient: () => Promise.resolve(),
   };
 }
@@ -160,6 +171,8 @@ describe('Care section reads', () => {
       recipients(recipientStub()),
       plans,
       goalsRepo(sampleGoals),
+      instructionsRepo([]),
+      users,
       fakeCareAccess(),
     );
 
@@ -177,7 +190,25 @@ describe('Care section reads', () => {
       { label: 'Maintain independence', achieved: true },
       { label: 'Fall prevention', achieved: false },
     ]);
-    // The remaining office set data (caregiver roles) has no capture path yet.
+    // No primary caregiver assigned and no instructions set.
     expect(result.caregivers.primary).toBeNull();
+    expect(result.careInstructions).toBeNull();
+  });
+
+  it('care plan surfaces the office assigned primary caregiver and instructions', async () => {
+    const useCase = new GetCarePlanUseCase(
+      recipients(recipientStub({ primaryCaregiverId: 'cg1' })),
+      plans,
+      goalsRepo(sampleGoals),
+      instructionsRepo(['Keep hydrated', 'No dairy']),
+      users,
+      fakeCareAccess(),
+    );
+
+    const result = await useCase.execute({ callerUserId: 'owner-1', careRecipientId: 'r1' });
+
+    expect(result.caregivers.primary).toEqual({ id: 'cg1', name: 'Sarah Adams' });
+    expect(result.caregivers.backup).toBeNull();
+    expect(result.careInstructions).toBe('Keep hydrated\nNo dairy');
   });
 });

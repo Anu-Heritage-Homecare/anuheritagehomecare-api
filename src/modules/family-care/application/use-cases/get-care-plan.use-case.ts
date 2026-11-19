@@ -7,6 +7,11 @@ import {
   CARE_GOAL_REPOSITORY,
   CareGoalRepository,
 } from '@modules/care-recipients/domain/care-goal.repository';
+import {
+  CARE_INSTRUCTION_REPOSITORY,
+  CareInstructionRepository,
+} from '@modules/care-recipients/domain/care-instruction.repository';
+import { USER_REPOSITORY, UserRepository } from '@modules/identity/domain/user.repository';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
 import { WEEKDAY_SHORT_LABEL } from '@modules/care-recipients/domain/weekday.enum';
@@ -37,9 +42,9 @@ const SERVICE_LABEL: Record<string, string> = {
  * Use case: the recipient's care plan. The plan name comes from their booking and
  * the included services from the care needs captured at onboarding; the visit
  * schedule from their care schedule; the care goals from the office set goal list.
- * The caregiver roles (primary, backup, coordinator) and care instructions are
- * also office set, which is not built yet, so they are returned empty until that
- * surface exists. Owner scoped.
+ * The primary caregiver is the one the office assigned, and the care instructions
+ * are the office set set. Backup and coordinator roles are not modeled yet and are
+ * returned empty. Owner scoped.
  */
 @Injectable()
 export class GetCarePlanUseCase {
@@ -47,6 +52,8 @@ export class GetCarePlanUseCase {
     @Inject(CARE_RECIPIENT_REPOSITORY) private readonly recipients: CareRecipientRepository,
     @Inject(FAMILY_PLAN_DIRECTORY) private readonly plans: FamilyPlanDirectory,
     @Inject(CARE_GOAL_REPOSITORY) private readonly goals: CareGoalRepository,
+    @Inject(CARE_INSTRUCTION_REPOSITORY) private readonly instructions: CareInstructionRepository,
+    @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(CARE_ACCESS) private readonly access: CareAccessGuard,
   ) {}
 
@@ -57,9 +64,12 @@ export class GetCarePlanUseCase {
     }
     await this.access.assertAccess(query.callerUserId, recipient.ownerId, CareAccessLevel.ViewOnly);
 
-    const [planName, goals] = await Promise.all([
+    const primaryCaregiverId = recipient.primaryCaregiverId;
+    const [planName, goals, instructions, primaryCaregiver] = await Promise.all([
       this.plans.planNameForRecipient(recipient.ownerId, query.careRecipientId),
       this.goals.listForRecipient(query.careRecipientId),
+      this.instructions.listForRecipient(query.careRecipientId),
+      primaryCaregiverId === null ? Promise.resolve(null) : this.users.findById(primaryCaregiverId),
     ]);
 
     return {
@@ -67,8 +77,23 @@ export class GetCarePlanUseCase {
       goals: goals.map((goal) => ({ label: goal.label, achieved: goal.achieved })),
       services: recipient.careNeeds.map((need) => SERVICE_LABEL[String(need)] ?? String(need)),
       schedule: this.buildSchedule(recipient),
-      caregivers: { primary: null, backup: null, coordinator: null },
-      careInstructions: null,
+      caregivers: {
+        // Backup and coordinator roles are not modeled on the recipient yet (no columns),
+        // so they stay null until that schema and assignment surface exist.
+        primary:
+          primaryCaregiverId === null || primaryCaregiver === null
+            ? null
+            : {
+                id: primaryCaregiverId,
+                name: `${primaryCaregiver.name.firstName} ${primaryCaregiver.name.lastName}`.trim(),
+              },
+        backup: null,
+        coordinator: null,
+      },
+      careInstructions:
+        instructions.length === 0
+          ? null
+          : instructions.map((instruction) => instruction.text).join('\n'),
     };
   }
 
