@@ -11,6 +11,7 @@ import { AdminCareRecipientsModule } from './modules/admin-care-recipients/admin
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { AdminCarePlansModule } from './modules/admin-care-plans/admin-care-plans.module';
 import { AdminCaregiversModule } from './modules/admin-caregivers/admin-caregivers.module';
+import { AdminKycModule } from './modules/admin-kyc/admin-kyc.module';
 import { AdminFamiliesModule } from './modules/admin-families/admin-families.module';
 import { AdminSchedulingModule } from './modules/admin-scheduling/admin-scheduling.module';
 import { AdminLiveMonitoringModule } from './modules/admin-live-monitoring/admin-live-monitoring.module';
@@ -181,6 +182,7 @@ import { SharedModule } from './shared/shared.module';
     AdminFamiliesModule,
     CaregiverProfileModule,
     AdminCaregiversModule,
+    AdminKycModule,
     AdminSchedulingModule,
     AdminLiveMonitoringModule,
     MessagingModule,
