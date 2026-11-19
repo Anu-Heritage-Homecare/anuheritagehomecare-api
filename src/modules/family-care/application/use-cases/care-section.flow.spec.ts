@@ -5,6 +5,9 @@ import { CareGoalStatus } from '@modules/care-recipients/domain/care-goal-status
 import { CareGoalRepository } from '@modules/care-recipients/domain/care-goal.repository';
 import { CareInstruction } from '@modules/care-recipients/domain/care-instruction.entity';
 import { CareInstructionRepository } from '@modules/care-recipients/domain/care-instruction.repository';
+import { CareTeamAssignment } from '@modules/care-recipients/domain/care-team-assignment.entity';
+import { CareTeamAssignmentRepository } from '@modules/care-recipients/domain/care-team-assignment.repository';
+import { CareTeamRole } from '@modules/care-recipients/domain/care-team-role.enum';
 import { UserRepository } from '@modules/identity/domain/user.repository';
 import { VisitRepository } from '@modules/visits/domain/visit.repository';
 import { Clock } from '@shared/application/ports/clock.port';
@@ -92,12 +95,26 @@ const sampleGoals = [
   }),
 ];
 
+const USER_DIR: Record<string, { id: string; name: { firstName: string; lastName: string } }> = {
+  cg1: { id: 'cg1', name: { firstName: 'Sarah', lastName: 'Adams' } },
+  cg2: { id: 'cg2', name: { firstName: 'John', lastName: 'Doe' } },
+};
+
 const users = {
-  findById: (id: string) =>
-    Promise.resolve(
-      id === 'cg1' ? { id: 'cg1', name: { firstName: 'Sarah', lastName: 'Adams' } } : null,
-    ),
+  findById: (id: string) => Promise.resolve(USER_DIR[id] ?? null),
+  findByIds: (ids: string[]) => Promise.resolve(ids.map((id) => USER_DIR[id]).filter(Boolean)),
 } as unknown as UserRepository;
+
+function careTeamRepo(
+  assignments: { role: CareTeamRole; caregiverId: string }[],
+): CareTeamAssignmentRepository {
+  return {
+    add: () => Promise.resolve(),
+    save: () => Promise.resolve(),
+    findById: () => Promise.resolve(null),
+    listActiveForRecipient: () => Promise.resolve(assignments as unknown as CareTeamAssignment[]),
+  };
+}
 
 const todaysVisit = buildVisit({
   id: 'v1',
@@ -172,6 +189,7 @@ describe('Care section reads', () => {
       plans,
       goalsRepo(sampleGoals),
       instructionsRepo([]),
+      careTeamRepo([]),
       users,
       fakeCareAccess(),
     );
@@ -195,19 +213,22 @@ describe('Care section reads', () => {
     expect(result.careInstructions).toBeNull();
   });
 
-  it('care plan surfaces the office assigned primary caregiver and instructions', async () => {
+  it('care plan surfaces the office assigned care team and instructions', async () => {
     const useCase = new GetCarePlanUseCase(
       recipients(recipientStub({ primaryCaregiverId: 'cg1' })),
       plans,
       goalsRepo(sampleGoals),
       instructionsRepo(['Keep hydrated', 'No dairy']),
+      careTeamRepo([{ role: CareTeamRole.Coordinator, caregiverId: 'cg2' }]),
       users,
       fakeCareAccess(),
     );
 
     const result = await useCase.execute({ callerUserId: 'owner-1', careRecipientId: 'r1' });
 
+    // Primary from the synced pointer, coordinator from the active assignment.
     expect(result.caregivers.primary).toEqual({ id: 'cg1', name: 'Sarah Adams' });
+    expect(result.caregivers.coordinator).toEqual({ id: 'cg2', name: 'John Doe' });
     expect(result.caregivers.backup).toBeNull();
     expect(result.careInstructions).toBe('Keep hydrated\nNo dairy');
   });
