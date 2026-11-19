@@ -24,6 +24,7 @@ import {
 } from './application/use-cases/manage-caregiver-documents.use-case';
 import { GetCaregiverScheduleUseCase } from './application/use-cases/get-caregiver-schedule.use-case';
 import { ListCaregiversUseCase } from './application/use-cases/list-caregivers.use-case';
+import { ProvisionCaregiverUseCase } from './application/use-cases/provision-caregiver.use-case';
 import {
   AddCertificationUseCase,
   EditCertificationUseCase,
@@ -54,6 +55,7 @@ import { AdminCaregiversController } from './presentation/admin-caregivers.contr
   controllers: [AdminCaregiversController],
   providers: [
     ListCaregiversUseCase,
+    ProvisionCaregiverUseCase,
     GetCaregiverOverviewUseCase,
     GetCaregiverScheduleUseCase,
     GetCaregiverPerformanceUseCase,

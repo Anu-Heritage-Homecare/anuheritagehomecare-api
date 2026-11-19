@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generator.port';
@@ -99,4 +100,96 @@ export class AccountRegistrar {
       emailVerificationRequired: true,
     };
   }
+
+  /**
+   * Provision a caregiver account out of band. The admin supplies the person's
+   * details; the service enforces the same email and phone uniqueness as self
+   * signup, generates a strong temporary password, hashes it and creates an
+   * already verified, active account flagged to force a password change on first
+   * login. No verification email is sent. The plaintext temporary password is
+   * returned to the caller exactly once so the admin can relay it to the
+   * caregiver; it is never persisted (only its hash is) nor logged.
+   */
+  async provisionCaregiver(command: ProvisionCaregiverCommand): Promise<ProvisionAccountResult> {
+    const name = PersonName.create(command.firstName, command.lastName);
+    const email = EmailAddress.create(command.email);
+    const phone = PhoneNumber.create(command.phone);
+    const address = PostalAddress.create({
+      line1: command.addressLine1,
+      line2: command.addressLine2 ?? null,
+      city: command.city,
+      state: command.state,
+      postalCode: command.postalCode,
+      country: command.country,
+    });
+
+    if (await this.users.existsByEmail(email.value)) {
+      throw new AccountAlreadyExistsException();
+    }
+    if (await this.users.existsByPhone(phone.value)) {
+      throw new ConflictDomainException('An account with this phone number already exists');
+    }
+
+    const temporaryPassword = generateTemporaryPassword();
+    const passwordHash = await this.hasher.hash(Password.create(temporaryPassword).value);
+
+    const user = User.provisionByAdmin({
+      id: this.ids.generate(),
+      userType: UserType.Caregiver,
+      name,
+      email,
+      phone,
+      address,
+      passwordHash,
+      now: this.clock.now(),
+    });
+
+    await this.users.save(user);
+
+    return { userId: user.id, temporaryPassword };
+  }
+}
+
+export interface ProvisionCaregiverCommand {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}
+
+export interface ProvisionAccountResult {
+  userId: string;
+  temporaryPassword: string;
+}
+
+const TEMP_PASSWORD_LENGTH = 12;
+// Ambiguous glyphs (O/0, I/l/1) are excluded so the password survives being read
+// aloud or retyped from a provisioning screen.
+const LOWERS = 'abcdefghijkmnpqrstuvwxyz';
+const UPPERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+const DIGITS = '23456789';
+
+/**
+ * A cryptographically random temporary password that always satisfies the
+ * password policy (at least one lowercase, uppercase and digit). The guaranteed
+ * characters are shuffled so their positions are not predictable.
+ */
+function generateTemporaryPassword(): string {
+  const all = LOWERS + UPPERS + DIGITS;
+  const pick = (set: string): string => set[randomInt(set.length)];
+  const chars = [pick(LOWERS), pick(UPPERS), pick(DIGITS)];
+  while (chars.length < TEMP_PASSWORD_LENGTH) {
+    chars.push(pick(all));
+  }
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
 }

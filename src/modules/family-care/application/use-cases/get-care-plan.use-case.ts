@@ -7,6 +7,16 @@ import {
   CARE_GOAL_REPOSITORY,
   CareGoalRepository,
 } from '@modules/care-recipients/domain/care-goal.repository';
+import {
+  CARE_INSTRUCTION_REPOSITORY,
+  CareInstructionRepository,
+} from '@modules/care-recipients/domain/care-instruction.repository';
+import {
+  CARE_TEAM_ASSIGNMENT_REPOSITORY,
+  CareTeamAssignmentRepository,
+} from '@modules/care-recipients/domain/care-team-assignment.repository';
+import { CareTeamRole } from '@modules/care-recipients/domain/care-team-role.enum';
+import { USER_REPOSITORY, UserRepository } from '@modules/identity/domain/user.repository';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { CareRecipient } from '@modules/care-recipients/domain/care-recipient.entity';
 import { WEEKDAY_SHORT_LABEL } from '@modules/care-recipients/domain/weekday.enum';
@@ -37,9 +47,9 @@ const SERVICE_LABEL: Record<string, string> = {
  * Use case: the recipient's care plan. The plan name comes from their booking and
  * the included services from the care needs captured at onboarding; the visit
  * schedule from their care schedule; the care goals from the office set goal list.
- * The caregiver roles (primary, backup, coordinator) and care instructions are
- * also office set, which is not built yet, so they are returned empty until that
- * surface exists. Owner scoped.
+ * The care team (primary, backup, coordinator) comes from the office set role
+ * assignments and the care instructions from the office set instruction list.
+ * Owner scoped.
  */
 @Injectable()
 export class GetCarePlanUseCase {
@@ -47,6 +57,10 @@ export class GetCarePlanUseCase {
     @Inject(CARE_RECIPIENT_REPOSITORY) private readonly recipients: CareRecipientRepository,
     @Inject(FAMILY_PLAN_DIRECTORY) private readonly plans: FamilyPlanDirectory,
     @Inject(CARE_GOAL_REPOSITORY) private readonly goals: CareGoalRepository,
+    @Inject(CARE_INSTRUCTION_REPOSITORY) private readonly instructions: CareInstructionRepository,
+    @Inject(CARE_TEAM_ASSIGNMENT_REPOSITORY)
+    private readonly careTeam: CareTeamAssignmentRepository,
+    @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(CARE_ACCESS) private readonly access: CareAccessGuard,
   ) {}
 
@@ -57,19 +71,49 @@ export class GetCarePlanUseCase {
     }
     await this.access.assertAccess(query.callerUserId, recipient.ownerId, CareAccessLevel.ViewOnly);
 
-    const [planName, goals] = await Promise.all([
+    const [planName, goals, instructions, assignments] = await Promise.all([
       this.plans.planNameForRecipient(recipient.ownerId, query.careRecipientId),
       this.goals.listForRecipient(query.careRecipientId),
+      this.instructions.listForRecipient(query.careRecipientId),
+      this.careTeam.listActiveForRecipient(query.careRecipientId),
     ]);
+
+    // Primary comes from the recipient's synced pointer (which also tracks a
+    // primary set directly); backup and coordinator from the active assignments.
+    const roleFor = (role: CareTeamRole): string | null =>
+      assignments.find((assignment) => assignment.role === role)?.caregiverId ?? null;
+    const primaryId = recipient.primaryCaregiverId;
+    const backupId = roleFor(CareTeamRole.Backup);
+    const coordinatorId = roleFor(CareTeamRole.Coordinator);
+    const names = await this.resolveNames([primaryId, backupId, coordinatorId]);
 
     return {
       planName,
       goals: goals.map((goal) => ({ label: goal.label, achieved: goal.achieved })),
       services: recipient.careNeeds.map((need) => SERVICE_LABEL[String(need)] ?? String(need)),
       schedule: this.buildSchedule(recipient),
-      caregivers: { primary: null, backup: null, coordinator: null },
-      careInstructions: null,
+      caregivers: {
+        primary: toMember(primaryId, names),
+        backup: toMember(backupId, names),
+        coordinator: toMember(coordinatorId, names),
+      },
+      careInstructions:
+        instructions.length === 0
+          ? null
+          : instructions.map((instruction) => instruction.text).join('\n'),
     };
+  }
+
+  /** Resolve the caregiver ids to display names in a single batched lookup. */
+  private async resolveNames(ids: (string | null)[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids.filter((id): id is string => id !== null))];
+    if (unique.length === 0) {
+      return new Map();
+    }
+    const users = await this.users.findByIds(unique);
+    return new Map(
+      users.map((user) => [user.id, `${user.name.firstName} ${user.name.lastName}`.trim()]),
+    );
   }
 
   private buildSchedule(recipient: CareRecipient): CarePlanResult['schedule'] {
@@ -87,6 +131,18 @@ export class GetCarePlanUseCase {
         schedule.visitDurationMinutes === null ? null : schedule.visitDurationMinutes / 60,
     };
   }
+}
+
+/** A care team member for the response, or null when unassigned or unresolved. */
+function toMember(
+  id: string | null,
+  names: Map<string, string>,
+): { id: string; name: string } | null {
+  if (id === null) {
+    return null;
+  }
+  const name = names.get(id);
+  return name === undefined ? null : { id, name };
 }
 
 /** Format minutes from midnight as a twelve hour clock time, for example 9:00 AM. */

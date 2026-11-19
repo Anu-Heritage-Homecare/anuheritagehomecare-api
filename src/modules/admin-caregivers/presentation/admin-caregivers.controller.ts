@@ -42,6 +42,7 @@ import {
   AddCaregiverDocumentUseCase,
   RecordCaregiverTrainingUseCase,
 } from '../application/use-cases/manage-caregiver-documents.use-case';
+import { ProvisionCaregiverUseCase } from '../application/use-cases/provision-caregiver.use-case';
 import { RecordCaregiverReviewUseCase } from '../application/use-cases/record-caregiver-review.use-case';
 import {
   AddCertificationUseCase,
@@ -59,6 +60,7 @@ import { CaregiverScheduleResponseDto } from './dto/caregiver-schedule-response.
 import {
   CaregiverListResponseDto,
   CaregiverOverviewResponseDto,
+  ProvisionedCaregiverResponseDto,
 } from './dto/caregiver-response.dto';
 import { CaregiverNotesQueryDto, CaregiversQueryDto } from './dto/caregivers-query.dto';
 import {
@@ -75,6 +77,7 @@ import {
   CaregiverStatusDto,
   CertificationDto,
   EditCaregiverProfileDto,
+  ProvisionCaregiverDto,
   RecordCaregiverReviewDto,
   RecordCaregiverTrainingDto,
   SetCaregiverAvailabilityDto,
@@ -129,7 +132,37 @@ export class AdminCaregiversController {
     private readonly recordReview: RecordCaregiverReviewUseCase,
     private readonly addDocument: AddCaregiverDocumentUseCase,
     private readonly recordTraining: RecordCaregiverTrainingUseCase,
+    private readonly provisionCaregiver: ProvisionCaregiverUseCase,
   ) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Provision a new caregiver account and profile' })
+  @ApiCreatedResponse({ type: ProvisionedCaregiverResponseDto })
+  async provision(@Body() dto: ProvisionCaregiverDto): Promise<ProvisionedCaregiverResponseDto> {
+    return this.provisionCaregiver.execute({
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      email: dto.email,
+      phone: dto.phone,
+      addressLine1: dto.addressLine1,
+      addressLine2: dto.addressLine2 ?? null,
+      city: dto.city,
+      state: dto.state,
+      postalCode: dto.postalCode,
+      country: String(dto.country),
+      profile: {
+        title: dto.title ?? null,
+        gender: toDomainGender(dto.gender),
+        branch: dto.branch ?? null,
+        supervisorName: dto.supervisorName ?? null,
+        employmentType: toDomainEmployment(dto.employmentType),
+        experienceYears: dto.experienceYears ?? null,
+        joinedAt: dto.joinedAt ? new Date(dto.joinedAt) : null,
+        maxHoursPerWeek: dto.maxHoursPerWeek ?? null,
+        preferredShift: dto.preferredShift ?? null,
+      },
+    });
+  }
 
   @Get()
   @ApiOperation({ summary: 'The caregivers directory, optionally filtered by status' })

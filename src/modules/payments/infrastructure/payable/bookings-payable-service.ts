@@ -11,6 +11,10 @@ import {
   CARE_PLAN_REPOSITORY,
   CarePlanRepository,
 } from '@modules/care-plans/domain/care-plan.repository';
+import {
+  VISIT_SCHEDULER,
+  VisitScheduler,
+} from '@modules/visits/application/ports/visit-scheduler.port';
 import { PayableType } from '../../domain/payable-type.enum';
 import { PayableService, PayableSummary } from '../../application/ports/payable-service.port';
 
@@ -25,6 +29,7 @@ export class BookingsPayableService implements PayableService {
     @Inject(BOOKING_REPOSITORY) private readonly bookings: BookingRepository,
     @Inject(SUBSCRIPTION_REPOSITORY) private readonly subscriptions: SubscriptionRepository,
     @Inject(CARE_PLAN_REPOSITORY) private readonly plans: CarePlanRepository,
+    @Inject(VISIT_SCHEDULER) private readonly visitScheduler: VisitScheduler,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -73,8 +78,23 @@ export class BookingsPayableService implements PayableService {
       if (booking === null) {
         return;
       }
+      // Generate the visit only on the first confirmation, so a webhook retry
+      // (status already Confirmed) does not create duplicate visits.
+      // shortcut: idempotency is keyed on the status edge, not a source id on the
+      // visit; a save that succeeds then a generation that fails would leave the
+      // booking paid with no visit. Add a sourceBookingId to Visit to make this
+      // exactly once and traceable.
+      const firstConfirmation = booking.status === BookingStatus.PendingPayment;
       booking.confirm(this.clock.now());
       await this.bookings.save(booking);
+      if (firstConfirmation) {
+        await this.visitScheduler.scheduleOneOff({
+          careRecipientId: booking.careRecipientId,
+          date: booking.serviceDate,
+          startMinute: booking.startTime.minutes,
+          endMinute: booking.endMinute,
+        });
+      }
       return;
     }
 
@@ -88,7 +108,14 @@ export class BookingsPayableService implements PayableService {
     if (subscription === null) {
       return;
     }
+    const firstActivation = subscription.status === SubscriptionStatus.PendingPayment;
     subscription.activate(this.clock.now());
     await this.subscriptions.save(subscription);
+    if (firstActivation) {
+      await this.visitScheduler.scheduleForSubscription({
+        careRecipientId: subscription.careRecipientId,
+        startDate: subscription.startDate,
+      });
+    }
   }
 }

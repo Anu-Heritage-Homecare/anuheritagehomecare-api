@@ -96,6 +96,50 @@ export class User extends AggregateRoot<string> {
     return user;
   }
 
+  /**
+   * Provision an account out of band (an admin issues the credentials), for
+   * example a caregiver. Unlike self signup there is no email verification step:
+   * the admin vouches for the person, so the account is created already verified
+   * and active and can log in immediately with the temporary password. The
+   * `mustChangePassword` flag is set so the first login forces a password change,
+   * and no verification OTP is dispatched.
+   */
+  public static provisionByAdmin(params: {
+    id: string;
+    userType: UserType;
+    name: PersonName;
+    email: EmailAddress;
+    phone: PhoneNumber;
+    address: PostalAddress;
+    passwordHash: string;
+    now: Date;
+  }): User {
+    return new User(params.id, {
+      userType: params.userType,
+      name: params.name,
+      email: params.email,
+      phone: params.phone,
+      address: params.address,
+      passwordHash: params.passwordHash,
+      photoKey: null,
+      dateOfBirth: null,
+      relationshipToRecipient: null,
+      emailVerified: true,
+      phoneVerified: false,
+      isFamilyOwner: false,
+      mustChangePassword: true,
+      twoFactorEnabled: false,
+      twoFactorSecret: null,
+      passwordChangedAt: params.now,
+      biometricEnabled: false,
+      sessionTimeoutMinutes: DEFAULT_SESSION_TIMEOUT_MINUTES,
+      consentAcceptedAt: null,
+      status: UserStatus.Active,
+      createdAt: params.now,
+      updatedAt: params.now,
+    });
+  }
+
   /** Rehydrate an existing user from persistence without emitting events. */
   public static rehydrate(id: string, props: UserProps): User {
     return new User(id, props);

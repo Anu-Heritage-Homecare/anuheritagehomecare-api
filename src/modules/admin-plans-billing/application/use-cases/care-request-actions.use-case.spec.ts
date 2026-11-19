@@ -1,6 +1,10 @@
 import { AdditionalCareRequest } from '@modules/care-requests/domain/additional-care-request.entity';
 import { AdditionalCareRequestRepository } from '@modules/care-requests/domain/additional-care-request.repository';
 import { CareRequestStatus } from '@modules/care-requests/domain/care-request-status.enum';
+import {
+  OneOffVisitDetails,
+  VisitScheduler,
+} from '@modules/visits/application/ports/visit-scheduler.port';
 import { Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
 import { ApproveCareRequestUseCase } from './approve-care-request.use-case';
@@ -8,6 +12,18 @@ import { DeclineCareRequestUseCase } from './decline-care-request.use-case';
 
 const NOW = new Date('2026-09-16T12:00:00.000Z');
 const clock: Clock = { now: () => NOW };
+
+function recordingScheduler(): VisitScheduler & { oneOff: OneOffVisitDetails[] } {
+  const oneOff: OneOffVisitDetails[] = [];
+  return {
+    oneOff,
+    scheduleOneOff: (details) => {
+      oneOff.push(details);
+      return Promise.resolve();
+    },
+    scheduleForSubscription: () => Promise.resolve(),
+  };
+}
 
 function pending(): AdditionalCareRequest {
   return AdditionalCareRequest.submit({
@@ -38,21 +54,30 @@ function repo(
 }
 
 describe('ApproveCareRequestUseCase', () => {
-  it('approves the request and records the admin', async () => {
+  it('approves the request, records the admin and schedules the visit', async () => {
     const request = pending();
     const store = repo(request);
-    await new ApproveCareRequestUseCase(store, clock).execute({
+    const scheduler = recordingScheduler();
+    await new ApproveCareRequestUseCase(store, scheduler, clock).execute({
       requestId: 'req-1',
       adminId: 'admin-9',
     });
     expect(request.status).toBe(CareRequestStatus.Approved);
     expect(request.actionedByAdminId).toBe('admin-9');
     expect(store.saved).toHaveLength(1);
+    expect(scheduler.oneOff).toEqual([
+      {
+        careRecipientId: 'recipient-1',
+        date: new Date('2026-09-20T00:00:00.000Z'),
+        startMinute: 540,
+        endMinute: 720,
+      },
+    ]);
   });
 
   it('rejects an unknown request', async () => {
     await expect(
-      new ApproveCareRequestUseCase(repo(null), clock).execute({
+      new ApproveCareRequestUseCase(repo(null), recordingScheduler(), clock).execute({
         requestId: 'nope',
         adminId: 'admin-9',
       }),

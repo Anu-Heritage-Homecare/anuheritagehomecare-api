@@ -6,6 +6,7 @@ import { CarePlansModule } from '@modules/care-plans/care-plans.module';
 import { CareRequestsModule } from '@modules/care-requests/care-requests.module';
 import { ClientOnboardingModule } from '@modules/client-onboarding/client-onboarding.module';
 import { SubscriptionManagementModule } from '@modules/subscription-management/subscription-management.module';
+import { VisitsModule } from '@modules/visits/visits.module';
 import { AdvanceApplicationStageUseCase } from './application/use-cases/advance-application-stage.use-case';
 import { ApproveCareRequestUseCase } from './application/use-cases/approve-care-request.use-case';
 import { AssignApplicationCoordinatorUseCase } from './application/use-cases/assign-application-coordinator.use-case';
@@ -67,6 +68,7 @@ import { AdminPlansBillingController } from './presentation/admin-plans-billing.
     ClientOnboardingModule,
     AdminCarePlansModule,
     SubscriptionManagementModule,
+    VisitsModule,
   ],
   controllers: [AdminPlansBillingController],
   providers: [
