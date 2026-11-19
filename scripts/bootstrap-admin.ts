@@ -8,7 +8,7 @@
  * idempotent on the email: rerunning resets that admin's password and role.
  *
  * Usage (DATABASE_URL must point at the target database, e.g. via Doppler):
- *   ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='StrongPass123' \
+ *   ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=YOUR_PASSWORD \
  *   ADMIN_FIRST_NAME=Israel ADMIN_LAST_NAME=Obanijesu \
  *   doppler run -- npm run bootstrap:admin
  */
