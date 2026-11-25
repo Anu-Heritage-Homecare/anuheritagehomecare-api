@@ -55,6 +55,13 @@ export interface CaregiverProfileFields {
   joinedAt?: Date | null;
   maxHoursPerWeek?: number | null;
   preferredShift?: string | null;
+  skills?: string[];
+  languages?: string[];
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  emergencyContactRelationship?: string | null;
+  emergencyContactEmail?: string | null;
+  preferencesNote?: string | null;
 }
 
 export interface EmergencyContact {
@@ -101,15 +108,15 @@ export class CaregiverProfile extends AggregateRoot<string> {
         experienceYears: assertYears(fields.experienceYears ?? null),
         joinedAt: fields.joinedAt ?? null,
         status: CaregiverStatus.Active,
-        skills: [],
-        languages: [],
-        emergencyContactName: null,
-        emergencyContactPhone: null,
-        emergencyContactRelationship: null,
-        emergencyContactEmail: null,
+        skills: dedupeTrimmed(fields.skills ?? []),
+        languages: dedupeTrimmed(fields.languages ?? []),
+        emergencyContactName: cleanOptional(fields.emergencyContactName),
+        emergencyContactPhone: cleanOptional(fields.emergencyContactPhone),
+        emergencyContactRelationship: cleanOptional(fields.emergencyContactRelationship),
+        emergencyContactEmail: cleanOptional(fields.emergencyContactEmail),
         maxHoursPerWeek: assertMaxHours(fields.maxHoursPerWeek ?? null),
         preferredShift: cleanOptional(fields.preferredShift),
-        preferencesNote: null,
+        preferencesNote: cleanOptional(fields.preferencesNote),
         areasForGrowth: [],
         archivedAt: null,
         createdAt: params.now,

@@ -150,6 +150,7 @@ export class AdminCaregiversController {
       state: dto.state,
       postalCode: dto.postalCode,
       country: String(dto.country),
+      dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
       profile: {
         title: dto.title ?? null,
         gender: toDomainGender(dto.gender),
@@ -160,6 +161,13 @@ export class AdminCaregiversController {
         joinedAt: dto.joinedAt ? new Date(dto.joinedAt) : null,
         maxHoursPerWeek: dto.maxHoursPerWeek ?? null,
         preferredShift: dto.preferredShift ?? null,
+        skills: dto.skills ?? [],
+        languages: dto.languages ?? [],
+        emergencyContactName: dto.emergencyContactName ?? null,
+        emergencyContactPhone: dto.emergencyContactPhone ?? null,
+        emergencyContactRelationship: dto.emergencyContactRelationship ?? null,
+        emergencyContactEmail: dto.emergencyContactEmail ?? null,
+        preferencesNote: dto.preferencesNote ?? null,
       },
     });
   }
