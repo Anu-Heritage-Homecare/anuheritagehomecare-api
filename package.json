@@ -33,6 +33,8 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node -r dotenv/config prisma/seed.ts",
     "bootstrap:admin": "ts-node -r dotenv/config scripts/bootstrap-admin.ts",
+    "backfill:family-directory": "ts-node -r dotenv/config scripts/backfill-family-directory.ts",
+    "backfill:caregiver-profiles": "ts-node -r dotenv/config scripts/backfill-caregiver-profiles.ts",
     "openapi:mobile": "npm run build && ts-node -r tsconfig-paths/register scripts/generate-openapi.ts"
   },
   "prisma": {
@@ -43,7 +45,8 @@
       "js-yaml": "^5.2.3"
     },
     "deepmerge-ts": "^8.0.0",
-    "multer": "^2.5.0"
+    "multer": "^2.5.0",
+    "effect": "3.22.5"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

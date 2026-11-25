@@ -1,5 +1,10 @@
 import { randomInt } from 'crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { FamilyDirectoryEntry } from '@modules/family-directory/domain/family-directory-entry.entity';
+import {
+  FAMILY_DIRECTORY_ENTRY_REPOSITORY,
+  FamilyDirectoryEntryRepository,
+} from '@modules/family-directory/domain/family-directory-entry.repository';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generator.port';
 import {
@@ -38,6 +43,8 @@ export class AccountRegistrar {
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
+    @Inject(FAMILY_DIRECTORY_ENTRY_REPOSITORY)
+    private readonly familyDirectory: FamilyDirectoryEntryRepository,
     private readonly otp: OtpService,
   ) {}
 
@@ -79,6 +86,27 @@ export class AccountRegistrar {
     await this.users.save(user);
     // Domain events would be published here once persistence succeeds.
     user.clearDomainEvents();
+
+    // A family owner is surfaced on the admin Families screen through a linked
+    // ACCOUNT directory entry. Create it now so the account appears immediately.
+    // The directory is a back office overlay, so a failure here must not fail the
+    // user's signup; the backfill script reconciles any that slip through.
+    if (command.isFamilyOwner) {
+      try {
+        const entry = FamilyDirectoryEntry.registerAccount({
+          id: this.ids.generate(),
+          userId: user.id,
+          fullName: `${command.firstName} ${command.lastName}`.trim(),
+          now: this.clock.now(),
+        });
+        await this.familyDirectory.save(entry);
+      } catch (error) {
+        this.logger.error(
+          `Family directory entry creation failed for user ${user.id}; account created, run the backfill`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
 
     // The account is already persisted, so a failure to dispatch the verification
     // email must not fail registration and leave an orphaned unverified account

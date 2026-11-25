@@ -4,6 +4,7 @@ import { CaregiverProfile } from '@modules/caregiver-profile/domain/caregiver-pr
 import { CaregiverProfileRepository } from '@modules/caregiver-profile/domain/caregiver-profile.repository';
 import { AccountRegistrar } from '@modules/identity/application/services/account-registrar.service';
 import { OtpService } from '@modules/identity/application/services/otp.service';
+import { InMemoryFamilyDirectoryEntryRepository } from '@modules/identity/test-support/doubles';
 import { PasswordHasher } from '@modules/identity/application/ports/password-hasher.port';
 import { UserStatus } from '@modules/identity/domain/user-status.enum';
 import { UserType } from '@modules/identity/domain/user-type.enum';
@@ -87,7 +88,14 @@ function build(repos: {
   users: UserRepository & { saved: User[] };
   profiles: CaregiverProfileRepository & { saved: CaregiverProfile[] };
 }): ProvisionCaregiverUseCase {
-  const registrar = new AccountRegistrar(repos.users, hasher, clock, sequentialIds(), otp);
+  const registrar = new AccountRegistrar(
+    repos.users,
+    hasher,
+    clock,
+    sequentialIds(),
+    new InMemoryFamilyDirectoryEntryRepository(),
+    otp,
+  );
   return new ProvisionCaregiverUseCase(registrar, repos.profiles, clock, sequentialIds());
 }
 

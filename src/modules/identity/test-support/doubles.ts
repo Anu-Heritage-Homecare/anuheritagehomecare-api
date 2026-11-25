@@ -22,6 +22,8 @@ import { DeviceSession } from '../domain/device-session.entity';
 import { DeviceSessionRepository } from '../domain/device-session.repository';
 import { LoginEvent } from '../domain/login-event.entity';
 import { LoginEventRepository } from '../domain/login-event.repository';
+import { FamilyDirectoryEntry } from '@modules/family-directory/domain/family-directory-entry.entity';
+import { FamilyDirectoryEntryRepository } from '@modules/family-directory/domain/family-directory-entry.repository';
 import { User } from '../domain/user.entity';
 import { UserType } from '../domain/user-type.enum';
 import { UserRepository } from '../domain/user.repository';
@@ -343,5 +345,31 @@ export class InMemoryLoginEventRepository implements LoginEventRepository {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, limit);
     return Promise.resolve(recent);
+  }
+}
+
+export class InMemoryFamilyDirectoryEntryRepository implements FamilyDirectoryEntryRepository {
+  public readonly store: FamilyDirectoryEntry[] = [];
+
+  save(entry: FamilyDirectoryEntry): Promise<void> {
+    this.store.push(entry);
+    return Promise.resolve();
+  }
+
+  saveMany(entries: FamilyDirectoryEntry[]): Promise<void> {
+    this.store.push(...entries);
+    return Promise.resolve();
+  }
+
+  findById(id: string): Promise<FamilyDirectoryEntry | null> {
+    return Promise.resolve(this.store.find((e) => e.id === id) ?? null);
+  }
+
+  findByUserId(userId: string): Promise<FamilyDirectoryEntry | null> {
+    return Promise.resolve(this.store.find((e) => e.userId === userId) ?? null);
+  }
+
+  findByIds(ids: string[]): Promise<FamilyDirectoryEntry[]> {
+    return Promise.resolve(this.store.filter((e) => ids.includes(e.id)));
   }
 }
