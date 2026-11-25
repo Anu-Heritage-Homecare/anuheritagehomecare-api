@@ -3,6 +3,7 @@ import { UserStatus } from '../../domain/user-status.enum';
 import { VerificationPurpose } from '../../domain/verification-purpose.enum';
 import {
   FixedOtpGenerator,
+  InMemoryFamilyDirectoryEntryRepository,
   InMemoryUserRepository,
   InMemoryVerificationCodeRepository,
   FakePasswordHasher,
@@ -20,6 +21,7 @@ describe('RegisterFamilyOwnerUseCase', () => {
   let users: InMemoryUserRepository;
   let codes: InMemoryVerificationCodeRepository;
   let email: RecordingEmailSender;
+  let directory: InMemoryFamilyDirectoryEntryRepository;
   let useCase: RegisterFamilyOwnerUseCase;
 
   const command: RegisterFamilyOwnerCommand = {
@@ -39,6 +41,7 @@ describe('RegisterFamilyOwnerUseCase', () => {
     users = new InMemoryUserRepository();
     codes = new InMemoryVerificationCodeRepository();
     email = new RecordingEmailSender();
+    directory = new InMemoryFamilyDirectoryEntryRepository();
     const hasher = new FakePasswordHasher();
     const otpService = new OtpService(
       codes,
@@ -54,6 +57,7 @@ describe('RegisterFamilyOwnerUseCase', () => {
       hasher,
       fixedClock,
       sequentialIds('user'),
+      directory,
       otpService,
     );
     useCase = new RegisterFamilyOwnerUseCase(registrar);
@@ -80,6 +84,11 @@ describe('RegisterFamilyOwnerUseCase', () => {
       fixedClock.now(),
     );
     expect(activeCode).not.toBeNull();
+
+    // The family owner is linked into the admin Families directory as an ACCOUNT.
+    const entry = await directory.findByUserId(saved!.id);
+    expect(entry).not.toBeNull();
+    expect(entry?.fullName).toBe('Ada Obi');
   });
 
   it('still creates the account when the verification email fails to send', async () => {

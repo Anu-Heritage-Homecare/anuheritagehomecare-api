@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { FamilyDirectoryModule } from '@modules/family-directory/family-directory.module';
 import { OTP_GENERATOR } from './application/ports/otp-generator.port';
 import { PASSWORD_HASHER } from './application/ports/password-hasher.port';
 import { TOKEN_SERVICE } from './application/ports/token-service.port';
@@ -65,7 +66,7 @@ import { AuthController } from './presentation/auth.controller';
  * service, so JwtModule needs no static configuration.
  */
 @Module({
-  imports: [PassportModule, JwtModule.register({})],
+  imports: [PassportModule, JwtModule.register({}), FamilyDirectoryModule],
   controllers: [AuthController],
   providers: [
     RegisterFamilyOwnerUseCase,
