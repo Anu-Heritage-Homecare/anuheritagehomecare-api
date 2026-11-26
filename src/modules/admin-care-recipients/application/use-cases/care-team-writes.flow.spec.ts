@@ -169,6 +169,23 @@ describe('care team admin writes', () => {
     ).rejects.toThrow('draft or discharged');
   });
 
+  it('refuses to assign a caregiver already on the team', async () => {
+    const recipients = new RecipientStore(makeRecipient());
+    const store = new AssignmentStore();
+    const useCase = new AssignCaregiverUseCase(recipients, store, new EventStore(), clock, ids());
+    const command = {
+      recipientId: R,
+      adminId: 'admin-1',
+      caregiverId: 'cg1',
+      role: CareTeamRole.Primary,
+      specialization: null,
+      scheduleLabel: null,
+      reason: 'Initial assignment',
+    };
+    await useCase.execute(command);
+    await expect(useCase.execute(command)).rejects.toThrow('already on the care team');
+  });
+
   it('revises an assignment role and details', async () => {
     const recipients = new RecipientStore(makeRecipient());
     const store = new AssignmentStore();
