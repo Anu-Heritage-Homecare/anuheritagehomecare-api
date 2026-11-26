@@ -139,3 +139,12 @@ export class EditVisitDto {
   @MaxLength(300, { each: true })
   specialInstructions?: string[];
 }
+
+export class GenerateVisitsDto {
+  @ApiProperty({ type: String, format: 'date' }) @IsISO8601() from!: string;
+  @ApiProperty({ type: String, format: 'date' }) @IsISO8601() to!: string;
+  @ApiPropertyOptional({ description: 'Defaults to the primary caregiver when omitted.' })
+  @IsOptional()
+  @IsUUID()
+  caregiverId?: string;
+}

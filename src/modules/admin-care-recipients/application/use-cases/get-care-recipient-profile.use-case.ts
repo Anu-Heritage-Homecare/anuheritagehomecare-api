@@ -138,6 +138,11 @@ export class GetCareRecipientProfileUseCase {
       priority: String(recipient.priority),
       primaryDiagnosis: conditions[0] ?? null,
       careLevel: recipient.schedule === null ? null : CARE_LEVEL[recipient.schedule.frequency],
+      hasCareSchedule:
+        recipient.schedule !== null &&
+        recipient.schedule.days.length > 0 &&
+        recipient.schedule.startMinute !== null &&
+        recipient.schedule.visitDurationMinutes !== null,
     };
   }
 

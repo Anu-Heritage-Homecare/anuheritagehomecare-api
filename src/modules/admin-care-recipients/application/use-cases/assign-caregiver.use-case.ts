@@ -17,7 +17,8 @@ import {
 import { CareTeamRole } from '@modules/care-recipients/domain/care-team-role.enum';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generator.port';
-import { NotFoundDomainException } from '@shared/domain/domain-exception';
+import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
+import { CareRecipientStatus } from '@modules/care-recipients/domain/care-recipient-status.enum';
 
 export interface AssignCaregiverCommand {
   recipientId: string;
@@ -51,6 +52,17 @@ export class AssignCaregiverUseCase {
     const recipient = await this.recipients.findById(command.recipientId);
     if (recipient === null) {
       throw new NotFoundDomainException('Care recipient not found');
+    }
+    // A care team only makes sense for a live engagement. A still-draft or already
+    // discharged recipient is a mistake to assign against; the office is warned (but
+    // not blocked) separately when there is simply no care plan on file yet.
+    if (
+      recipient.status === CareRecipientStatus.Draft ||
+      recipient.status === CareRecipientStatus.Discharged
+    ) {
+      throw new ValidationException(
+        'A caregiver cannot be assigned to a draft or discharged care recipient',
+      );
     }
 
     const now = this.clock.now();
