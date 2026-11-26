@@ -41,6 +41,7 @@ import {
   ScheduleVisitUseCase,
 } from '../application/use-cases/manage-visits.use-case';
 import { GenerateVisitsFromScheduleUseCase } from '../application/use-cases/generate-visits-from-schedule.use-case';
+import { ReassignRecipientVisitsUseCase } from '../application/use-cases/reassign-recipient-visits.use-case';
 import {
   AddHolidayUseCase,
   GetSchedulingSettingsUseCase,
@@ -73,6 +74,7 @@ import {
   EditVisitDto,
   RescheduleVisitDto,
   GenerateVisitsDto,
+  ReassignVisitsDto,
   ScheduleVisitDto,
   VisitNoteTextDto,
 } from './dto/scheduling-write.dto';
@@ -105,6 +107,7 @@ export class AdminSchedulingController {
     private readonly getAssignCandidates: GetAssignCandidatesUseCase,
     private readonly scheduleVisit: ScheduleVisitUseCase,
     private readonly generateVisitsFromSchedule: GenerateVisitsFromScheduleUseCase,
+    private readonly reassignRecipientVisits: ReassignRecipientVisitsUseCase,
     private readonly assignVisit: AssignVisitCaregiverUseCase,
     private readonly rescheduleVisit: RescheduleVisitUseCase,
     private readonly editVisit: EditVisitUseCase,
@@ -378,6 +381,23 @@ export class AdminSchedulingController {
       from: new Date(body.from),
       to: new Date(body.to),
       caregiverId: body.caregiverId ?? null,
+    });
+  }
+
+  @Post('recipients/:recipientId/reassign-visits')
+  @ApiOperation({
+    summary: "Move or release a recipient's upcoming visits when a caregiver changes",
+  })
+  @ApiOkResponse()
+  @HttpCode(HttpStatus.OK)
+  async reassignVisits(
+    @Param('recipientId', ParseUUIDPipe) recipientId: string,
+    @Body() body: ReassignVisitsDto,
+  ): Promise<{ updated: number }> {
+    return this.reassignRecipientVisits.execute({
+      careRecipientId: recipientId,
+      fromCaregiverId: body.fromCaregiverId,
+      toCaregiverId: body.toCaregiverId ?? null,
     });
   }
 

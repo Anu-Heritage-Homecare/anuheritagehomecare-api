@@ -18,6 +18,7 @@ class CareTeamMemberDto {
   @ApiProperty({ nullable: true }) specialization!: string | null;
   @ApiProperty({ nullable: true }) scheduleLabel!: string | null;
   @ApiProperty() hoursThisMonth!: number;
+  @ApiProperty() upcomingVisits!: number;
   @ApiProperty({ nullable: true }) rating!: number | null;
   @ApiProperty({ type: [String] }) certifications!: string[];
 }

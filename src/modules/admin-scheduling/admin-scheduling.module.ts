@@ -35,6 +35,7 @@ import {
   ScheduleVisitUseCase,
 } from './application/use-cases/manage-visits.use-case';
 import { GenerateVisitsFromScheduleUseCase } from './application/use-cases/generate-visits-from-schedule.use-case';
+import { ReassignRecipientVisitsUseCase } from './application/use-cases/reassign-recipient-visits.use-case';
 import {
   GetSchedulingCalendarUseCase,
   GetSchedulingConflictsUseCase,
@@ -73,6 +74,7 @@ import { AdminSchedulingController } from './presentation/admin-scheduling.contr
     GetAssignCandidatesUseCase,
     ScheduleVisitUseCase,
     GenerateVisitsFromScheduleUseCase,
+    ReassignRecipientVisitsUseCase,
     AssignVisitCaregiverUseCase,
     RescheduleVisitUseCase,
     EditVisitUseCase,

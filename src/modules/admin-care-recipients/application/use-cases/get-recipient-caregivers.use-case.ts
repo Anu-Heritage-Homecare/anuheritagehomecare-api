@@ -27,6 +27,7 @@ import {
 } from '@modules/certifications/domain/certification.repository';
 import { USER_REPOSITORY, UserRepository } from '@modules/identity/domain/user.repository';
 import { VISIT_REPOSITORY, VisitRepository } from '@modules/visits/domain/visit.repository';
+import { VisitStatus } from '@modules/visits/domain/visit-status.enum';
 import { Visit } from '@modules/visits/domain/visit.entity';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { NotFoundDomainException } from '@shared/domain/domain-exception';
@@ -70,14 +71,30 @@ export class GetRecipientCaregiversUseCase {
     const now = this.clock.now();
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
     const lastMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+    const todayStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const horizonEnd = new Date(todayStart.getTime() + 400 * 24 * 60 * 60 * 1000);
 
-    const [team, history, coverage, thisMonthVisits, lastMonthVisits] = await Promise.all([
-      this.assignments.listActiveForRecipient(recipientId),
-      this.history.listForRecipient(recipientId, HISTORY_LIMIT),
-      this.coverage.listForRecipient(recipientId),
-      this.visits.listForCareRecipientsInRange([recipientId], monthStart, now),
-      this.visits.listForCareRecipientsInRange([recipientId], lastMonthStart, monthStart),
-    ]);
+    const [team, history, coverage, thisMonthVisits, lastMonthVisits, futureVisits] =
+      await Promise.all([
+        this.assignments.listActiveForRecipient(recipientId),
+        this.history.listForRecipient(recipientId, HISTORY_LIMIT),
+        this.coverage.listForRecipient(recipientId),
+        this.visits.listForCareRecipientsInRange([recipientId], monthStart, now),
+        this.visits.listForCareRecipientsInRange([recipientId], lastMonthStart, monthStart),
+        this.visits.listForCareRecipientsInRange([recipientId], todayStart, horizonEnd),
+      ]);
+
+    const upcomingByCaregiver = new Map<string, number>();
+    for (const visit of futureVisits) {
+      if (visit.status === VisitStatus.Scheduled && visit.caregiverId !== null) {
+        upcomingByCaregiver.set(
+          visit.caregiverId,
+          (upcomingByCaregiver.get(visit.caregiverId) ?? 0) + 1,
+        );
+      }
+    }
 
     const caregiverIds = [
       ...new Set(
@@ -115,6 +132,7 @@ export class GetRecipientCaregiversUseCase {
           usersById.get(assignment.caregiverId) ?? null,
           certsByCaregiver,
           hoursThisMonth,
+          upcomingByCaregiver.get(assignment.caregiverId) ?? 0,
         ),
       ),
       coverage: coverage.map((b) => ({
@@ -139,6 +157,7 @@ export class GetRecipientCaregiversUseCase {
     user: { id: string; name: { fullName: string }; photoKey: string | null } | null,
     certsByCaregiver: Map<string, string[]>,
     hoursThisMonth: Map<string, number>,
+    upcomingVisits: number,
   ): CareTeamMemberResult {
     const seconds = hoursThisMonth.get(assignment.caregiverId) ?? 0;
     return {
@@ -151,6 +170,7 @@ export class GetRecipientCaregiversUseCase {
       specialization: assignment.specialization,
       scheduleLabel: assignment.scheduleLabel,
       hoursThisMonth: toHours(seconds),
+      upcomingVisits,
       // Per caregiver ratings are not captured yet.
       rating: null,
       certifications: certsByCaregiver.get(assignment.caregiverId) ?? [],

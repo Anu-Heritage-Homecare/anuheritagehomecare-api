@@ -633,7 +633,7 @@ export class AdminCareRecipientsController {
       role: body.role,
       specialization: body.specialization,
       scheduleLabel: body.scheduleLabel,
-      reason: body.reason,
+      reason: body.reason ?? 'Initial assignment',
     });
   }
 

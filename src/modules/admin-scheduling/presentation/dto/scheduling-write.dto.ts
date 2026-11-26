@@ -148,3 +148,11 @@ export class GenerateVisitsDto {
   @IsUUID()
   caregiverId?: string;
 }
+
+export class ReassignVisitsDto {
+  @ApiProperty() @IsUUID() fromCaregiverId!: string;
+  @ApiPropertyOptional({ description: 'Omit to leave the visits unassigned.' })
+  @IsOptional()
+  @IsUUID()
+  toCaregiverId?: string;
+}

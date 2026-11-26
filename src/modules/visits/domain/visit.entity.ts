@@ -195,6 +195,21 @@ export class Visit extends AggregateRoot<string> {
   }
 
   /**
+   * Take the caregiver off a scheduled visit, returning it to Unassigned. Used
+   * when a caregiver leaves the care team and their future visits are released
+   * for the office to restaff. A visit already under way or finished keeps its
+   * caregiver.
+   */
+  public unassignCaregiver(now: Date): void {
+    if (this.props.status !== VisitStatus.Scheduled) {
+      throw new ValidationException('Only a scheduled visit can be unassigned');
+    }
+    this.props.caregiverId = null;
+    this.props.assignedAt = null;
+    this.props.updatedAt = now;
+  }
+
+  /**
    * Clock in on arrival. The caregiver's current position must fall inside the
    * geofence around the recipient's pinned address, and the visit must not
    * already be under way or finished. On success the visit starts and the server
