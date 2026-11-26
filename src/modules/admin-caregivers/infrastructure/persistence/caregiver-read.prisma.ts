@@ -58,6 +58,7 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
         const user = usersById.get(profile.userId);
         return {
           id: profile.id,
+          userId: profile.userId,
           reference: `CG-${String(profile.sequence).padStart(3, '0')}`,
           name: user === undefined ? '' : `${user.firstName} ${user.lastName}`.trim(),
           title: profile.title,

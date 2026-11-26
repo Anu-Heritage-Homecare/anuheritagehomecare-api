@@ -3,6 +3,8 @@ import { CaregiverStatus as PrismaCaregiverStatus } from '@prisma/client';
 /** One row of the caregivers directory. */
 export interface CaregiverRowView {
   id: string;
+  /** The identity user id, which is the caregiver id assignments and visits key on. */
+  userId: string;
   reference: string;
   name: string;
   title: string | null;

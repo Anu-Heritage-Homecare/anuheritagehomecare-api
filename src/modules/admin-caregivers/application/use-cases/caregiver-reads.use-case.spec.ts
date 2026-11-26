@@ -94,6 +94,7 @@ function reads(found: CaregiverOverviewView | null): CaregiverReadModel {
         rows: [
           {
             id: 'cg-1',
+            userId: 'user-cg-1',
             reference: 'CG-001',
             name: 'Sarah Williams',
             title: 'CNA',

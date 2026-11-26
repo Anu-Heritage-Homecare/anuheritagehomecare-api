@@ -3,6 +3,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AdminAlertsModule } from '@modules/admin-alerts/admin-alerts.module';
 import { AdminIdentityModule } from '@modules/admin-identity/admin-identity.module';
 import { CareNotesModule } from '@modules/care-notes/care-notes.module';
+import { CareRatingsModule } from '@modules/care-ratings/care-ratings.module';
 import { CareRecipientsModule } from '@modules/care-recipients/care-recipients.module';
 import { CertificationsModule } from '@modules/certifications/certifications.module';
 import { FamilyContactsModule } from '@modules/family-contacts/family-contacts.module';
@@ -56,6 +57,7 @@ import { UploadDocumentUseCase } from './application/use-cases/upload-document.u
 import { SetPrimaryCaregiverUseCase } from './application/use-cases/set-primary-caregiver.use-case';
 import { UpdateMedicationUseCase } from './application/use-cases/update-medication.use-case';
 import { CARE_ACTIVITY_DIRECTORY } from './application/ports/care-activity.port';
+import { CAREGIVER_DIRECTORY } from './application/ports/caregiver-directory.port';
 import { CARE_RECIPIENT_READ_MODEL } from './application/ports/care-recipient-read.port';
 import { RECIPIENT_ACTIVITY_READ_MODEL } from './application/ports/recipient-activity-read.port';
 import { HEALTH_EVENT_READ_MODEL } from './application/ports/health-event-read.port';
@@ -66,6 +68,7 @@ import { RECIPIENT_FAMILY_READ_MODEL } from './application/ports/recipient-famil
 import { RECIPIENT_NOTES_READ_MODEL } from './application/ports/recipient-notes-read.port';
 import { RECIPIENT_VISITS_READ_MODEL } from './application/ports/recipient-visits-read.port';
 import { RECIPIENT_VITALS_DIRECTORY } from './application/ports/recipient-vitals.port';
+import { CaregiverProfileDirectory } from './infrastructure/access/caregiver-profile.directory';
 import { VisitsCareActivityDirectory } from './infrastructure/access/visits-care-activity.directory';
 import { VisitsMedicationAdministrationDirectory } from './infrastructure/access/visits-medication-administration.directory';
 import { VisitsRecipientVitalsDirectory } from './infrastructure/access/visits-recipient-vitals.directory';
@@ -92,6 +95,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     CareRecipientsModule,
     VisitsModule,
     CertificationsModule,
+    CareRatingsModule,
     RecipientBillingModule,
     CareNotesModule,
     FamilyContactsModule,
@@ -160,6 +164,7 @@ import { AdminCareRecipientsController } from './presentation/admin-care-recipie
     { provide: RECIPIENT_FAMILY_READ_MODEL, useClass: RecipientFamilyReadPrisma },
     { provide: RECIPIENT_ACTIVITY_READ_MODEL, useClass: RecipientActivityReadPrisma },
     { provide: CARE_ACTIVITY_DIRECTORY, useClass: VisitsCareActivityDirectory },
+    { provide: CAREGIVER_DIRECTORY, useClass: CaregiverProfileDirectory },
   ],
 })
 export class AdminCareRecipientsModule {}

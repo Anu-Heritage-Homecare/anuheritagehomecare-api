@@ -1,5 +1,6 @@
 export interface CaregiverRowResult {
   id: string;
+  userId: string;
   reference: string;
   name: string;
   title: string | null;
