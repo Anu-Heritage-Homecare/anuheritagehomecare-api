@@ -34,7 +34,9 @@ export class AssignCaregiverRequestDto {
 
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) scheduleLabel?: string;
 
-  @ApiProperty() @IsString() @MinLength(1) @MaxLength(500) reason!: string;
+  // Optional: a first assignment has no change to explain, so the office is not
+  // forced to pick one. A reassignment (the revise endpoint below) still requires it.
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(500) reason?: string;
 }
 
 export class ReviseCaregiverAssignmentRequestDto {
