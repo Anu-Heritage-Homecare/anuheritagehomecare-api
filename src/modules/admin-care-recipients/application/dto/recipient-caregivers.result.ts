@@ -18,6 +18,9 @@ export interface CareTeamMemberResult {
   specialization: string | null;
   scheduleLabel: string | null;
   hoursThisMonth: number;
+  /** Scheduled visits for this caregiver from today onward. Drives the prompt to
+   * move or release their future visits when they leave the team. */
+  upcomingVisits: number;
   /** Per caregiver satisfaction rating, null until caregiver ratings are captured. */
   rating: number | null;
   certifications: string[];
