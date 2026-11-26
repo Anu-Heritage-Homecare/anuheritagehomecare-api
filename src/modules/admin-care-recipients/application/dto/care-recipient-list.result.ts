@@ -8,7 +8,8 @@ export interface CareRecipientListItem {
   age: number;
   primaryCondition: string | null;
   careLevel: string | null;
-  assignedCaregiverName: string | null;
+  /** Active care team member names, ordered with the primary first. */
+  assignedCaregiverNames: string[];
   /** Display status: NEW when active and recently added, otherwise the stored status. */
   status: string;
   priority: string;

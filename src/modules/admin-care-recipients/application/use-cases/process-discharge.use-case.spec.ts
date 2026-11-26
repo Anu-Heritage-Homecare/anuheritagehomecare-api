@@ -139,6 +139,9 @@ class TeamStore implements CareTeamAssignmentRepository {
   listActiveForRecipient(): Promise<CareTeamAssignment[]> {
     return Promise.resolve(this.active);
   }
+  listActiveForRecipients(): Promise<CareTeamAssignment[]> {
+    return Promise.resolve(this.active);
+  }
 }
 
 class HistoryStore implements CareTeamAssignmentEventRepository {

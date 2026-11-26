@@ -17,6 +17,7 @@ import { CredentialKind } from '@modules/certifications/domain/credential-kind.e
 import { CertificationRepository } from '@modules/certifications/domain/certification.repository';
 import { User } from '@modules/identity/domain/user.entity';
 import { UserRepository } from '@modules/identity/domain/user.repository';
+import { CareRatingRepository } from '@modules/care-ratings/domain/care-rating.repository';
 import { Visit } from '@modules/visits/domain/visit.entity';
 import { VisitRepository } from '@modules/visits/domain/visit.repository';
 import { Clock } from '@shared/application/ports/clock.port';
@@ -64,6 +65,7 @@ const assignments: CareTeamAssignmentRepository = {
       assign('a2', 'cg2', CareTeamRole.Backup),
       assign('a3', 'cg3', CareTeamRole.Coordinator),
     ]),
+  listActiveForRecipients: () => Promise.resolve([]),
 };
 
 const events: CareTeamAssignmentEventRepository = {
@@ -182,6 +184,15 @@ function visits(): VisitRepository {
   };
 }
 
+function ratings(): CareRatingRepository {
+  return {
+    save: () => Promise.resolve(),
+    summarise: () => Promise.resolve({ average: null, count: 0 }),
+    averageForCaregiver: (id) =>
+      Promise.resolve(id === 'cg1' ? { average: 4.8, count: 5 } : { average: null, count: 0 }),
+  };
+}
+
 function build(blocks: CoverageBlock[]): GetRecipientCaregiversUseCase {
   return new GetRecipientCaregiversUseCase(
     recipients(true),
@@ -191,6 +202,7 @@ function build(blocks: CoverageBlock[]): GetRecipientCaregiversUseCase {
     users(),
     admins(),
     certifications(),
+    ratings(),
     visits(),
     clock,
   );
@@ -216,6 +228,7 @@ describe('GetRecipientCaregiversUseCase', () => {
       users(),
       admins(),
       certifications(),
+      ratings(),
       visits(),
       clock,
     );
@@ -246,7 +259,10 @@ describe('GetRecipientCaregiversUseCase', () => {
     expect(sarah?.specialization).toBe("Alzheimer's Care");
     expect(sarah?.hoursThisMonth).toBe(45);
     expect(sarah?.certifications).toEqual(['CNA', "Alzheimer's Certified", 'CPR']);
-    expect(sarah?.rating).toBeNull();
+    // The caregiver's mean received rating is surfaced on the card.
+    expect(sarah?.rating).toBe(4.8);
+    // A caregiver with no ratings yet stays null.
+    expect(david?.rating).toBeNull();
     // Backup caregivers surface as Available.
     expect(david?.status).toBe('Available');
   });

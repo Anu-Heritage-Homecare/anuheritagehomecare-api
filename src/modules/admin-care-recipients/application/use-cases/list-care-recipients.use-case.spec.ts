@@ -1,6 +1,8 @@
 import { CareFrequency } from '@modules/care-recipients/domain/care-frequency.enum';
 import { CareRecipientPriority } from '@modules/care-recipients/domain/care-recipient-priority.enum';
 import { CareRecipientStatus } from '@modules/care-recipients/domain/care-recipient-status.enum';
+import { CareTeamAssignment } from '@modules/care-recipients/domain/care-team-assignment.entity';
+import { CareTeamAssignmentRepository } from '@modules/care-recipients/domain/care-team-assignment.repository';
 import { User } from '@modules/identity/domain/user.entity';
 import { UserRepository } from '@modules/identity/domain/user.repository';
 import { Clock } from '@shared/application/ports/clock.port';
@@ -71,8 +73,22 @@ const users: UserRepository = {
   countByType: () => Promise.resolve(0),
 };
 
+const team: CareTeamAssignmentRepository = {
+  add: () => Promise.resolve(),
+  save: () => Promise.resolve(),
+  findById: () => Promise.resolve(null),
+  listActiveForRecipient: () => Promise.resolve([]),
+  // Recipient r1 has one active caregiver; others have none.
+  listActiveForRecipients: (ids: string[]) =>
+    Promise.resolve(
+      ids.includes('r1')
+        ? [{ careRecipientId: 'r1', caregiverId: 'cg-1' } as unknown as CareTeamAssignment]
+        : [],
+    ),
+};
+
 function make(page: CareRecipientPageView): ListCareRecipientsUseCase {
-  return new ListCareRecipientsUseCase(makeReadModel(page), users, activity, clock);
+  return new ListCareRecipientsUseCase(makeReadModel(page), users, team, activity, clock);
 }
 
 const baseQuery = {
@@ -116,7 +132,7 @@ describe('ListCareRecipientsUseCase', () => {
     expect(item.age).toBe(79);
     expect(item.primaryCondition).toBe("Alzheimer's Disease");
     expect(item.careLevel).toBe('24-Hour');
-    expect(item.assignedCaregiverName).toBe('Sarah Williams');
+    expect(item.assignedCaregiverNames).toEqual(['Sarah Williams']);
     expect(item.status).toBe('ACTIVE');
     expect(item.lastVisitAt).toEqual(new Date('2026-09-15T09:30:00.000Z'));
   });
@@ -140,7 +156,7 @@ describe('ListCareRecipientsUseCase', () => {
     const item = result.items[0];
     expect(item.status).toBe('NEW');
     expect(item.careLevel).toBe('Hourly');
-    expect(item.assignedCaregiverName).toBeNull();
+    expect(item.assignedCaregiverNames).toEqual([]);
     expect(item.lastVisitAt).toBeNull();
   });
 });

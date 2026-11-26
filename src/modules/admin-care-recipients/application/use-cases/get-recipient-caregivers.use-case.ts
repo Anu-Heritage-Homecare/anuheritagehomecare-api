@@ -22,6 +22,10 @@ import {
   CareRecipientRepository,
 } from '@modules/care-recipients/domain/care-recipient.repository';
 import {
+  CARE_RATING_REPOSITORY,
+  CareRatingRepository,
+} from '@modules/care-ratings/domain/care-rating.repository';
+import {
   CERTIFICATION_REPOSITORY,
   CertificationRepository,
 } from '@modules/certifications/domain/certification.repository';
@@ -59,6 +63,7 @@ export class GetRecipientCaregiversUseCase {
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(ADMIN_USER_REPOSITORY) private readonly admins: AdminUserRepository,
     @Inject(CERTIFICATION_REPOSITORY) private readonly certifications: CertificationRepository,
+    @Inject(CARE_RATING_REPOSITORY) private readonly ratings: CareRatingRepository,
     @Inject(VISIT_REPOSITORY) private readonly visits: VisitRepository,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
@@ -105,9 +110,10 @@ export class GetRecipientCaregiversUseCase {
         ].filter((id): id is string => id !== null),
       ),
     ];
-    const [usersById, certsByCaregiver] = await Promise.all([
+    const [usersById, certsByCaregiver, ratingByCaregiver] = await Promise.all([
       this.users.findByIds(caregiverIds).then((list) => new Map(list.map((u) => [u.id, u]))),
       this.certificationsByCaregiver(team),
+      this.ratingsByCaregiver(team),
     ]);
     const caregiverName = (id: string | null): string | null =>
       id === null ? null : (usersById.get(id)?.name.fullName ?? null);
@@ -133,6 +139,7 @@ export class GetRecipientCaregiversUseCase {
           certsByCaregiver,
           hoursThisMonth,
           upcomingByCaregiver.get(assignment.caregiverId) ?? 0,
+          ratingByCaregiver.get(assignment.caregiverId) ?? null,
         ),
       ),
       coverage: coverage.map((b) => ({
@@ -158,6 +165,7 @@ export class GetRecipientCaregiversUseCase {
     certsByCaregiver: Map<string, string[]>,
     hoursThisMonth: Map<string, number>,
     upcomingVisits: number,
+    rating: number | null,
   ): CareTeamMemberResult {
     const seconds = hoursThisMonth.get(assignment.caregiverId) ?? 0;
     return {
@@ -171,10 +179,24 @@ export class GetRecipientCaregiversUseCase {
       scheduleLabel: assignment.scheduleLabel,
       hoursThisMonth: toHours(seconds),
       upcomingVisits,
-      // Per caregiver ratings are not captured yet.
-      rating: null,
+      // The mean of the ratings this caregiver has received, or null until rated.
+      rating,
       certifications: certsByCaregiver.get(assignment.caregiverId) ?? [],
     };
+  }
+
+  private async ratingsByCaregiver(
+    team: CareTeamAssignment[],
+  ): Promise<Map<string, number | null>> {
+    const ids = [...new Set(team.map((a) => a.caregiverId))];
+    // A team is a handful of people, so the per caregiver averages run in one
+    // parallel wave rather than a serial query each.
+    const summaries = await Promise.all(
+      ids.map((id) =>
+        this.ratings.averageForCaregiver(id).then((summary) => [id, summary.average] as const),
+      ),
+    );
+    return new Map(summaries);
   }
 
   private async certificationsByCaregiver(

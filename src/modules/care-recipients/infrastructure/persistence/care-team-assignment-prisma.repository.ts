@@ -51,6 +51,17 @@ export class CareTeamAssignmentPrismaRepository implements CareTeamAssignmentRep
     return rows.map((row) => this.toDomain(row));
   }
 
+  async listActiveForRecipients(careRecipientIds: string[]): Promise<CareTeamAssignment[]> {
+    if (careRecipientIds.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.careTeamAssignment.findMany({
+      where: { careRecipientId: { in: careRecipientIds }, removedAt: null },
+      orderBy: { assignedAt: 'asc' },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
+
   private toData(assignment: CareTeamAssignment): {
     id: string;
     careRecipientId: string;
