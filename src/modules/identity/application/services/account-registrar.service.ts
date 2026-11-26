@@ -169,6 +169,7 @@ export class AccountRegistrar {
       phone,
       address,
       passwordHash,
+      dateOfBirth: command.dateOfBirth ?? null,
       now: this.clock.now(),
     });
 
@@ -189,6 +190,7 @@ export interface ProvisionCaregiverCommand {
   state: string;
   postalCode: string;
   country: string;
+  dateOfBirth?: Date | null;
 }
 
 export interface ProvisionAccountResult {

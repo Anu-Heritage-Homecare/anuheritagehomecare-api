@@ -16,6 +16,7 @@ export interface ProfileHeaderResult {
   priority: string;
   primaryDiagnosis: string | null;
   careLevel: string | null;
+  hasCareSchedule: boolean;
 }
 
 export interface PersonalInformationResult {

@@ -76,11 +76,19 @@ const command = {
   state: 'LA',
   postalCode: '100001',
   country: 'NG',
+  dateOfBirth: new Date('1990-05-14'),
   profile: {
     title: 'Senior Caregiver',
     gender: CaregiverGender.Female,
     employmentType: CaregiverEmploymentType.FullTime,
     experienceYears: 6,
+    skills: ['Dementia care', 'Medication'],
+    languages: ['English', 'Yoruba'],
+    emergencyContactName: 'John Williams',
+    emergencyContactPhone: '+2348032222222',
+    emergencyContactRelationship: 'Spouse',
+    emergencyContactEmail: 'john.williams@example.com',
+    preferencesNote: 'Prefers morning shifts',
   },
 };
 
@@ -114,10 +122,17 @@ describe('ProvisionCaregiverUseCase', () => {
     expect(user.canLogIn).toBe(true); // already verified and active, no OTP step
     expect(user.status).toBe(UserStatus.Active);
 
+    expect(user.dateOfBirth).toEqual(new Date('1990-05-14'));
+
     const profile = profiles.saved[0];
     expect(profile.userId).toBe(user.id);
     expect(profile.title).toBe('Senior Caregiver');
     expect(profile.gender).toBe(CaregiverGender.Female);
+    expect(profile.skills).toEqual(['Dementia care', 'Medication']);
+    expect(profile.languages).toEqual(['English', 'Yoruba']);
+    expect(profile.emergencyContact.name).toBe('John Williams');
+    expect(profile.emergencyContact.phone).toBe('+2348032222222');
+    expect(profile.preferencesNote).toBe('Prefers morning shifts');
   });
 
   it('returns a one time temporary password that satisfies the password policy', async () => {

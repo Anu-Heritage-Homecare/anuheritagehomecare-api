@@ -60,6 +60,37 @@ export class ProvisionCaregiverDto {
   joinedAt?: string;
   @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) @Max(168) maxHoursPerWeek?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40) preferredShift?: string;
+  @ApiPropertyOptional({ type: String, format: 'date' })
+  @IsOptional()
+  @IsISO8601()
+  dateOfBirth?: string;
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(80, { each: true })
+  skills?: string[];
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(80, { each: true })
+  languages?: string[];
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) emergencyContactName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40) emergencyContactPhone?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  emergencyContactRelationship?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(255)
+  emergencyContactEmail?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(4000) preferencesNote?: string;
 }
 
 /** Edit the general profile and employment fields of a caregiver. */

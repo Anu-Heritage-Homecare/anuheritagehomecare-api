@@ -133,6 +133,42 @@ describe('care team admin writes', () => {
     expect(recipients.current?.primaryCaregiverId).toBe('cg1');
   });
 
+  it('refuses to assign a caregiver to a draft recipient', async () => {
+    const profile = RecipientProfile.create({
+      name: 'Draft Person',
+      gender: 'MALE',
+      dateOfBirth: new Date('1950-01-01T00:00:00.000Z'),
+      city: 'Boston',
+      state: 'MA',
+      fullAddress: '2 Main St',
+      relationship: 'Father',
+      livingSituation: 'At home',
+      photoKey: null,
+      latitude: null,
+      longitude: null,
+    });
+    const draft = CareRecipient.startDraft({ id: R, ownerId: 'owner1', profile, now: NOW });
+    const useCase = new AssignCaregiverUseCase(
+      new RecipientStore(draft),
+      new AssignmentStore(),
+      new EventStore(),
+      clock,
+      ids(),
+    );
+
+    await expect(
+      useCase.execute({
+        recipientId: R,
+        adminId: 'admin-1',
+        caregiverId: 'cg1',
+        role: CareTeamRole.Primary,
+        specialization: null,
+        scheduleLabel: null,
+        reason: 'Attempted assignment',
+      }),
+    ).rejects.toThrow('draft or discharged');
+  });
+
   it('revises an assignment role and details', async () => {
     const recipients = new RecipientStore(makeRecipient());
     const store = new AssignmentStore();

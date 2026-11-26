@@ -40,6 +40,7 @@ import {
   RescheduleVisitUseCase,
   ScheduleVisitUseCase,
 } from '../application/use-cases/manage-visits.use-case';
+import { GenerateVisitsFromScheduleUseCase } from '../application/use-cases/generate-visits-from-schedule.use-case';
 import {
   AddHolidayUseCase,
   GetSchedulingSettingsUseCase,
@@ -71,6 +72,7 @@ import {
   AssignVisitDto,
   EditVisitDto,
   RescheduleVisitDto,
+  GenerateVisitsDto,
   ScheduleVisitDto,
   VisitNoteTextDto,
 } from './dto/scheduling-write.dto';
@@ -102,6 +104,7 @@ export class AdminSchedulingController {
     private readonly getVisitDetails: GetVisitDetailsUseCase,
     private readonly getAssignCandidates: GetAssignCandidatesUseCase,
     private readonly scheduleVisit: ScheduleVisitUseCase,
+    private readonly generateVisitsFromSchedule: GenerateVisitsFromScheduleUseCase,
     private readonly assignVisit: AssignVisitCaregiverUseCase,
     private readonly rescheduleVisit: RescheduleVisitUseCase,
     private readonly editVisit: EditVisitUseCase,
@@ -360,6 +363,21 @@ export class AdminSchedulingController {
       priority: body.priority,
       tasks: body.tasks ?? [],
       specialInstructions: body.specialInstructions ?? [],
+    });
+  }
+
+  @Post('recipients/:recipientId/generate-visits')
+  @ApiOperation({ summary: "Generate visits from a recipient's recurring care schedule" })
+  @ApiCreatedResponse()
+  async generateVisits(
+    @Param('recipientId', ParseUUIDPipe) recipientId: string,
+    @Body() body: GenerateVisitsDto,
+  ): Promise<{ created: number; skipped: number; caregiverId: string | null }> {
+    return this.generateVisitsFromSchedule.execute({
+      careRecipientId: recipientId,
+      from: new Date(body.from),
+      to: new Date(body.to),
+      caregiverId: body.caregiverId ?? null,
     });
   }
 

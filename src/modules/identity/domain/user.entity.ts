@@ -112,6 +112,7 @@ export class User extends AggregateRoot<string> {
     phone: PhoneNumber;
     address: PostalAddress;
     passwordHash: string;
+    dateOfBirth?: Date | null;
     now: Date;
   }): User {
     return new User(params.id, {
@@ -122,7 +123,7 @@ export class User extends AggregateRoot<string> {
       address: params.address,
       passwordHash: params.passwordHash,
       photoKey: null,
-      dateOfBirth: null,
+      dateOfBirth: params.dateOfBirth ?? null,
       relationshipToRecipient: null,
       emailVerified: true,
       phoneVerified: false,

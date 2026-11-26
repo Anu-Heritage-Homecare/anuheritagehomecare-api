@@ -20,6 +20,7 @@ export interface ProvisionCaregiverCommand {
   state: string;
   postalCode: string;
   country: string;
+  dateOfBirth: Date | null;
   profile: CaregiverProfileFields;
 }
 
@@ -58,6 +59,7 @@ export class ProvisionCaregiverUseCase {
       state: command.state,
       postalCode: command.postalCode,
       country: command.country,
+      dateOfBirth: command.dateOfBirth,
     });
 
     const profile = CaregiverProfile.create({
