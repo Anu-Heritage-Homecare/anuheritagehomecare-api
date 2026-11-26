@@ -166,6 +166,22 @@ describe('Care section reads', () => {
     expect(result.summary.hasVitals).toBe(true);
   });
 
+  it('overview falls back to the assigned primary caregiver when no visit is scheduled today', async () => {
+    const useCase = new GetCareOverviewUseCase(
+      recipients(recipientStub({ primaryCaregiverId: 'cg1' })),
+      visitsRepo([]),
+      users,
+      plans,
+      clock,
+      fakeCareAccess(),
+    );
+
+    const result = await useCase.execute({ callerUserId: 'owner-1', careRecipientId: 'r1' });
+
+    expect(result.currentVisitId).toBeNull();
+    expect(result.caregiver).toEqual({ id: 'cg1', name: 'Sarah Adams' });
+  });
+
   it('health classifies the latest vitals as normal', async () => {
     const useCase = new GetRecipientHealthUseCase(
       recipients(recipientStub()),
