@@ -132,7 +132,7 @@ export class OnboardingReadPrisma implements OnboardingReadModel {
       ...(filters.priority === null ? {} : { priority: filters.priority }),
       ...(filters.planType === null ? {} : { selectedPlanType: filters.planType }),
     };
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.clientApplication.count({ where }),
       this.prisma.clientApplication.findMany({
         where,

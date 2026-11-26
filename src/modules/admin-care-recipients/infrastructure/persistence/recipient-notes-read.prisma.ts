@@ -23,7 +23,7 @@ export class RecipientNotesReadPrisma implements RecipientNotesReadModel {
 
   async listPage(filter: NoteFilter): Promise<NotePageView> {
     const where = this.whereForFilter(filter);
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.careNote.count({ where }),
       this.prisma.careNote.findMany({
         where,

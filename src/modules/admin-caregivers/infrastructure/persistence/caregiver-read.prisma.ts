@@ -36,7 +36,7 @@ export class CaregiverReadPrisma implements CaregiverReadModel {
     pageSize: number,
   ): Promise<CaregiverPageView> {
     const where = status === null ? { archivedAt: null } : { archivedAt: null, status };
-    const [total, profiles] = await this.prisma.$transaction([
+    const [total, profiles] = await Promise.all([
       this.prisma.caregiverProfile.count({ where }),
       this.prisma.caregiverProfile.findMany({
         where,

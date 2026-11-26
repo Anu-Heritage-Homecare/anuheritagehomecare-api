@@ -39,7 +39,7 @@ export class RecipientBillingReadPrisma implements RecipientBillingReadModel {
     pageSize: number,
   ): Promise<InvoicePageView> {
     const where = { careRecipientId: recipientId };
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.recipientInvoice.count({ where }),
       this.prisma.recipientInvoice.findMany({
         where,

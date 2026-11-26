@@ -29,7 +29,7 @@ export class AdminLoginHistoryReadPrisma implements AdminLoginHistoryReadPort {
     page: number,
     pageSize: number,
   ): Promise<{ entries: LoginHistoryEntry[]; total: number }> {
-    const [rows, total] = await this.prisma.$transaction([
+    const [rows, total] = await Promise.all([
       this.prisma.adminLoginEvent.findMany({
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,

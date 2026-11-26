@@ -47,7 +47,7 @@ export class RecipientDocumentReadPrisma implements RecipientDocumentReadModel {
 
   async listPage(filter: DocumentFilter): Promise<DocumentPageView> {
     const where = this.whereForFilter(filter);
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.recipientDocument.count({ where }),
       this.prisma.recipientDocument.findMany({
         where,
