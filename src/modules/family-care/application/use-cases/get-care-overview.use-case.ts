@@ -23,8 +23,9 @@ export interface GetCareOverviewQuery {
 
 /**
  * Use case: the family owner's Care Overview for a recipient. Aggregates the
- * recipient card, their care plan name, the assigned caregiver on today's visit,
- * and the summary counts (tasks, medications, whether vitals exist, notes and
+ * recipient card, their care plan name, the caregiver on today's visit (falling
+ * back to the assigned primary caregiver when no visit is scheduled today), and
+ * the summary counts (tasks, medications, whether vitals exist, notes and
  * photos). Owner scoped.
  */
 @Injectable()
@@ -54,9 +55,12 @@ export class GetCareOverviewUseCase {
     );
     const visit = pickCurrentVisit(todaysVisits);
 
+    // The caregiver on today's visit, or the recipient's assigned primary when no
+    // visit is scheduled today, so the card shows who is on the case either way and
+    // matches the care plan rather than reading null between visits.
     const [carePlanName, caregiver] = await Promise.all([
       this.plans.planNameForRecipient(recipient.ownerId, query.careRecipientId),
-      this.resolveCaregiver(visit),
+      this.resolveCaregiver(visit?.caregiverId ?? recipient.primaryCaregiverId),
     ]);
 
     return {
@@ -75,12 +79,11 @@ export class GetCareOverviewUseCase {
   }
 
   private async resolveCaregiver(
-    visit: Visit | null,
+    caregiverId: string | null,
   ): Promise<{ id: string; name: string } | null> {
-    if (visit === null || visit.caregiverId === null) {
+    if (caregiverId === null) {
       return null;
     }
-    const caregiverId = visit.caregiverId;
     const caregiver = await this.users.findById(caregiverId);
     return caregiver === null
       ? null
