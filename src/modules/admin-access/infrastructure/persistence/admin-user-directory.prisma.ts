@@ -40,7 +40,7 @@ export class AdminUserDirectoryPrisma implements AdminUserDirectory {
       ];
     }
 
-    const [rows, total] = await this.prisma.$transaction([
+    const [rows, total] = await Promise.all([
       this.prisma.adminUser.findMany({
         where,
         include: { accessRole: { select: { name: true } }, branch: { select: { name: true } } },

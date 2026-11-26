@@ -25,6 +25,7 @@ export class ProvisionedCaregiverResponseDto {
 
 class CaregiverRowDto implements CaregiverRowResult {
   @ApiProperty() id!: string;
+  @ApiProperty() userId!: string;
   @ApiProperty() reference!: string;
   @ApiProperty() name!: string;
   @ApiProperty({ nullable: true, type: String }) title!: string | null;

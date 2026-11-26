@@ -15,6 +15,7 @@ import {
   CareTeamAssignmentRepository,
 } from '@modules/care-recipients/domain/care-team-assignment.repository';
 import { CareTeamRole } from '@modules/care-recipients/domain/care-team-role.enum';
+import { CAREGIVER_DIRECTORY, CaregiverDirectory } from '../ports/caregiver-directory.port';
 import { CLOCK, Clock } from '@shared/application/ports/clock.port';
 import { ID_GENERATOR, IdGenerator } from '@shared/application/ports/id-generator.port';
 import { NotFoundDomainException, ValidationException } from '@shared/domain/domain-exception';
@@ -44,6 +45,7 @@ export class AssignCaregiverUseCase {
     private readonly assignments: CareTeamAssignmentRepository,
     @Inject(CARE_TEAM_ASSIGNMENT_EVENT_REPOSITORY)
     private readonly history: CareTeamAssignmentEventRepository,
+    @Inject(CAREGIVER_DIRECTORY) private readonly caregivers: CaregiverDirectory,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
   ) {}
@@ -64,10 +66,19 @@ export class AssignCaregiverUseCase {
         'A caregiver cannot be assigned to a draft or discharged care recipient',
       );
     }
+    // The admin directory lists caregivers by their profile id, so normalise the
+    // reference to the identity user id every reader keys on. This keeps the stored
+    // caregiver id correct even if a client sends the profile id, and fails closed
+    // on an unknown caregiver rather than writing a dangling reference.
+    const caregiverId = await this.caregivers.resolveToUserId(command.caregiverId);
+    if (caregiverId === null) {
+      throw new NotFoundDomainException('Caregiver not found');
+    }
+
     // A caregiver can hold only one seat on a team, so the same person can never be
     // assigned (or reassigned) to a recipient they already serve.
     const active = await this.assignments.listActiveForRecipient(command.recipientId);
-    if (active.some((assignment) => assignment.caregiverId === command.caregiverId)) {
+    if (active.some((assignment) => assignment.caregiverId === caregiverId)) {
       throw new ValidationException('This caregiver is already on the care team');
     }
 
@@ -75,7 +86,7 @@ export class AssignCaregiverUseCase {
     const assignment = CareTeamAssignment.assign({
       id: this.ids.generate(),
       careRecipientId: command.recipientId,
-      caregiverId: command.caregiverId,
+      caregiverId,
       role: command.role,
       specialization: command.specialization,
       scheduleLabel: command.scheduleLabel,
@@ -84,7 +95,7 @@ export class AssignCaregiverUseCase {
     await this.assignments.add(assignment);
 
     if (command.role === CareTeamRole.Primary) {
-      recipient.assignPrimaryCaregiver(command.caregiverId, now);
+      recipient.assignPrimaryCaregiver(caregiverId, now);
       await this.recipients.save(recipient);
     }
 
@@ -92,7 +103,7 @@ export class AssignCaregiverUseCase {
       CareTeamAssignmentEvent.record({
         id: this.ids.generate(),
         careRecipientId: command.recipientId,
-        caregiverId: command.caregiverId,
+        caregiverId,
         action: CareTeamAction.Assigned,
         reason: command.reason,
         byAdminId: command.adminId,

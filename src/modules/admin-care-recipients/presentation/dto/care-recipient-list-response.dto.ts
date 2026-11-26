@@ -32,7 +32,7 @@ class ListItemDto {
   @ApiProperty() age!: number;
   @ApiProperty({ nullable: true }) primaryCondition!: string | null;
   @ApiProperty({ nullable: true }) careLevel!: string | null;
-  @ApiProperty({ nullable: true }) assignedCaregiverName!: string | null;
+  @ApiProperty({ type: [String] }) assignedCaregiverNames!: string[];
   @ApiProperty() status!: string;
   @ApiProperty() priority!: string;
   @ApiProperty({ nullable: true, type: String, format: 'date-time' }) lastVisitAt!: string | null;

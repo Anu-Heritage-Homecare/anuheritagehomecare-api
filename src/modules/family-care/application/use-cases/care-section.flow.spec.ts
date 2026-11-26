@@ -113,6 +113,7 @@ function careTeamRepo(
     save: () => Promise.resolve(),
     findById: () => Promise.resolve(null),
     listActiveForRecipient: () => Promise.resolve(assignments as unknown as CareTeamAssignment[]),
+    listActiveForRecipients: () => Promise.resolve(assignments as unknown as CareTeamAssignment[]),
   };
 }
 

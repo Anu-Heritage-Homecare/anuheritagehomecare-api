@@ -9,6 +9,8 @@ export interface CareTeamAssignmentRepository {
   save(assignment: CareTeamAssignment): Promise<void>;
   findById(id: string): Promise<CareTeamAssignment | null>;
   listActiveForRecipient(careRecipientId: string): Promise<CareTeamAssignment[]>;
+  /** Active assignments across several recipients in one query, for list reads. */
+  listActiveForRecipients(careRecipientIds: string[]): Promise<CareTeamAssignment[]>;
 }
 
 export const CARE_TEAM_ASSIGNMENT_REPOSITORY = Symbol('CARE_TEAM_ASSIGNMENT_REPOSITORY');

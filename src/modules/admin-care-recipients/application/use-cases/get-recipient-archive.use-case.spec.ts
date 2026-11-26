@@ -74,6 +74,7 @@ function team(count: number): CareTeamAssignmentRepository {
     save: () => Promise.resolve(),
     findById: () => Promise.resolve(null),
     listActiveForRecipient: () => Promise.resolve(items),
+    listActiveForRecipients: () => Promise.resolve(items),
   };
 }
 

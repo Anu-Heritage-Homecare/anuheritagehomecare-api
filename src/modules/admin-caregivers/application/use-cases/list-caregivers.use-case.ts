@@ -22,6 +22,7 @@ export class ListCaregiversUseCase {
       pageSize: command.pageSize,
       rows: page.rows.map((row) => ({
         id: row.id,
+        userId: row.userId,
         reference: row.reference,
         name: row.name,
         title: row.title,

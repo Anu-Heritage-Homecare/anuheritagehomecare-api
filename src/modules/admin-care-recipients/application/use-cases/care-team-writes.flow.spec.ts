@@ -5,6 +5,7 @@ import { CareTeamAssignmentRepository } from '@modules/care-recipients/domain/ca
 import { CareTeamAssignmentEvent } from '@modules/care-recipients/domain/care-team-assignment-event.entity';
 import { CareTeamAssignmentEventRepository } from '@modules/care-recipients/domain/care-team-assignment-event.repository';
 import { CareTeamRole } from '@modules/care-recipients/domain/care-team-role.enum';
+import { CaregiverDirectory } from '../ports/caregiver-directory.port';
 import { CoverageBlock } from '@modules/care-recipients/domain/coverage-block.entity';
 import { CoverageBlockRepository } from '@modules/care-recipients/domain/coverage-block.repository';
 import { CoverageSlot } from '@modules/care-recipients/domain/coverage-slot.enum';
@@ -83,6 +84,9 @@ class AssignmentStore implements CareTeamAssignmentRepository {
   listActiveForRecipient(): Promise<CareTeamAssignment[]> {
     return Promise.resolve(this.items.filter((a) => a.isActive));
   }
+  listActiveForRecipients(): Promise<CareTeamAssignment[]> {
+    return Promise.resolve(this.items.filter((a) => a.isActive));
+  }
 }
 
 class EventStore implements CareTeamAssignmentEventRepository {
@@ -107,12 +111,18 @@ class CoverageStore implements CoverageBlockRepository {
   }
 }
 
+// The caregiver reference is already a user id in these tests, so the directory
+// resolves it to itself; an unknown id ('missing') resolves to null.
+const directory: CaregiverDirectory = {
+  resolveToUserId: (id: string) => Promise.resolve(id === 'missing' ? null : id),
+};
+
 describe('care team admin writes', () => {
   it('assigns a caregiver, records history, and syncs the primary pointer', async () => {
     const recipients = new RecipientStore(makeRecipient());
     const store = new AssignmentStore();
     const events = new EventStore();
-    const useCase = new AssignCaregiverUseCase(recipients, store, events, clock, ids());
+    const useCase = new AssignCaregiverUseCase(recipients, store, events, directory, clock, ids());
 
     const { id } = await useCase.execute({
       recipientId: R,
@@ -152,6 +162,7 @@ describe('care team admin writes', () => {
       new RecipientStore(draft),
       new AssignmentStore(),
       new EventStore(),
+      directory,
       clock,
       ids(),
     );
@@ -172,7 +183,14 @@ describe('care team admin writes', () => {
   it('refuses to assign a caregiver already on the team', async () => {
     const recipients = new RecipientStore(makeRecipient());
     const store = new AssignmentStore();
-    const useCase = new AssignCaregiverUseCase(recipients, store, new EventStore(), clock, ids());
+    const useCase = new AssignCaregiverUseCase(
+      recipients,
+      store,
+      new EventStore(),
+      directory,
+      clock,
+      ids(),
+    );
     const command = {
       recipientId: R,
       adminId: 'admin-1',
@@ -184,6 +202,58 @@ describe('care team admin writes', () => {
     };
     await useCase.execute(command);
     await expect(useCase.execute(command)).rejects.toThrow('already on the care team');
+  });
+
+  it('stores the canonical user id when given a caregiver profile id', async () => {
+    const recipients = new RecipientStore(makeRecipient());
+    const store = new AssignmentStore();
+    // The directory translates the incoming profile id to the identity user id.
+    const translating: CaregiverDirectory = {
+      resolveToUserId: (id) => Promise.resolve(id === 'profile-1' ? 'user-1' : null),
+    };
+    const useCase = new AssignCaregiverUseCase(
+      recipients,
+      store,
+      new EventStore(),
+      translating,
+      clock,
+      ids(),
+    );
+
+    await useCase.execute({
+      recipientId: R,
+      adminId: 'admin-1',
+      caregiverId: 'profile-1',
+      role: CareTeamRole.Primary,
+      specialization: null,
+      scheduleLabel: null,
+      reason: 'Initial assignment',
+    });
+
+    expect(store.items[0].caregiverId).toBe('user-1');
+    expect(recipients.current?.primaryCaregiverId).toBe('user-1');
+  });
+
+  it('rejects assigning an unknown caregiver', async () => {
+    const useCase = new AssignCaregiverUseCase(
+      new RecipientStore(makeRecipient()),
+      new AssignmentStore(),
+      new EventStore(),
+      directory,
+      clock,
+      ids(),
+    );
+    await expect(
+      useCase.execute({
+        recipientId: R,
+        adminId: 'admin-1',
+        caregiverId: 'missing',
+        role: CareTeamRole.Primary,
+        specialization: null,
+        scheduleLabel: null,
+        reason: 'Initial assignment',
+      }),
+    ).rejects.toThrow('Caregiver not found');
   });
 
   it('revises an assignment role and details', async () => {
