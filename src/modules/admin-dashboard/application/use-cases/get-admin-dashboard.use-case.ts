@@ -64,8 +64,15 @@ const ACTIVE_STATUSES: ReadonlySet<VisitStatus> = new Set([
  * problem. This keeps the Critical Alerts section reflecting current reality
  * without a separate scheduled job.
  */
+const DASHBOARD_CACHE_TTL_MS = 10_000;
+
 @Injectable()
 export class GetAdminDashboardUseCase {
+  // The dashboard is an overview that tolerates a few seconds of staleness, so a
+  // short lived cache spares every load the full set of aggregate queries, and
+  // the alert detection sweep runs once per window rather than on every request.
+  private cache: { value: DashboardResult; expiresAt: number } | null = null;
+
   constructor(
     @Inject(VISIT_REPOSITORY) private readonly visits: VisitRepository,
     @Inject(CARE_RECIPIENT_REPOSITORY) private readonly recipients: CareRecipientRepository,
@@ -80,10 +87,20 @@ export class GetAdminDashboardUseCase {
 
   async execute(): Promise<DashboardResult> {
     const now = this.clock.now();
+    if (this.cache !== null && this.cache.expiresAt > now.getTime()) {
+      return this.cache.value;
+    }
     const today = startOfUtcDay(now);
     const nowMinute = minuteOfUtcDay(now);
 
-    const visits = await this.visits.listForDateRange(today, today);
+    // Everything that does not depend on today's visits or the alert sweep runs
+    // up front in one round trip rather than in later serial steps.
+    const [visits, totalCaregivers, openTasks, ratingSummary] = await Promise.all([
+      this.visits.listForDateRange(today, today),
+      this.users.countByType(UserType.Caregiver),
+      this.tasks.countOpen(),
+      this.ratings.summarise(null),
+    ]);
 
     const recipientIds = [...new Set(visits.map((visit) => visit.careRecipientId))];
     const caregiverIds = [
@@ -92,22 +109,17 @@ export class GetAdminDashboardUseCase {
       ),
     ];
 
-    const [recipientRows, caregiverRows, totalCaregivers] = await Promise.all([
+    const [recipientRows, caregiverRows] = await Promise.all([
       this.recipients.findByIds(recipientIds),
       this.users.findByIds(caregiverIds),
-      this.users.countByType(UserType.Caregiver),
     ]);
 
     const recipientName = new Map(recipientRows.map((r) => [r.id, r.profile.name]));
     const caregiverName = new Map(caregiverRows.map((u) => [u.id, u.name.fullName]));
 
+    // The sweep raises alerts, so the open-alert read must follow it.
     await this.detectAlerts(visits, nowMinute, now, recipientName, caregiverName);
-
-    const [openAlerts, openTasks, ratingSummary] = await Promise.all([
-      this.alerts.listOpen(50),
-      this.tasks.countOpen(),
-      this.ratings.summarise(null),
-    ]);
+    const openAlerts = await this.alerts.listOpen(50);
 
     const criticalAlerts: AlertResult[] = openAlerts
       .sort((a, b) => {
@@ -116,7 +128,7 @@ export class GetAdminDashboardUseCase {
       })
       .map(toAlertResult);
 
-    return {
+    const result: DashboardResult = {
       operations: this.buildOperations(
         visits,
         nowMinute,
@@ -136,6 +148,8 @@ export class GetAdminDashboardUseCase {
         openTasks,
       ),
     };
+    this.cache = { value: result, expiresAt: now.getTime() + DASHBOARD_CACHE_TTL_MS };
+    return result;
   }
 
   private buildOperations(
@@ -321,64 +335,70 @@ export class GetAdminDashboardUseCase {
     recipientName: Map<string, string>,
     caregiverName: Map<string, string>,
   ): Promise<void> {
-    for (const visit of visits) {
-      if (visit.status !== VisitStatus.Scheduled || visit.caregiverId === null) {
-        continue;
-      }
-      const lateBy = nowMinute - visit.window.startMinute;
-      if (lateBy < LATE_THRESHOLD_MINUTES) {
-        continue;
-      }
-      const caregiver = caregiverName.get(visit.caregiverId) ?? 'The caregiver';
-      const recipient = recipientName.get(visit.careRecipientId) ?? 'a recipient';
+    // Each visit targets a distinct alert, so the check-then-raise pairs are
+    // independent and run in parallel rather than one DB round trip after another.
+    await Promise.all(
+      visits.map(async (visit) => {
+        if (visit.status !== VisitStatus.Scheduled || visit.caregiverId === null) {
+          return;
+        }
+        const lateBy = nowMinute - visit.window.startMinute;
+        if (lateBy < LATE_THRESHOLD_MINUTES) {
+          return;
+        }
+        const caregiver = caregiverName.get(visit.caregiverId) ?? 'The caregiver';
+        const recipient = recipientName.get(visit.careRecipientId) ?? 'a recipient';
 
-      if (lateBy >= MISSED_THRESHOLD_MINUTES) {
-        if (!(await this.alerts.existsOpenForVisit(AlertType.MissedClockIn, visit.id))) {
+        if (lateBy >= MISSED_THRESHOLD_MINUTES) {
+          if (!(await this.alerts.existsOpenForVisit(AlertType.MissedClockIn, visit.id))) {
+            await this.raiseAlert.execute({
+              type: AlertType.MissedClockIn,
+              severity: AlertSeverity.Critical,
+              title: 'Missed clock in',
+              description: `${caregiver} has not clocked in for the ${recipient} visit.`,
+              relatedVisitId: visit.id,
+              relatedCaregiverId: visit.caregiverId,
+              relatedCareRecipientId: visit.careRecipientId,
+            });
+          }
+        } else if (!(await this.alerts.existsOpenForVisit(AlertType.LateCaregiver, visit.id))) {
           await this.raiseAlert.execute({
-            type: AlertType.MissedClockIn,
-            severity: AlertSeverity.Critical,
-            title: 'Missed clock in',
-            description: `${caregiver} has not clocked in for the ${recipient} visit.`,
+            type: AlertType.LateCaregiver,
+            severity: AlertSeverity.High,
+            title: 'Late caregiver',
+            description: `${caregiver} is ${lateBy} min late for the ${recipient} visit.`,
             relatedVisitId: visit.id,
             relatedCaregiverId: visit.caregiverId,
             relatedCareRecipientId: visit.careRecipientId,
           });
         }
-      } else if (!(await this.alerts.existsOpenForVisit(AlertType.LateCaregiver, visit.id))) {
-        await this.raiseAlert.execute({
-          type: AlertType.LateCaregiver,
-          severity: AlertSeverity.High,
-          title: 'Late caregiver',
-          description: `${caregiver} is ${lateBy} min late for the ${recipient} visit.`,
-          relatedVisitId: visit.id,
-          relatedCaregiverId: visit.caregiverId,
-          relatedCareRecipientId: visit.careRecipientId,
-        });
-      }
-    }
+      }),
+    );
 
     const cutoff = new Date(now.getTime() + CERT_EXPIRY_WINDOW_DAYS * MS_PER_DAY);
     const expiring = await this.certifications.listExpiringBefore(cutoff);
-    for (const certification of expiring) {
-      const days = certification.daysUntilExpiry(now);
-      if (days < 0) {
-        continue;
-      }
-      if (
-        await this.alerts.existsOpenForCaregiver(
-          AlertType.CertificationExpiring,
-          certification.caregiverId,
-        )
-      ) {
-        continue;
-      }
-      await this.raiseAlert.execute({
-        type: AlertType.CertificationExpiring,
-        severity: AlertSeverity.Medium,
-        title: 'Certification expiring',
-        description: `${certification.name} certification expires in ${days} day${days === 1 ? '' : 's'}.`,
-        relatedCaregiverId: certification.caregiverId,
-      });
-    }
+    await Promise.all(
+      expiring.map(async (certification) => {
+        const days = certification.daysUntilExpiry(now);
+        if (days < 0) {
+          return;
+        }
+        if (
+          await this.alerts.existsOpenForCaregiver(
+            AlertType.CertificationExpiring,
+            certification.caregiverId,
+          )
+        ) {
+          return;
+        }
+        await this.raiseAlert.execute({
+          type: AlertType.CertificationExpiring,
+          severity: AlertSeverity.Medium,
+          title: 'Certification expiring',
+          description: `${certification.name} certification expires in ${days} day${days === 1 ? '' : 's'}.`,
+          relatedCaregiverId: certification.caregiverId,
+        });
+      }),
+    );
   }
 }

@@ -46,7 +46,7 @@ export class AdminAuditPrisma implements AuditRecorder, AdminAuditReadPort {
     category: AuditCategory | null,
   ): Promise<{ entries: AuditLogEntry[]; total: number }> {
     const where = category === null ? {} : { category: TO_PRISMA_CATEGORY[category] };
-    const [rows, total] = await this.prisma.$transaction([
+    const [rows, total] = await Promise.all([
       this.prisma.adminAuditEvent.findMany({
         where,
         orderBy: { createdAt: 'desc' },

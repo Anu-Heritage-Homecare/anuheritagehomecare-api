@@ -41,7 +41,7 @@ export class HealthEventReadPrisma implements HealthEventReadModel {
 
   async listPage(filter: HealthEventFilter): Promise<HealthEventPageView> {
     const where = this.whereForFilter(filter);
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.healthEvent.count({ where }),
       this.prisma.healthEvent.findMany({
         where,

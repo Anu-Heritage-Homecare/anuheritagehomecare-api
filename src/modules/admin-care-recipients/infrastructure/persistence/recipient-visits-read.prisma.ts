@@ -65,7 +65,7 @@ export class RecipientVisitsReadPrisma implements RecipientVisitsReadModel {
 
   async listPage(filter: RecipientVisitsFilter): Promise<RecipientVisitsPageView> {
     const where = this.whereForFilter(filter);
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.visit.count({ where }),
       this.prisma.visit.findMany({
         where,

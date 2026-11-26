@@ -156,7 +156,7 @@ export class PlansBillingReadPrisma
     pageSize: number,
   ): Promise<SubscriptionPageView> {
     const where = { currency, ...(status === null ? {} : { status }) };
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.subscription.count({ where }),
       this.prisma.subscription.findMany({
         where,
@@ -225,7 +225,7 @@ export class PlansBillingReadPrisma
     pageSize: number,
   ): Promise<TransactionPageView> {
     const where = { currency, ...(status === null ? {} : { status }) };
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.payment.count({ where }),
       this.prisma.payment.findMany({
         where,
@@ -268,7 +268,7 @@ export class PlansBillingReadPrisma
     pageSize: number,
   ): Promise<CareRequestPageView> {
     const where = status === null ? {} : { status };
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.additionalCareRequest.count({ where }),
       this.prisma.additionalCareRequest.findMany({
         where,

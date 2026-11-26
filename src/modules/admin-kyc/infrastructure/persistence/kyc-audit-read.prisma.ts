@@ -22,7 +22,7 @@ export class KycAuditReadPrisma implements KycAuditReadModel {
     pageSize: number,
   ): Promise<KycAuditPageView> {
     const where = status === null ? {} : { status };
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.kycVerification.count({ where }),
       this.prisma.kycVerification.findMany({
         where,

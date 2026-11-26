@@ -49,7 +49,7 @@ export class FamilyDirectoryReadPrisma implements FamilyDirectoryReadModel {
     pageSize: number,
   ): Promise<FamilyPageView> {
     const where = status === null ? {} : { status };
-    const [total, entries] = await this.prisma.$transaction([
+    const [total, entries] = await Promise.all([
       this.prisma.familyDirectoryEntry.count({ where }),
       this.prisma.familyDirectoryEntry.findMany({
         where,

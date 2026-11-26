@@ -56,7 +56,7 @@ export class CareRecipientReadPrisma implements CareRecipientReadModel {
 
   async listPage(query: CareRecipientListQuery): Promise<CareRecipientPageView> {
     const where = this.whereForTab(query);
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.careRecipient.count({ where }),
       this.prisma.careRecipient.findMany({
         where,
@@ -84,6 +84,9 @@ export class CareRecipientReadPrisma implements CareRecipientReadModel {
 
   async counts(monthStart: Date, newSince: Date): Promise<CareRecipientCountsView> {
     const notDraft: Prisma.CareRecipientWhereInput = { status: { not: PrismaStatus.DRAFT } };
+    // Independent tallies with no need for a shared snapshot, so they run in
+    // parallel. A serialising $transaction here would pay one remote round trip
+    // per count; Promise.all collapses them into a single wave.
     const [
       total,
       active,
@@ -93,7 +96,7 @@ export class CareRecipientReadPrisma implements CareRecipientReadModel {
       highPriority,
       newCount,
       missingCarePlan,
-    ] = await this.prisma.$transaction([
+    ] = await Promise.all([
       this.prisma.careRecipient.count({ where: notDraft }),
       this.prisma.careRecipient.count({ where: { status: PrismaStatus.ACTIVE } }),
       this.prisma.careRecipient.count({ where: { status: PrismaStatus.ON_HOLD } }),

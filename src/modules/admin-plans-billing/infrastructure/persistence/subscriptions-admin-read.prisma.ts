@@ -34,7 +34,7 @@ export class SubscriptionsAdminReadPrisma implements SubscriptionsAdminReadModel
     pageSize: number,
   ): Promise<EnrichedSubscriptionPageView> {
     const where = { currency, ...(status === null ? {} : { status }) };
-    const [total, rows] = await this.prisma.$transaction([
+    const [total, rows] = await Promise.all([
       this.prisma.subscription.count({ where }),
       this.prisma.subscription.findMany({
         where,

@@ -147,7 +147,7 @@ export class VisitPrismaRepository implements VisitRepository {
     offset: number,
   ): Promise<{ visits: Visit[]; total: number }> {
     const where = { careRecipientId, status: PrismaVisitStatus.COMPLETED };
-    const [rows, total] = await this.prisma.$transaction([
+    const [rows, total] = await Promise.all([
       this.prisma.visit.findMany({
         where,
         include: VISIT_INCLUDE,

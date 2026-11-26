@@ -64,6 +64,12 @@ export class AssignCaregiverUseCase {
         'A caregiver cannot be assigned to a draft or discharged care recipient',
       );
     }
+    // A caregiver can hold only one seat on a team, so the same person can never be
+    // assigned (or reassigned) to a recipient they already serve.
+    const active = await this.assignments.listActiveForRecipient(command.recipientId);
+    if (active.some((assignment) => assignment.caregiverId === command.caregiverId)) {
+      throw new ValidationException('This caregiver is already on the care team');
+    }
 
     const now = this.clock.now();
     const assignment = CareTeamAssignment.assign({
